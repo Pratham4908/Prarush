@@ -285,6 +285,18 @@ export default function App() {
         </div>
 
         <div className="sim-toggles">
+          <a
+            href="/presentation.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sim-btn"
+            title="Open 10-Slide Pitch Deck Presentation"
+            style={{ textDecoration: 'none' }}
+          >
+            <span style={{ fontSize: '12px' }}>📊</span>
+            <span>Pitch Deck</span>
+          </a>
+
           <button
             className="sim-btn"
             onClick={() => setIsGlobalSearchOpen(true)}
