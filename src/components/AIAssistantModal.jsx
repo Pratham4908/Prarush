@@ -3,7 +3,13 @@ import { Bot, Send, Volume2, X, Sparkles, ArrowRight, Trash2, RefreshCw } from '
 import { processCityAIQuery } from '../utils/aiEngine.js';
 import { audioSystem } from '../utils/audioSystem.js';
 
-export default function AIAssistantModal({ isOpen, onClose, onNavigateTab, activeCityName = 'MetroPulse' }) {
+export default function AIAssistantModal({ 
+  isOpen, 
+  onClose, 
+  onNavigateTab, 
+  activeCityName = 'MetroPulse',
+  currentLocationData = null 
+}) {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -49,7 +55,7 @@ export default function AIAssistantModal({ isOpen, onClose, onNavigateTab, activ
 
     // Realistic AI agent thinking latency
     setTimeout(() => {
-      const aiResponse = processCityAIQuery(q, activeCityName);
+      const aiResponse = processCityAIQuery(q, activeCityName, currentLocationData);
       const aiMsg = {
         id: Date.now() + 1,
         sender: 'ai',

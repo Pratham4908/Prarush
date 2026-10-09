@@ -144,8 +144,8 @@ export default function ExploreView({ spots = EXPLORE_SPOTS, onNavigateToSpot, o
                 {/* Media Image */}
                 <div className="card-media">
                   <img src={spot.image} alt={spot.name} loading="lazy" />
-                  <div className="card-badge-top-left">
-                    <span>{spot.subCategory}</span>
+                  <div className="card-badge-top-left" style={{ color: spot.isRealOSMData ? '#6ee7b7' : '#38bdf8', borderColor: spot.isRealOSMData ? '#10b98155' : 'var(--border-glass)' }}>
+                    <span>{spot.isRealOSMData ? '🌐 OSM Verified' : spot.subCategory}</span>
                   </div>
                   <div className="card-badge-top-right">
                     <span>★ {spot.rating}</span>
@@ -179,7 +179,14 @@ export default function ExploreView({ spots = EXPLORE_SPOTS, onNavigateToSpot, o
 
                 {/* Card Body */}
                 <div className="card-body">
-                  <div className="card-title">{spot.name}</div>
+                  <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>{spot.name}</span>
+                    {spot.isRealOSMData && (
+                      <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                        OSM REAL POI
+                      </span>
+                    )}
+                  </div>
                   <div className="card-meta-row">
                     <span>📍 {spot.neighborhood}</span>
                     <span style={{ color: '#38bdf8', fontWeight: 600 }}>{spot.costAvg}</span>

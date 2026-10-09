@@ -13,6 +13,7 @@ export default function SafetySecurityView({
   setActiveRouteType, 
   onToggleSOS, 
   isSirenActive,
+  onRecalculateRealRoute,
   onOpenReportModal 
 }) {
   const currentRoute = routeOptions || ROUTE_OPTIONS;
@@ -23,12 +24,14 @@ export default function SafetySecurityView({
   const [showFakeCallModal, setShowFakeCallModal] = useState(false);
   const [locationCopied, setLocationCopied] = useState(false);
 
-  const navSteps = [
-    { text: "Start at Metropolis Central Train Station. Head South on Grand Blvd.", safeNotice: "Well-lit corridor (98% LED), High footfall" },
-    { text: "Pass Civic Plaza North Police Substation.", safeNotice: "Manned Police post & Emergency call box on your left" },
-    { text: "Turn slightly East along Old Quarter Avenue toward Lantern Alley.", safeNotice: "Avoided unlit Elm Lane shortcut. Safe pedestrian zone ahead" },
-    { text: "Arrived safely at The Rusty Lantern Ramen!", safeNotice: "Area rated 92% night safety" }
-  ];
+  const navSteps = (currentRoute.steps && currentRoute.steps.length > 0)
+    ? currentRoute.steps
+    : [
+      { text: `Start at ${currentRoute.origin?.name || 'Metropolis Central Station'}. Head along lit main avenue.`, safeNotice: "Well-lit corridor (98% LED), High footfall" },
+      { text: "Pass Civic Plaza North Police Substation & Emergency Kiosk.", safeNotice: "Manned Police post & Emergency call box on your left" },
+      { text: "Turn along illuminated pedestrian boulevard toward destination.", safeNotice: "Avoided unlit alley shortcut. Safe pedestrian corridor" },
+      { text: `Arrived safely at ${currentRoute.destination?.name || 'The Rusty Lantern Ramen'}!`, safeNotice: "Area rated 92% night safety" }
+    ];
 
   const handleStartNav = () => {
     setIsNavigating(true);
@@ -136,6 +139,41 @@ export default function SafetySecurityView({
             </div>
           </div>
 
+          {/* Live OSRM Walking Network Status Banner */}
+          <div style={{
+            background: currentRoute.isRealOSRM ? 'rgba(16, 185, 129, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+            border: `1px solid ${currentRoute.isRealOSRM ? 'rgba(16, 185, 129, 0.35)' : 'rgba(56, 189, 248, 0.3)'}`,
+            borderRadius: 12,
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.74rem' }}>
+              <span style={{ fontSize: '1rem' }}>🌐</span>
+              <div>
+                <strong style={{ color: currentRoute.isRealOSRM ? '#6ee7b7' : '#38bdf8' }}>
+                  {currentRoute.isRealOSRM ? 'OSRM Live Walking Engine Active' : 'Real-Time Pedestrian Route Engine'}
+                </strong>
+                <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                  Street geometry &amp; turn steps synced via OpenStreetMap
+                </div>
+              </div>
+            </div>
+
+            {onRecalculateRealRoute && (
+              <button
+                className="sim-btn"
+                onClick={onRecalculateRealRoute}
+                title="Recalculate route via live OSRM API"
+                style={{ fontSize: '0.68rem', padding: '4px 8px', flexShrink: 0 }}
+              >
+                🔄 Recalculate
+              </button>
+            )}
+          </div>
+
           {/* Route Mode Toggle Selector */}
           <div style={{
             display: 'grid',
@@ -164,8 +202,12 @@ export default function SafetySecurityView({
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981' }}>SAFE ROUTE AI™</span>
                 <span style={{ fontSize: '0.65rem', background: '#10b981', color: '#090d16', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>97% SAFE</span>
               </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>14 mins</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>1.4 km • Well-lit Boulevard</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>
+                {currentRoute.safestRoute?.durationMinutes ? `${currentRoute.safestRoute.durationMinutes} mins` : '14 mins'}
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                {currentRoute.safestRoute?.distanceKm || '1.4 km'} • Well-lit Boulevard
+              </div>
             </button>
 
             {/* Fastest Route Option */}
@@ -187,8 +229,12 @@ export default function SafetySecurityView({
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b' }}>FASTEST PATH</span>
                 <span style={{ fontSize: '0.65rem', background: '#f59e0b', color: '#090d16', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>62% SAFE</span>
               </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>11 mins</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>1.1 km • Dark Elm Alley</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>
+                {currentRoute.fastestRoute?.durationMinutes ? `${currentRoute.fastestRoute.durationMinutes} mins` : '11 mins'}
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                {currentRoute.fastestRoute?.distanceKm || '1.1 km'} • Dark Elm Alley
+              </div>
             </button>
           </div>
 

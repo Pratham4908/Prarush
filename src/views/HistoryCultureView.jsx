@@ -59,8 +59,8 @@ export default function HistoryCultureView({ sites = HERITAGE_SITES, onPlayAudio
             >
               <div className="card-media">
                 <img src={site.image} alt={site.name} loading="lazy" />
-                <div className="card-badge-top-left" style={{ color: '#c084fc', borderColor: '#c084fc55' }}>
-                  <span>{site.period}</span>
+                <div className="card-badge-top-left" style={{ color: site.isRealWikiData ? '#67e8f9' : '#c084fc', borderColor: site.isRealWikiData ? '#06b6d455' : '#c084fc55' }}>
+                  <span>{site.isRealWikiData ? '🌐 Wikipedia Live' : site.period}</span>
                 </div>
                 <div className="card-badge-top-right">
                   <Award size={13} color="#f59e0b" />
@@ -69,7 +69,14 @@ export default function HistoryCultureView({ sites = HERITAGE_SITES, onPlayAudio
               </div>
 
               <div className="card-body">
-                <div className="card-title">{site.name}</div>
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{site.name}</span>
+                  {site.isRealWikiData && (
+                    <span style={{ fontSize: '0.62rem', background: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      WIKIPEDIA API
+                    </span>
+                  )}
+                </div>
                 <div className="card-meta-row">
                   <span>🏛️ Architect: {site.architect}</span>
                   <span style={{ color: '#38bdf8' }}>👥 {site.visitorsAnnually} / yr</span>

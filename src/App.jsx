@@ -37,7 +37,9 @@ import {
 import { 
   fetchLiveWeather, 
   fetchLiveAirQuality, 
-  fetchRealNearbyPOIs 
+  fetchRealNearbyPOIs,
+  fetchRealWikipediaLandmarks,
+  fetchRealWalkingRoute
 } from './utils/realDataService.js';
 
 export default function App() {
@@ -101,11 +103,12 @@ export default function App() {
         const geoInfo = await reverseGeocodeCoords(lat, lon);
         const cityName = geoInfo.city || geoInfo.name || 'Local District';
 
-        // Fetch real live weather and air quality from Open-Meteo
-        const [liveWeather, liveAQI, realPOIs] = await Promise.all([
+        // Fetch real live weather, air quality, POIs, and Wikipedia landmarks
+        const [liveWeather, liveAQI, realPOIs, wikiLandmarks] = await Promise.all([
           fetchLiveWeather(lat, lon),
           fetchLiveAirQuality(lat, lon),
-          fetchRealNearbyPOIs(lat, lon, cityName)
+          fetchRealNearbyPOIs(lat, lon, cityName),
+          fetchRealWikipediaLandmarks(lat, lon)
         ]);
 
         const customProfile = generateCityProfileForLocation(cityName, [lat, lon], geoInfo.country);
@@ -113,7 +116,9 @@ export default function App() {
           ...customProfile.weather,
           ...liveWeather,
           aqi: liveAQI.aqi,
-          aqiStatus: liveAQI.status
+          aqiStatus: liveAQI.status,
+          pm25: liveAQI.pm25,
+          pm10: liveAQI.pm10
         };
 
         if (realPOIs && realPOIs.length > 0) {
@@ -123,6 +128,9 @@ export default function App() {
         setSelectedCityId(customProfile.id);
         setCurrentCityData(customProfile);
         setActiveSpots(customProfile.spots);
+        if (wikiLandmarks && wikiLandmarks.length > 0) {
+          setActiveHeritage(wikiLandmarks);
+        }
         setActiveIncidents(customProfile.incidents);
         setActiveRouteData(customProfile.routes);
       } catch (e) {
@@ -152,18 +160,38 @@ export default function App() {
     setSelectedCityId(cityId);
     const found = CITIES.find(c => c.id === cityId);
     if (found) {
-      // Fetch real live weather from Open-Meteo for preset coordinates
+      // Fetch real live weather from Open-Meteo and real Wikipedia landmarks
       try {
-        const [liveWeather, liveAQI] = await Promise.all([
+        const [liveWeather, liveAQI, wikiLandmarks, realPOIs] = await Promise.all([
           fetchLiveWeather(found.center[0], found.center[1]),
-          fetchLiveAirQuality(found.center[0], found.center[1])
+          fetchLiveAirQuality(found.center[0], found.center[1]),
+          fetchRealWikipediaLandmarks(found.center[0], found.center[1]),
+          fetchRealNearbyPOIs(found.center[0], found.center[1], found.name)
         ]);
-        found.weather = { ...found.weather, ...liveWeather, aqi: liveAQI.aqi, aqiStatus: liveAQI.status };
-      } catch {}
+        found.weather = { 
+          ...found.weather, 
+          ...liveWeather, 
+          aqi: liveAQI.aqi, 
+          aqiStatus: liveAQI.status,
+          pm25: liveAQI.pm25,
+          pm10: liveAQI.pm10
+        };
+        if (wikiLandmarks && wikiLandmarks.length > 0) {
+          setActiveHeritage(wikiLandmarks);
+        } else {
+          setActiveHeritage(HERITAGE_SITES);
+        }
+        if (realPOIs && realPOIs.length > 0) {
+          setActiveSpots(realPOIs);
+        } else {
+          setActiveSpots(EXPLORE_SPOTS.filter(s => s.cityId === cityId || !s.cityId));
+        }
+      } catch {
+        setActiveHeritage(HERITAGE_SITES);
+        setActiveSpots(EXPLORE_SPOTS.filter(s => s.cityId === cityId || !s.cityId));
+      }
 
       setCurrentCityData({ ...found });
-      setActiveSpots(EXPLORE_SPOTS.filter(s => s.cityId === cityId || !s.cityId));
-      setActiveHeritage(HERITAGE_SITES);
       setActiveIncidents(SAFETY_INCIDENTS);
       setActiveRouteData(ROUTE_OPTIONS);
       audioSystem.playTone(550, 'sine', 0.1);
@@ -174,16 +202,27 @@ export default function App() {
   const handleSelectGlobalLocation = async (name, coords, country = 'World') => {
     const customProfile = generateCityProfileForLocation(name, coords, country);
 
-    // Fetch real live weather and AQI
+    // Fetch real live weather, AQI, POIs, and Wikipedia landmarks
     try {
-      const [liveWeather, liveAQI, realPOIs] = await Promise.all([
+      const [liveWeather, liveAQI, realPOIs, wikiLandmarks] = await Promise.all([
         fetchLiveWeather(coords[0], coords[1]),
         fetchLiveAirQuality(coords[0], coords[1]),
-        fetchRealNearbyPOIs(coords[0], coords[1], name)
+        fetchRealNearbyPOIs(coords[0], coords[1], name),
+        fetchRealWikipediaLandmarks(coords[0], coords[1])
       ]);
-      customProfile.weather = { ...customProfile.weather, ...liveWeather, aqi: liveAQI.aqi, aqiStatus: liveAQI.status };
+      customProfile.weather = { 
+        ...customProfile.weather, 
+        ...liveWeather, 
+        aqi: liveAQI.aqi, 
+        aqiStatus: liveAQI.status,
+        pm25: liveAQI.pm25,
+        pm10: liveAQI.pm10
+      };
       if (realPOIs && realPOIs.length > 0) {
         customProfile.spots = realPOIs;
+      }
+      if (wikiLandmarks && wikiLandmarks.length > 0) {
+        setActiveHeritage(wikiLandmarks);
       }
     } catch {}
 
@@ -193,6 +232,31 @@ export default function App() {
     setActiveIncidents(customProfile.incidents);
     setActiveRouteData(customProfile.routes);
     audioSystem.playSuccessSound();
+  };
+
+  // Handler: Refresh live Open-Meteo telemetry
+  const handleRefreshWeather = async () => {
+    try {
+      const [lat, lon] = currentCityData.center;
+      const [liveWeather, liveAQI] = await Promise.all([
+        fetchLiveWeather(lat, lon),
+        fetchLiveAirQuality(lat, lon)
+      ]);
+      setCurrentCityData(prev => ({
+        ...prev,
+        weather: {
+          ...prev.weather,
+          ...liveWeather,
+          aqi: liveAQI.aqi,
+          aqiStatus: liveAQI.status,
+          pm25: liveAQI.pm25,
+          pm10: liveAQI.pm10
+        }
+      }));
+      audioSystem.playSuccessSound();
+    } catch (e) {
+      console.warn('Refresh weather failed:', e.message);
+    }
   };
 
   // Handler: Trigger Real Browser GPS manually
@@ -253,8 +317,12 @@ export default function App() {
     setActiveAudioGuide(null);
   };
 
-  // Destination handover from Explore or Map to SafeRoute Navigation
-  const handleNavigateToSpot = (spot) => {
+  // Destination handover from Explore or Map to SafeRoute Navigation with REAL OSRM Walking Engine
+  const handleNavigateToSpot = async (spot) => {
+    const originCoords = activeRouteData?.origin?.coords || currentCityData.center;
+    const destCoords = spot.coords;
+
+    // Immediately update destination name & switch tab
     setActiveRouteData(prev => ({
       ...prev,
       destination: {
@@ -264,6 +332,68 @@ export default function App() {
     }));
     setActiveTab('safety');
     audioSystem.playTone(640, 'triangle', 0.15);
+
+    // Call real OSRM live walking routing API
+    try {
+      const realRoute = await fetchRealWalkingRoute(originCoords, destCoords);
+      if (realRoute) {
+        setActiveRouteData(prev => ({
+          ...prev,
+          destination: {
+            name: spot.name,
+            coords: spot.coords
+          },
+          fastestRoute: {
+            ...prev.fastestRoute,
+            durationMinutes: realRoute.durationMinutes,
+            distanceKm: realRoute.distanceKm,
+            waypoints: realRoute.fastestWaypoints
+          },
+          safestRoute: {
+            ...prev.safestRoute,
+            durationMinutes: Math.round(realRoute.durationMinutes * 1.15) || (realRoute.durationMinutes + 3),
+            distanceKm: `${(parseFloat(realRoute.distanceKm) * 1.1).toFixed(1)} km`,
+            waypoints: realRoute.safestWaypoints
+          },
+          steps: realRoute.steps,
+          isRealOSRM: true
+        }));
+      }
+    } catch (e) {
+      console.warn('Live OSRM routing handover:', e.message);
+    }
+  };
+
+  // Handler: Recalculate route via live OSRM
+  const handleRecalculateRealRoute = async () => {
+    const originCoords = activeRouteData?.origin?.coords || currentCityData.center;
+    const destCoords = activeRouteData?.destination?.coords || [currentCityData.center[0] + 0.008, currentCityData.center[1] + 0.006];
+
+    try {
+      const realRoute = await fetchRealWalkingRoute(originCoords, destCoords);
+      if (realRoute) {
+        setActiveRouteData(prev => ({
+          ...prev,
+          fastestRoute: {
+            ...prev.fastestRoute,
+            durationMinutes: realRoute.durationMinutes,
+            distanceKm: realRoute.distanceKm,
+            waypoints: realRoute.fastestWaypoints
+          },
+          safestRoute: {
+            ...prev.safestRoute,
+            durationMinutes: Math.round(realRoute.durationMinutes * 1.15) || (realRoute.durationMinutes + 3),
+            distanceKm: `${(parseFloat(realRoute.distanceKm) * 1.1).toFixed(1)} km`,
+            waypoints: realRoute.safestWaypoints
+          },
+          steps: realRoute.steps,
+          isRealOSRM: true
+        }));
+        audioSystem.playSuccessSound();
+      }
+    } catch (e) {
+      console.warn('OSRM recalculation error:', e.message);
+    }
   };
 
   // Map tap hazard reporting
@@ -508,6 +638,7 @@ export default function App() {
                 setActiveRouteType={setActiveRouteType}
                 onToggleSOS={handleToggleSOS}
                 isSirenActive={isSirenActive}
+                onRecalculateRealRoute={handleRecalculateRealRoute}
                 onOpenReportModal={() => {
                   setReportModalDefaults(null);
                   setIsReportModalOpen(true);
@@ -524,8 +655,10 @@ export default function App() {
           {/* TAB 6: SMART CITY PULSE & TELEMETRY */}
           {activeTab === 'pulse' && (
             <SmartPulseView
+              currentCityData={currentCityData}
               citizenReports={citizenReports}
               onUpvoteReport={handleUpvoteReport}
+              onRefreshWeather={handleRefreshWeather}
               onOpenReportModal={() => {
                 setReportModalDefaults(null);
                 setIsReportModalOpen(true);
@@ -568,6 +701,7 @@ export default function App() {
       <AIAssistantModal
         isOpen={isAIModalOpen}
         activeCityName={currentCityData.name}
+        currentLocationData={currentCityData}
         onClose={() => setIsAIModalOpen(false)}
         onNavigateTab={(tab) => setActiveTab(tab)}
       />

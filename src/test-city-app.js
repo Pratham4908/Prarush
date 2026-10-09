@@ -96,6 +96,31 @@ assert(reportScoreNegative.sentiment === 'negative' && reportScoreNegative.sever
 const reportScorePositive = analyzeCitizenReport('Delicious authentic ramen and amazing music', 'peaceful and cozy gem');
 assert(reportScorePositive.sentiment === 'positive', 'Report sentiment analyzer detected positive community gem');
 
+// 7. Testing Real-Time AI Context Injection
+console.log('\n[7] Testing Real Data AI Context Injection:');
+const weatherQueryWithContext = processCityAIQuery('What is the weather today?', 'Tokyo', {
+  center: [35.676, 139.650],
+  weather: {
+    temp: 19,
+    feelsLike: 18,
+    condition: 'Sunny Breezy',
+    iconEmoji: '🌤️',
+    aqi: 28,
+    aqiStatus: 'Good',
+    rainChance: 5,
+    windKmh: 14
+  }
+});
+assert(weatherQueryWithContext.type === 'smart_pulse', 'AI recognized weather query');
+assert(weatherQueryWithContext.text.includes('Tokyo'), 'AI injected real city context name');
+assert(weatherQueryWithContext.text.includes('19°C'), 'AI injected real temperature telemetry');
+
+const locationQueryRes = processCityAIQuery('Where am I right now?', 'Paris', {
+  center: [48.8566, 2.3522]
+});
+assert(locationQueryRes.type === 'location_status', 'AI recognized location query intent');
+assert(locationQueryRes.text.includes('Paris') && locationQueryRes.text.includes('48.8566'), 'AI quoted exact live coordinates and city');
+
 console.log(`\n========================================`);
 console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`);
 console.log(`========================================\n`);
