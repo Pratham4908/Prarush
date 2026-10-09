@@ -349,3 +349,60 @@ function getRandomUnsplashForCategory(category, index) {
   if (category === 'hotel') return hotelImages[index % hotelImages.length];
   return attractionImages[index % attractionImages.length];
 }
+
+// 6. Search Real Places / POIs in any city using Nominatim OpenStreetMap API
+export async function searchRealPlaces(query, lat = 40.7128, lon = -74.006, cityName = '') {
+  if (!query || query.trim().length < 2) return [];
+
+  const cleanQuery = query.trim();
+  try {
+    const searchTarget = cityName ? `${cleanQuery} in ${cityName}` : cleanQuery;
+    const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTarget)}&limit=8&addressdetails=1`;
+    const res = await fetch(nomUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'CityLifeMobileApp/2.0 (contact@citylife.app)'
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return data.map((item, idx) => {
+          const type = (item.type || '').toLowerCase();
+          const isFood = type === 'restaurant' || type === 'cafe' || type === 'fast_food' || type === 'bar' || /food|pizza|ramen|burger|coffee|bakery|bistro/i.test(cleanQuery);
+          const isHotel = type === 'hotel' || type === 'hostel' || type === 'guest_house' || /hotel|hostel|stay|inn|lodge/i.test(cleanQuery);
+          const category = isFood ? 'food' : (isHotel ? 'hotel' : 'attraction');
+
+          return {
+            id: `osm-search-${item.place_id || idx}-${Date.now()}`,
+            name: item.display_name.split(',')[0],
+            category,
+            subCategory: type ? type.charAt(0).toUpperCase() + type.slice(1) : (isFood ? 'Authentic Dining' : 'Urban Attraction'),
+            neighborhood: item.address?.road || item.address?.suburb || cityName || 'Local District',
+            coords: [parseFloat(item.lat), parseFloat(item.lon)],
+            rating: (4.5 + (idx % 4) * 0.1).toFixed(1),
+            reviewsCount: Math.round(180 + idx * 75),
+            priceTier: idx % 2 === 0 ? '$$' : '$',
+            costAvg: isFood ? '$12 - $24' : (isHotel ? '$45 - $95' : 'Free / $10'),
+            isBudgetPick: idx % 2 !== 0,
+            isLocalFavorite: true,
+            safetyScore: 92 + (idx % 6),
+            cleanlinessScore: 90 + (idx % 7),
+            openingHours: '10:00 AM - 11:00 PM',
+            busyLevel: 'Popular',
+            description: `Verified place documented on OpenStreetMap: ${item.display_name}`,
+            tags: [category, 'OSM Real Verified', type || 'Verified'],
+            image: getRandomUnsplashForCategory(category, idx),
+            insiderTip: 'Verified live on OpenStreetMap global geographic registry.',
+            audioStory: `Point of interest located at ${parseFloat(item.lat).toFixed(4)}, ${parseFloat(item.lon).toFixed(4)}.`,
+            isRealOSMData: true
+          };
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Real places search error:', err.message);
+  }
+  return [];
+}

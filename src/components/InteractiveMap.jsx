@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { 
   Layers, Crosshair, Shield, MapPin, Eye, Search, Navigation2, 
   Map as MapIcon, Compass, Sparkles, AlertTriangle, Loader2 
@@ -56,6 +57,18 @@ export default function InteractiveMap({
   const [isLocating, setIsLocating] = useState(false);
   const [clickedLocation, setClickedLocation] = useState(null);
 
+  // Auto-resize observer to prevent gray map tiles
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const ro = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    ro.observe(mapContainerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   // 1. Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -105,8 +118,11 @@ export default function InteractiveMap({
       });
 
       mapInstanceRef.current = map;
+      setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => map.invalidateSize(), 500);
     } else {
       mapInstanceRef.current.setView(center, zoom);
+      setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
     }
   }, [center, zoom]);
 
@@ -651,7 +667,12 @@ export default function InteractiveMap({
       )}
 
       {/* Leaflet DOM element */}
-      <div ref={mapContainerRef} className="leaflet-map-element" id="interactive-leaflet-map" />
+      <div 
+        ref={mapContainerRef} 
+        className="leaflet-map-element" 
+        id="interactive-leaflet-map" 
+        style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+      />
     </div>
   );
 }

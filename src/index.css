@@ -927,7 +927,31 @@ body {
 }
 
 /* Custom dark tile styling for Leaflet */
+.map-container-wrap {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+  background: #0b1120;
+  position: relative;
+  box-shadow: var(--shadow-md);
+}
+
+.leaflet-map-element {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 200px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
 .leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
   background: #0b1120 !important;
   font-family: var(--font-body) !important;
 }
@@ -942,4 +966,23 @@ body {
 
 .leaflet-popup-tip {
   background: #111827 !important;
+}
+
+.user-gps-pulse {
+  animation: pulseBeacon 2s infinite ease-out;
+}
+
+@keyframes pulseBeacon {
+  0% { transform: scale(0.95); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.75; }
+  100% { transform: scale(0.95); opacity: 1; }
+}
+
+.custom-map-marker {
+  transition: transform 0.2s ease;
+}
+
+.custom-map-marker:hover {
+  transform: scale(1.2);
+  z-index: 9999 !important;
 }

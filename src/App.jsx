@@ -560,12 +560,21 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 1: EXPLORE & HOSPITALITY */}
+          {/* TAB 1: EXPLORE & HOSPITALITY (WITH EMBEDDED DASHBOARD MAP & LIVE DATA) */}
           {activeTab === 'explore' && (
             <ExploreView
+              currentCityData={currentCityData}
               spots={activeSpots}
+              heritageSites={activeHeritage}
+              incidents={activeIncidents}
+              routeData={activeRouteData}
+              activeRouteType={activeRouteType}
               onNavigateToSpot={handleNavigateToSpot}
               onPlayAudioStory={handlePlayAudioStory}
+              onTriggerGPS={handleTriggerGPS}
+              onOpenGlobalSearch={() => setIsGlobalSearchOpen(true)}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onAddSpots={(newSpots) => setActiveSpots(prev => [...newSpots, ...prev])}
             />
           )}
 
