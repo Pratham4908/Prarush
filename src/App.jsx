@@ -4,19 +4,23 @@ import {
 } from 'lucide-react';
 
 // Components
-import CityHeader from './components/CityHeader';
-import Navigation from './components/Navigation';
-import InteractiveMap from './components/InteractiveMap';
-import CitizenReportModal from './components/CitizenReportModal';
-import AIAssistantModal from './components/AIAssistantModal';
-import GlobalLocationSearchModal from './components/GlobalLocationSearchModal';
+import CityHeader from './components/CityHeader.jsx';
+import Navigation from './components/Navigation.jsx';
+import InteractiveMap from './components/InteractiveMap.jsx';
+import CitizenReportModal from './components/CitizenReportModal.jsx';
+import AIAssistantModal from './components/AIAssistantModal.jsx';
+import GlobalLocationSearchModal from './components/GlobalLocationSearchModal.jsx';
+import AuthModal from './components/AuthModal.jsx';
+import UserProfileModal from './components/UserProfileModal.jsx';
+import NightWalkGuardianModal from './components/NightWalkGuardianModal.jsx';
+import MultilingualPhrasebookModal from './components/MultilingualPhrasebookModal.jsx';
 
 // Views
-import ExploreView from './views/ExploreView';
-import HistoryCultureView from './views/HistoryCultureView';
-import SafetySecurityView from './views/SafetySecurityView';
-import BestWorstView from './views/BestWorstView';
-import SmartPulseView from './views/SmartPulseView';
+import ExploreView from './views/ExploreView.jsx';
+import HistoryCultureView from './views/HistoryCultureView.jsx';
+import SafetySecurityView from './views/SafetySecurityView.jsx';
+import BestWorstView from './views/BestWorstView.jsx';
+import SmartPulseView from './views/SmartPulseView.jsx';
 
 // Data & Utilities
 import { CITIES, EXPLORE_SPOTS } from './data/cityData.js';
@@ -24,17 +28,32 @@ import { HERITAGE_SITES } from './data/historyCultureData.js';
 import { SAFETY_INCIDENTS, ROUTE_OPTIONS } from './data/safetyData.js';
 import { INITIAL_CITIZEN_REPORTS } from './data/pulseData.js';
 import { audioSystem } from './utils/audioSystem.js';
+import { getCurrentUser } from './utils/authService.js';
 import { 
   generateCityProfileForLocation, 
   getBrowserGeolocation, 
   reverseGeocodeCoords 
 } from './utils/locationService.js';
+import { 
+  fetchLiveWeather, 
+  fetchLiveAirQuality, 
+  fetchRealNearbyPOIs 
+} from './utils/realDataService.js';
 
 export default function App() {
   const [selectedCityId, setSelectedCityId] = useState('metropulse');
   const [currentCityData, setCurrentCityData] = useState(() => CITIES[0]);
   const [activeTab, setActiveTab] = useState('explore'); // 'explore', 'history', 'map', 'safety', 'compare', 'pulse'
   
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Award-Winning Feature Modals
+  const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
+  const [isPhrasebookModalOpen, setIsPhrasebookModalOpen] = useState(false);
+
   // Dynamic datasets (adapts dynamically when user changes location to ANY city globally)
   const [activeSpots, setActiveSpots] = useState(EXPLORE_SPOTS);
   const [activeHeritage, setActiveHeritage] = useState(HERITAGE_SITES);
@@ -70,6 +89,51 @@ export default function App() {
     }
   });
 
+  // Auto-Fetch Real Browser GPS Location on First Launch!
+  useEffect(() => {
+    async function autoFetchLocation() {
+      try {
+        if (!navigator.geolocation) return;
+        const pos = await getBrowserGeolocation();
+        const [lat, lon] = pos.coords;
+
+        // Fetch real reverse geocode
+        const geoInfo = await reverseGeocodeCoords(lat, lon);
+        const cityName = geoInfo.city || geoInfo.name || 'Local District';
+
+        // Fetch real live weather and air quality from Open-Meteo
+        const [liveWeather, liveAQI, realPOIs] = await Promise.all([
+          fetchLiveWeather(lat, lon),
+          fetchLiveAirQuality(lat, lon),
+          fetchRealNearbyPOIs(lat, lon, cityName)
+        ]);
+
+        const customProfile = generateCityProfileForLocation(cityName, [lat, lon], geoInfo.country);
+        customProfile.weather = {
+          ...customProfile.weather,
+          ...liveWeather,
+          aqi: liveAQI.aqi,
+          aqiStatus: liveAQI.status
+        };
+
+        if (realPOIs && realPOIs.length > 0) {
+          customProfile.spots = realPOIs;
+        }
+
+        setSelectedCityId(customProfile.id);
+        setCurrentCityData(customProfile);
+        setActiveSpots(customProfile.spots);
+        setActiveIncidents(customProfile.incidents);
+        setActiveRouteData(customProfile.routes);
+      } catch (e) {
+        // Fallback default city loaded
+        console.log('GPS auto-fetch notice (using default global metropolis):', e.message);
+      }
+    }
+
+    autoFetchLocation();
+  }, []);
+
   // Clock in status bar
   useEffect(() => {
     const updateTime = () => {
@@ -84,11 +148,20 @@ export default function App() {
   }, []);
 
   // Handler: Switch to Preset City
-  const handleSelectPresetCity = (cityId) => {
+  const handleSelectPresetCity = async (cityId) => {
     setSelectedCityId(cityId);
     const found = CITIES.find(c => c.id === cityId);
     if (found) {
-      setCurrentCityData(found);
+      // Fetch real live weather from Open-Meteo for preset coordinates
+      try {
+        const [liveWeather, liveAQI] = await Promise.all([
+          fetchLiveWeather(found.center[0], found.center[1]),
+          fetchLiveAirQuality(found.center[0], found.center[1])
+        ]);
+        found.weather = { ...found.weather, ...liveWeather, aqi: liveAQI.aqi, aqiStatus: liveAQI.status };
+      } catch {}
+
+      setCurrentCityData({ ...found });
       setActiveSpots(EXPLORE_SPOTS.filter(s => s.cityId === cityId || !s.cityId));
       setActiveHeritage(HERITAGE_SITES);
       setActiveIncidents(SAFETY_INCIDENTS);
@@ -98,8 +171,22 @@ export default function App() {
   };
 
   // Handler: Set ANY Global Location (from search or GPS)
-  const handleSelectGlobalLocation = (name, coords, country = 'World') => {
+  const handleSelectGlobalLocation = async (name, coords, country = 'World') => {
     const customProfile = generateCityProfileForLocation(name, coords, country);
+
+    // Fetch real live weather and AQI
+    try {
+      const [liveWeather, liveAQI, realPOIs] = await Promise.all([
+        fetchLiveWeather(coords[0], coords[1]),
+        fetchLiveAirQuality(coords[0], coords[1]),
+        fetchRealNearbyPOIs(coords[0], coords[1], name)
+      ]);
+      customProfile.weather = { ...customProfile.weather, ...liveWeather, aqi: liveAQI.aqi, aqiStatus: liveAQI.status };
+      if (realPOIs && realPOIs.length > 0) {
+        customProfile.spots = realPOIs;
+      }
+    } catch {}
+
     setSelectedCityId(customProfile.id);
     setCurrentCityData(customProfile);
     setActiveSpots(customProfile.spots);
@@ -108,7 +195,7 @@ export default function App() {
     audioSystem.playSuccessSound();
   };
 
-  // Handler: Trigger Real Browser GPS
+  // Handler: Trigger Real Browser GPS manually
   const handleTriggerGPS = async () => {
     try {
       const pos = await getBrowserGeolocation();
@@ -284,6 +371,16 @@ export default function App() {
           }}
           onTriggerGPS={handleTriggerGPS}
           onOpenGlobalSearch={() => setIsGlobalSearchOpen(true)}
+          currentUser={currentUser}
+          onOpenProfile={() => {
+            if (currentUser) {
+              setIsProfileModalOpen(true);
+            } else {
+              setIsAuthModalOpen(true);
+            }
+          }}
+          onOpenGuardian={() => setIsGuardianModalOpen(true)}
+          onOpenPhrasebook={() => setIsPhrasebookModalOpen(true)}
         />
 
         {/* Scrollable Viewport Content */}
@@ -373,7 +470,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: SAFETY & SECURTY & SAFEROUTE */}
+          {/* TAB 4: SAFETY & SECURITY & SAFEROUTE */}
           {activeTab === 'safety' && (
             <>
               {/* Mini Map Preview for SafeRoute */}
@@ -461,6 +558,39 @@ export default function App() {
         activeCityName={currentCityData.name}
         onClose={() => setIsAIModalOpen(false)}
         onNavigateTab={(tab) => setActiveTab(tab)}
+      />
+
+      {/* User Authentication Modal (Create Account / Sign In) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          setIsAuthModalOpen(false);
+        }}
+      />
+
+      {/* User Profile & Account Settings Modal (Delete Account / Stats) */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        user={currentUser}
+        onClose={() => setIsProfileModalOpen(false)}
+        onUserUpdated={(updated) => setCurrentUser(updated)}
+      />
+
+      {/* Night Walk Guardian Companion Modal */}
+      <NightWalkGuardianModal
+        isOpen={isGuardianModalOpen}
+        onClose={() => setIsGuardianModalOpen(false)}
+        user={currentUser}
+        currentCityName={currentCityData.name}
+        onTriggerSOS={handleToggleSOS}
+      />
+
+      {/* Multilingual Emergency Phrasebook Modal */}
+      <MultilingualPhrasebookModal
+        isOpen={isPhrasebookModalOpen}
+        onClose={() => setIsPhrasebookModalOpen(false)}
       />
     </div>
   );

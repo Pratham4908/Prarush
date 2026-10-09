@@ -1,5 +1,8 @@
 import React from 'react';
-import { ShieldAlert, Bot, CloudSun, AlertTriangle, ChevronDown, Radio, Crosshair, Globe } from 'lucide-react';
+import { 
+  ShieldAlert, Bot, CloudSun, AlertTriangle, ChevronDown, Radio, 
+  Crosshair, User, ShieldCheck, Languages, Globe 
+} from 'lucide-react';
 import { CITIES } from '../data/cityData.js';
 
 export default function CityHeader({
@@ -11,9 +14,12 @@ export default function CityHeader({
   isSirenActive,
   onOpenReportModal,
   onTriggerGPS,
-  onOpenGlobalSearch
+  onOpenGlobalSearch,
+  currentUser,
+  onOpenProfile,
+  onOpenGuardian,
+  onOpenPhrasebook
 }) {
-  // Use passed active city data if custom, else find in CITIES
   const activeCity = currentCityData || CITIES.find(c => c.id === selectedCity) || CITIES[0];
 
   return (
@@ -56,61 +62,85 @@ export default function CityHeader({
                 <option value="__search__">🔍 Search Any City Worldwide...</option>
               </optgroup>
             </select>
-            <span style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ maxWidth: 95, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {activeCity.name.split(' (')[0]}
             </span>
             <ChevronDown size={13} color="#94a3b8" />
           </div>
 
-          {/* Quick GPS Button */}
+          {/* Quick GPS Auto-Detect Button */}
           <button
             className="header-icon-btn"
-            style={{ width: 32, height: 32 }}
+            style={{ width: 30, height: 30 }}
             onClick={onTriggerGPS}
-            title="Locate via GPS"
-            aria-label="Use Current GPS Location"
+            title="Auto-Detect My GPS"
+            aria-label="Auto-Detect GPS"
           >
             <Crosshair size={14} color="#38bdf8" />
           </button>
         </div>
 
         <div className="header-actions">
-          {/* Citizen Report Trigger */}
+          {/* Night Walk Guardian Companion */}
           <button
-            id="header-report-btn"
             className="header-icon-btn"
-            onClick={onOpenReportModal}
-            title="Report Incident or Gem"
-            aria-label="Report Incident"
+            style={{ width: 32, height: 32, color: '#10b981' }}
+            onClick={onOpenGuardian}
+            title="Night Walk Guardian"
+            aria-label="Night Walk Guardian"
           >
-            <span style={{ fontSize: '1rem' }}>📣</span>
+            <ShieldCheck size={16} />
+          </button>
+
+          {/* Global Phrasebook */}
+          <button
+            className="header-icon-btn"
+            style={{ width: 32, height: 32, color: '#a855f7' }}
+            onClick={onOpenPhrasebook}
+            title="Emergency Phrasebook"
+            aria-label="Emergency Phrasebook"
+          >
+            <Languages size={15} />
           </button>
 
           {/* AI Copilot Launcher */}
           <button
             id="header-ai-btn"
             className="header-icon-btn"
+            style={{ width: 32, height: 32 }}
             onClick={onOpenAI}
             title="UrbanSense AI Copilot"
             aria-label="UrbanSense AI Copilot"
           >
-            <Bot size={18} color="#06b6d4" />
+            <Bot size={16} color="#06b6d4" />
+          </button>
+
+          {/* User Account / Profile */}
+          <button
+            className="header-icon-btn"
+            style={{ width: 32, height: 32 }}
+            onClick={onOpenProfile}
+            title={currentUser ? `Profile: ${currentUser.name}` : 'Sign In / Create Account'}
+            aria-label="User Account"
+          >
+            <span style={{ fontSize: '0.95rem' }}>{currentUser?.avatar || '👤'}</span>
           </button>
 
           {/* Emergency SOS Button */}
           <button
             id="header-sos-btn"
             className={`header-icon-btn sos-trigger-btn ${isSirenActive ? 'flashing' : ''}`}
+            style={{ width: 32, height: 32 }}
             onClick={onToggleSOS}
             title={isSirenActive ? "Stop Emergency Siren" : "Emergency SOS & Siren"}
             aria-label="Emergency SOS"
           >
-            <ShieldAlert size={18} />
+            <ShieldAlert size={16} />
           </button>
         </div>
       </div>
 
-      {/* Real-time Ticker Strip */}
+      {/* Real-time Ticker Strip (Real Open-Meteo & Live telemetry) */}
       <div className="live-ticker-strip">
         <div className="ticker-item">
           <CloudSun size={13} color="#38bdf8" />
@@ -123,12 +153,12 @@ export default function CityHeader({
         <span style={{ opacity: 0.3 }}>•</span>
         <div className="ticker-item">
           <Radio size={13} color="#f59e0b" />
-          <span>Traffic: <strong>{activeCity.trafficIndex || 50}% Delay</strong></span>
+          <span>Traffic: <strong>{activeCity.trafficIndex || 48}% Delay</strong></span>
         </div>
         <span style={{ opacity: 0.3 }}>•</span>
         <div className="ticker-item ticker-badge-warn">
           <AlertTriangle size={12} />
-          <span>Rain surge: {activeCity.weather?.rainChance || 20}%</span>
+          <span>Rain: {activeCity.weather?.rainChance || 15}%</span>
         </div>
       </div>
     </header>
