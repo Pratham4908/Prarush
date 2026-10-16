@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, Volume2, X, Sparkles, ArrowRight, Trash2, RefreshCw } from 'lucide-react';
 import { processCityAIQuery } from '../utils/aiEngine.js';
 import { audioSystem } from '../utils/audioSystem.js';
+import { isProSubscriber, getFeatureAccess, incrementUsage } from '../utils/freemiumService.js';
 
 export default function AIAssistantModal({ 
   isOpen, 
   onClose, 
   onNavigateTab, 
   activeCityName = 'MetroPulse',
-  currentLocationData = null 
+  currentLocationData = null,
+  onOpenSubscription
 }) {
   const [messages, setMessages] = useState([
     {
@@ -40,6 +42,26 @@ export default function AIAssistantModal({
   const handleSend = (queryToSend) => {
     const q = (queryToSend || inputQuery).trim();
     if (!q) return;
+
+    // Check freemium query allowance
+    const access = getFeatureAccess('aiQueries');
+    if (!access.allowed && !isProSubscriber()) {
+      const quotaMsg = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        title: '⭐ Daily Free AI Limit Reached',
+        text: 'You have reached your daily allowance of 10 free AI queries. Upgrade to **Scout Pro** for unlimited urban intelligence queries, multi-stop itineraries, and priority speed!',
+        action: {
+          label: 'Upgrade to Scout Pro',
+          tab: 'upgrade_pro'
+        }
+      };
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: q }, quotaMsg]);
+      setInputQuery('');
+      return;
+    }
+
+    incrementUsage('aiQueries');
 
     // Add user message
     const userMsg = {
@@ -210,7 +232,11 @@ export default function AIAssistantModal({
                     style={{ marginTop: 10, padding: '7px 12px', fontSize: '0.74rem' }}
                     onClick={() => {
                       onClose();
-                      onNavigateTab(msg.action.tab);
+                      if (msg.action.tab === 'upgrade_pro') {
+                        if (onOpenSubscription) onOpenSubscription();
+                      } else {
+                        onNavigateTab(msg.action.tab);
+                      }
                     }}
                   >
                     <span>{msg.action.label}</span>

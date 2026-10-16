@@ -2,10 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏙️</text></svg>" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="City Life: Exploring, Experiencing &amp; Navigating the Chaos We Call Home — AI-driven urban discovery, SafeRoute intelligence, heritage audio tours, and real-time smart city insights." />
     <meta name="theme-color" content="#090d16" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="City Life" />
+    
+    <!-- PWA Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- OpenGraph / Social Share Meta -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="City Life — Global Urban AI Navigator &amp; SafeRoute" />
+    <meta property="og:description" content="Real-time telemetry, live weather, verified landmarks, crowdsourced hazard alerts &amp; safe walking corridors for cities worldwide." />
+    <meta property="og:image" content="/favicon.svg" />
+
     <title>City Life: Exploring, Experiencing &amp; Navigating the Chaos</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,5 +30,16 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Register PWA Service Worker for offline performance
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.log('SW registration note:', err.message);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
+

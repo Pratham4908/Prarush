@@ -14,6 +14,7 @@ import AuthModal from './components/AuthModal.jsx';
 import UserProfileModal from './components/UserProfileModal.jsx';
 import NightWalkGuardianModal from './components/NightWalkGuardianModal.jsx';
 import MultilingualPhrasebookModal from './components/MultilingualPhrasebookModal.jsx';
+import SubscriptionModal from './components/SubscriptionModal.jsx';
 
 // Views
 import ExploreView from './views/ExploreView.jsx';
@@ -29,6 +30,7 @@ import { SAFETY_INCIDENTS, ROUTE_OPTIONS } from './data/safetyData.js';
 import { INITIAL_CITIZEN_REPORTS } from './data/pulseData.js';
 import { audioSystem } from './utils/audioSystem.js';
 import { getCurrentUser } from './utils/authService.js';
+import { getActiveLocale, setActiveLocale } from './utils/i18n.js';
 import { 
   generateCityProfileForLocation, 
   getBrowserGeolocation, 
@@ -51,6 +53,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+  // Internationalization State
+  const [currentLocale, setCurrentLocale] = useState(() => getActiveLocale());
+  const handleChangeLocale = (loc) => {
+    setCurrentLocale(loc);
+    setActiveLocale(loc);
+  };
 
   // Award-Winning Feature Modals
   const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
@@ -523,6 +533,9 @@ export default function App() {
           }}
           onOpenGuardian={() => setIsGuardianModalOpen(true)}
           onOpenPhrasebook={() => setIsPhrasebookModalOpen(true)}
+          onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
+          currentLocale={currentLocale}
+          onChangeLocale={handleChangeLocale}
         />
 
         {/* Scrollable Viewport Content */}
@@ -575,6 +588,7 @@ export default function App() {
               onOpenGlobalSearch={() => setIsGlobalSearchOpen(true)}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onAddSpots={(newSpots) => setActiveSpots(prev => [...newSpots, ...prev])}
+              onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
             />
           )}
 
@@ -652,6 +666,7 @@ export default function App() {
                   setReportModalDefaults(null);
                   setIsReportModalOpen(true);
                 }}
+                onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
               />
             </>
           )}
@@ -682,6 +697,7 @@ export default function App() {
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           unreadReportsCount={citizenReports.length}
+          currentLocale={currentLocale}
         />
 
         {/* Phone Bottom Home Indicator */}
@@ -713,6 +729,7 @@ export default function App() {
         currentLocationData={currentCityData}
         onClose={() => setIsAIModalOpen(false)}
         onNavigateTab={(tab) => setActiveTab(tab)}
+        onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
       />
 
       {/* User Authentication Modal (Create Account / Sign In) */}
@@ -731,6 +748,7 @@ export default function App() {
         user={currentUser}
         onClose={() => setIsProfileModalOpen(false)}
         onUserUpdated={(updated) => setCurrentUser(updated)}
+        onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
       />
 
       {/* Night Walk Guardian Companion Modal */}
@@ -740,12 +758,23 @@ export default function App() {
         user={currentUser}
         currentCityName={currentCityData.name}
         onTriggerSOS={handleToggleSOS}
+        onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
       />
 
       {/* Multilingual Emergency Phrasebook Modal */}
       <MultilingualPhrasebookModal
         isOpen={isPhrasebookModalOpen}
         onClose={() => setIsPhrasebookModalOpen(false)}
+      />
+
+      {/* Scout Pro Freemium Subscription & Checkout Modal */}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        user={currentUser}
+        onSubscriptionChanged={() => {
+          setCurrentUser(prev => prev ? { ...prev, lastSubUpdate: Date.now() } : null);
+        }}
       />
     </div>
   );

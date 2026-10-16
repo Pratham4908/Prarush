@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { 
   Search, SlidersHorizontal, Heart, Navigation, Volume2, ShieldCheck, 
   DollarSign, Clock, Sparkles, MapPin, Globe, Crosshair, Map, 
-  List, Maximize2, Loader2, CloudSun, Wind, AlertCircle, CheckCircle2 
+  List, Maximize2, Loader2, CloudSun, Wind, AlertCircle, CheckCircle2, Download 
 } from 'lucide-react';
 import InteractiveMap from '../components/InteractiveMap.jsx';
 import { EXPLORE_SPOTS } from '../data/cityData.js';
 import { audioSystem } from '../utils/audioSystem.js';
 import { searchRealPlaces } from '../utils/realDataService.js';
+import { isProSubscriber, downloadCityOfflinePack, getDownloadedPacks } from '../utils/freemiumService.js';
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80';
 
@@ -23,7 +24,8 @@ export default function ExploreView({
   onTriggerGPS,
   onOpenGlobalSearch,
   onNavigateTab,
-  onAddSpots
+  onAddSpots,
+  onOpenSubscription
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -43,6 +45,23 @@ export default function ExploreView({
   const cityName = currentCityData?.name || 'MetroPulse';
   const centerCoords = currentCityData?.center || [40.7128, -74.006];
   const weather = currentCityData?.weather || {};
+
+  const [downloadedPacks, setDownloadedPacks] = useState(() => getDownloadedPacks());
+  const isPackCached = downloadedPacks.some(p => p.cityName.toLowerCase() === (currentCityData?.name || '').toLowerCase());
+
+  const handleDownloadPack = () => {
+    if (!isProSubscriber()) {
+      if (onOpenSubscription) onOpenSubscription();
+      return;
+    }
+
+    const cached = downloadCityOfflinePack(cityName, centerCoords);
+    if (cached) {
+      setDownloadedPacks(getDownloadedPacks());
+      audioSystem.playSuccessSound();
+      setLiveSearchNotice(`✓ Downloaded Offline Pack for ${cityName} (${cached.sizeMB} MB cached)!`);
+    }
+  };
 
   const toggleFavorite = (spotId, e) => {
     if (e) e.stopPropagation();
@@ -290,6 +309,26 @@ export default function ExploreView({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {/* Offline Pack Download (Freemium Gated) */}
+              <button
+                className="sim-btn"
+                onClick={handleDownloadPack}
+                title={isPackCached ? "Offline Pack Cached on Device" : isProSubscriber() ? "Download Offline Map Pack" : "Upgrade to Pro for Offline Packs"}
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '3px 7px',
+                  background: isPackCached ? 'rgba(16, 185, 129, 0.15)' : !isProSubscriber() ? 'rgba(245, 158, 11, 0.15)' : undefined,
+                  color: isPackCached ? '#10b981' : !isProSubscriber() ? '#f59e0b' : '#cbd5e1',
+                  borderColor: isPackCached ? 'rgba(16, 185, 129, 0.4)' : !isProSubscriber() ? 'rgba(245, 158, 11, 0.4)' : undefined,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+              >
+                {isPackCached ? <CheckCircle2 size={11} color="#10b981" /> : <Download size={11} />}
+                <span>{isPackCached ? 'Cached' : isProSubscriber() ? 'Offline' : 'Offline ⭐'}</span>
+              </button>
+
               <button
                 className={`sim-btn ${dashboardViewMode === 'split' ? 'active' : ''}`}
                 onClick={() => setDashboardViewMode('split')}

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
   ShieldAlert, ShieldCheck, Navigation, AlertTriangle, LightbulbOff, 
-  PhoneCall, BellRing, Eye, Share2, Volume2, CheckCircle, ChevronRight, Zap 
+  PhoneCall, BellRing, Eye, Share2, Volume2, CheckCircle, ChevronRight, Zap, Sparkles, Filter 
 } from 'lucide-react';
 import { SAFETY_INCIDENTS, ROUTE_OPTIONS, EMERGENCY_CONTACTS } from '../data/safetyData.js';
 import { audioSystem } from '../utils/audioSystem.js';
+import { isProSubscriber } from '../utils/freemiumService.js';
 
 export default function SafetySecurityView({ 
   routeOptions = ROUTE_OPTIONS,
@@ -14,7 +15,8 @@ export default function SafetySecurityView({
   onToggleSOS, 
   isSirenActive,
   onRecalculateRealRoute,
-  onOpenReportModal 
+  onOpenReportModal,
+  onOpenSubscription
 }) {
   const currentRoute = routeOptions || ROUTE_OPTIONS;
   const currentIncidents = incidentsList && incidentsList.length > 0 ? incidentsList : SAFETY_INCIDENTS;
@@ -23,6 +25,11 @@ export default function SafetySecurityView({
   const [navStepIndex, setNavStepIndex] = useState(0);
   const [showFakeCallModal, setShowFakeCallModal] = useState(false);
   const [locationCopied, setLocationCopied] = useState(false);
+  
+  // Scout Pro Hazard Filters
+  const [avoidLowLight, setAvoidLowLight] = useState(true);
+  const [bypassRoadworks, setBypassRoadworks] = useState(true);
+  const [policeBufferActive, setPoliceBufferActive] = useState(true);
 
   const navSteps = (currentRoute.steps && currentRoute.steps.length > 0)
     ? currentRoute.steps
@@ -172,6 +179,70 @@ export default function SafetySecurityView({
                 🔄 Recalculate
               </button>
             )}
+          </div>
+
+          {/* Scout Pro Advanced Hazard Avoidance Filters */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: 12,
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Filter size={13} color="#f59e0b" />
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fff' }}>
+                  Advanced Hazard Filters
+                </span>
+              </div>
+              <span style={{
+                fontSize: '0.62rem',
+                background: isProSubscriber() ? '#f59e0b' : 'rgba(245, 158, 11, 0.2)',
+                color: isProSubscriber() ? '#090d16' : '#f59e0b',
+                padding: '1px 6px',
+                borderRadius: 999,
+                fontWeight: 800
+              }}>
+                {isProSubscriber() ? 'PRO ACTIVE' : 'SCOUT PRO ⭐'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[
+                { label: 'Avoid Low-Light Alleys', active: avoidLowLight, toggle: () => setAvoidLowLight(!avoidLowLight) },
+                { label: 'Bypass Roadworks', active: bypassRoadworks, toggle: () => setBypassRoadworks(!bypassRoadworks) },
+                { label: 'Police/Haven Buffer', active: policeBufferActive, toggle: () => setPoliceBufferActive(!policeBufferActive) }
+              ].map((f, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  style={{
+                    fontSize: '0.66rem',
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    background: f.active && isProSubscriber() ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.04)',
+                    borderColor: f.active && isProSubscriber() ? '#10b981' : 'rgba(255,255,255,0.1)',
+                    color: f.active && isProSubscriber() ? '#6ee7b7' : '#94a3b8'
+                  }}
+                  onClick={() => {
+                    if (!isProSubscriber()) {
+                      if (onOpenSubscription) onOpenSubscription();
+                    } else {
+                      f.toggle();
+                      audioSystem.playTone(600, 'sine', 0.08);
+                    }
+                  }}
+                  title={!isProSubscriber() ? "Upgrade to Pro to toggle advanced filters" : "Toggle filter"}
+                >
+                  {f.active && isProSubscriber() ? '✓ ' : ''}{f.label} {!isProSubscriber() ? '🔒' : ''}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Route Mode Toggle Selector */}

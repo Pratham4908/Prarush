@@ -1,0 +1,43 @@
+{
+  "name": "City Life - Global Urban AI Navigator & SafeRoute",
+  "short_name": "City Life",
+  "description": "Real-time telemetry, live weather, verified landmarks, crowdsourced alerts & safe navigation for cities worldwide.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#090d16",
+  "theme_color": "#0b0f19",
+  "categories": ["navigation", "travel", "safety", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explore Landmarks",
+      "short_name": "Explore",
+      "description": "Discover curated city spots and live weather",
+      "url": "/#explore",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "SafeRoute Navigator",
+      "short_name": "SafeRoute",
+      "description": "AI-guided safe walking corridors",
+      "url": "/#safety",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Night Guardian",
+      "short_name": "Guardian",
+      "description": "Live GPS companion & emergency check-in",
+      "url": "/#guardian",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    }
+  ]
+}

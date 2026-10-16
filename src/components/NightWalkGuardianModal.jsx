@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, BellRing, Phone, Heart, CheckCircle, AlertTriangle, X, Play, Square } from 'lucide-react';
+import { ShieldCheck, BellRing, Phone, Heart, CheckCircle, AlertTriangle, X, Play, Square, Sparkles } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
+import { isProSubscriber, getFeatureAccess, incrementUsage } from '../utils/freemiumService.js';
 
 export default function NightWalkGuardianModal({ 
   isOpen, 
   onClose, 
   user, 
   currentCityName = 'Current Location',
-  onTriggerSOS 
+  onTriggerSOS,
+  onOpenSubscription
 }) {
   const [isActive, setIsActive] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(900); // 15 mins default
   const [totalSeconds, setTotalSeconds] = useState(900);
   const [checkInMissed, setCheckInMissed] = useState(false);
+  const [pingsUsed, setPingsUsed] = useState(0);
 
   useEffect(() => {
     let interval = null;
@@ -39,7 +42,15 @@ export default function NightWalkGuardianModal({
 
   if (!isOpen) return null;
 
+  const access = getFeatureAccess('guardianAlerts');
+
   const handleStartGuardian = (mins = 15) => {
+    if (!isProSubscriber() && pingsUsed >= 3) {
+      if (onOpenSubscription) onOpenSubscription();
+      return;
+    }
+    setPingsUsed(prev => prev + 1);
+    incrementUsage('guardianAlerts');
     setSecondsRemaining(mins * 60);
     setTotalSeconds(mins * 60);
     setIsActive(true);

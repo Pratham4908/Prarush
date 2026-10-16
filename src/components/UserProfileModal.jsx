@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { User, LogOut, Trash2, Shield, Heart, Award, Phone, CheckCircle, X, AlertTriangle } from 'lucide-react';
 import { deleteAccount, logoutUser } from '../utils/authService.js';
 import { audioSystem } from '../utils/audioSystem.js';
+import { isProSubscriber, exportUserDataJson } from '../utils/freemiumService.js';
 
-export default function UserProfileModal({ isOpen, onClose, user, onUserUpdated }) {
+export default function UserProfileModal({ isOpen, onClose, user, onUserUpdated, onOpenSubscription }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!isOpen || !user) return null;
@@ -94,6 +95,56 @@ export default function UserProfileModal({ isOpen, onClose, user, onUserUpdated 
             </div>
           </div>
 
+          {/* Scout Pro Subscription Entitlement Banner */}
+          <div style={{
+            background: isProSubscriber() 
+              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.08) 100%)'
+              : 'rgba(255, 255, 255, 0.03)',
+            border: `1px solid ${isProSubscriber() ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-glass)'}`,
+            borderRadius: 12,
+            padding: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: isProSubscriber() ? '#f59e0b' : '#fff' }}>
+                  {isProSubscriber() ? 'Scout Pro Member' : 'Free Scout Plan'}
+                </span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  background: isProSubscriber() ? '#f59e0b' : 'rgba(255,255,255,0.1)',
+                  color: isProSubscriber() ? '#090d16' : '#94a3b8',
+                  padding: '1px 6px',
+                  borderRadius: 999,
+                  fontWeight: 800
+                }}>
+                  {isProSubscriber() ? 'PRO ⭐' : 'FREE'}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.66rem', color: '#94a3b8', marginTop: 2 }}>
+                {isProSubscriber() ? 'Offline packs & advanced hazard routing enabled' : 'Upgrade to unlock offline city packs & unlimited pings'}
+              </div>
+            </div>
+
+            <button
+              className="btn-primary"
+              style={{
+                fontSize: '0.72rem',
+                padding: '6px 10px',
+                background: isProSubscriber() ? 'transparent' : 'var(--accent-gold)',
+                color: isProSubscriber() ? '#f59e0b' : '#090d16',
+                border: isProSubscriber() ? '1px solid rgba(245, 158, 11, 0.5)' : 'none'
+              }}
+              onClick={() => {
+                if (onOpenSubscription) onOpenSubscription();
+              }}
+            >
+              {isProSubscriber() ? 'Manage Pro' : 'Upgrade'}
+            </button>
+          </div>
+
           {/* Account Details */}
           <div style={{
             background: 'var(--bg-card)',
@@ -114,6 +165,28 @@ export default function UserProfileModal({ isOpen, onClose, user, onUserUpdated 
               <strong style={{ color: user.emergencyContact ? '#10b981' : '#f59e0b' }}>
                 {user.emergencyContact || 'Not set'}
               </strong>
+            </div>
+          </div>
+
+          {/* GDPR Data Portability & Legal */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button
+              className="btn-secondary"
+              style={{ width: '100%', padding: '8px 12px', justifyContent: 'center', fontSize: '0.72rem', color: '#38bdf8' }}
+              onClick={() => exportUserDataJson(user)}
+              title="Download all your saved data, reports & preferences"
+            >
+              <span>📥 Export My Data (GDPR JSON)</span>
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 14, fontSize: '0.68rem', color: '#64748b' }}>
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+                Privacy Policy
+              </a>
+              <span>•</span>
+              <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+                Terms of Service
+              </a>
             </div>
           </div>
 

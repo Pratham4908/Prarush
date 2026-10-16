@@ -1,14 +1,15 @@
 import React from 'react';
 import { Compass, Landmark, ShieldCheck, Scale, Radio, Map } from 'lucide-react';
+import { t } from '../utils/i18n.js';
 
-export default function Navigation({ activeTab, onSelectTab, unreadReportsCount = 0 }) {
+export default function Navigation({ activeTab, onSelectTab, unreadReportsCount = 0, currentLocale = 'en' }) {
   const tabs = [
-    { id: 'explore', label: 'Explore', icon: Compass },
-    { id: 'history', label: 'History', icon: Landmark },
-    { id: 'map', label: 'Map View', icon: Map },
-    { id: 'safety', label: 'SafeRoute', icon: ShieldCheck },
-    { id: 'compare', label: 'Compare', icon: Scale },
-    { id: 'pulse', label: 'City Pulse', icon: Radio, hasBadge: unreadReportsCount > 0 },
+    { id: 'explore', label: t('navExplore', currentLocale), icon: Compass },
+    { id: 'history', label: t('navHistory', currentLocale), icon: Landmark },
+    { id: 'map', label: t('navMap', currentLocale), icon: Map },
+    { id: 'safety', label: t('navSafety', currentLocale), icon: ShieldCheck },
+    { id: 'compare', label: t('navCompare', currentLocale), icon: Scale },
+    { id: 'pulse', label: t('navPulse', currentLocale), icon: Radio, hasBadge: unreadReportsCount > 0 },
   ];
 
   return (
