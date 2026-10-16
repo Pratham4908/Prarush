@@ -1,14 +1,14 @@
 {
-  "name": "City Life - Global Urban AI Navigator & SafeRoute",
-  "short_name": "City Life",
-  "description": "Real-time telemetry, live weather, verified landmarks, crowdsourced alerts & safe navigation for cities worldwide.",
+  "name": "Prarush — Universal AI-Powered Digital Platform",
+  "short_name": "Prarush",
+  "description": "Universal workspaces, multi-model AI copilot (Claude 3.5, GPT-4o, Neural-4), Kanban sprints, document OCR, visual automations & knowledge hub.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#090d16",
-  "theme_color": "#0b0f19",
-  "categories": ["navigation", "travel", "safety", "lifestyle"],
+  "background_color": "#060911",
+  "theme_color": "#060911",
+  "categories": ["productivity", "utilities", "business", "education"],
   "icons": [
     {
       "src": "/favicon.svg",
@@ -19,24 +19,24 @@
   ],
   "shortcuts": [
     {
-      "name": "Explore Landmarks",
-      "short_name": "Explore",
-      "description": "Discover curated city spots and live weather",
-      "url": "/#explore",
+      "name": "AI Assistant",
+      "short_name": "AI Copilot",
+      "description": "Open multi-model conversational copilot",
+      "url": "/#ai",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     },
     {
-      "name": "SafeRoute Navigator",
-      "short_name": "SafeRoute",
-      "description": "AI-guided safe walking corridors",
-      "url": "/#safety",
+      "name": "Kanban Sprints",
+      "short_name": "Kanban",
+      "description": "Task boards and project sprints",
+      "url": "/#kanban",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     },
     {
-      "name": "Night Guardian",
-      "short_name": "Guardian",
-      "description": "Live GPS companion & emergency check-in",
-      "url": "/#guardian",
+      "name": "Command Center",
+      "short_name": "Command",
+      "description": "Global natural language command palette",
+      "url": "/#command",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     }
   ]

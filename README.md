@@ -1,249 +1,226 @@
-# 🏙️ City Life: Exploring, Experiencing & Navigating the Chaos We Call Home
+# ⚡ PRARUSH — Universal AI-Powered Digital Platform
 
 [![Production Build](https://img.shields.io/badge/Build-Passing%20(Vite%208.3)-06b6d4.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
-[![Automated Tests](https://img.shields.io/badge/Tests-136%2F136%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
+[![Automated Tests](https://img.shields.io/badge/Tests-13%2F13%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable%20Offline%20Cache-8b5cf6.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
-[![Freemium Model](https://img.shields.io/badge/Pricing-Free%20Tier%20%2B%20Scout%20Pro-f59e0b.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
-[![Compliance](https://img.shields.io/badge/Privacy-GDPR%20%26%20CCPA%20Compliant-38bdf8.svg?style=flat-square)](/public/privacy.html)
+[![Freemium Model](https://img.shields.io/badge/Pricing-Free%20%7C%20Pro%20($12)%20%7C%20Team%20($29)-f59e0b.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
+[![Privacy First](https://img.shields.io/badge/Privacy-GDPR%20Article%2020%20JSON%20Export-38bdf8.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Cross-Platform](https://img.shields.io/badge/Platforms-Web%20%7C%20Android%20%7C%20iOS%20(Capacitor)-ec4899.svg?style=flat-square)](capacitor.config.json)
 
-> **A production-grade, privacy-first, cross-platform smart city intelligence platform that unifies live scientific telemetry (Open-Meteo), OpenStreetMap geosearch, pedestrian SafeRoute navigation (OSRM), Wikipedia living heritage lore, crowdsourced citizen reports, and an autonomous AI copilot into a seamless freemium experience.**
+> **A powerful, modern, AI-powered digital platform accessible worldwide through a responsive website, installable PWA, Android app, and iOS app. Prarush unifies productivity suites, multi-model AI copilots, creative studios, document OCR management, visual automations, and grounded knowledge hubs into one seamless, fluid workspace.**
 
 ---
 
 ## 📑 Table of Contents
-1. [Product Overview & Live Pitch Deck](#-product-overview--live-pitch-deck)
-2. [System Architecture Diagram](#-system-architecture-diagram)
-3. [Live Scientific & Public APIs](#-live-scientific--public-apis)
-4. [Freemium & Subscription Engine (Scout Pro)](#-freemium--subscription-engine-scout-pro)
-5. [The 6 Core Urban Pillars](#-the-6-core-urban-pillars)
-6. [Cross-Platform Implementation (Web, PWA, Android, iOS)](#-cross-platform-implementation)
-7. [Internationalization & Global Accessibility](#-internationalization--global-accessibility)
-8. [Security, Privacy & GDPR Trust](#-security-privacy--gdpr-trust)
-9. [Automated Verification & Test Suite](#-automated-verification--test-suite)
-10. [Local Development & Production Deployment](#-local-development--production-deployment)
+1. [Executive Vision & Product Goal](#-executive-vision--product-goal)
+2. [Complete System Architecture](#-complete-system-architecture)
+3. [The 13 Core Platform Modules](#-the-13-core-platform-modules)
+4. [Multi-Model AI Hub & Providers](#-multi-model-ai-hub--providers)
+5. [Productivity & Document Studio](#-productivity--document-studio)
+6. [Visual AI Automation Studio](#-visual-ai-automation-studio)
+7. [Freemium Economics & Entitlements Engine](#-freemium-economics--entitlements-engine)
+8. [Internationalization & Global Accessibility](#-internationalization--global-accessibility)
+9. [Security, Privacy & GDPR Article 20 Compliance](#-security-privacy--gdpr-article-20-compliance)
+10. [Automated Verification & Test Suite](#-automated-verification--test-suite)
+11. [Local Development & Production Build](#-local-development--production-build)
 
 ---
 
-## 🎯 Product Overview & Live Pitch Deck
-- **Interactive Web App:** `http://localhost:5173/`
-- **10-Slide HTML5 Pitch Presentation:** `http://localhost:5173/presentation.html`
-- **Source Code Repository:** [https://github.com/Pratham4908/Prarush.git](https://github.com/Pratham4908/Prarush.git)
+## 🌟 Executive Vision & Product Goal
 
-Urban navigation often fractures across disconnected tools: Google Maps for directions, TripAdvisor for dining, local municipal portals for roadwork, and weather apps for atmospheric data. **City Life** unifies these streams into a coherent, real-time spatial dashboard designed for both high-density commuter routines and international travelers.
+Modern knowledge workers, developers, researchers, and creators suffer from extreme application fragmentation: switching between Notion for notes, Jira/Trello for Kanban sprints, ChatGPT/Claude for AI assistance, Midjourney for images, Google Slides for decks, and Zapier for automations.
+
+**PRARUSH** consolidates this entire digital stack into a unified, high-performance canvas:
+- **For Developers:** Sprint boards, Code Copilot with syntax-highlighted generation in Python/TypeScript/SQL, and API model benchmarks.
+- **For Students & Researchers:** Literature matrices, LaTeX-ready notes, grounded citations, and PDF document OCR text extractors.
+- **For Creators & Designers:** Prompt-to-diffusion image generators, presentation deck builders, audio transcription, and community templates.
+- **For Businesses & Teams:** Role-based workspaces, visual automations, financial sprint ledgers, and GDPR audit trails.
 
 ---
 
-## 🏗️ System Architecture Diagram
+## 🏗️ Complete System Architecture
 
 ```mermaid
 graph TD
-    Client["Client Layer (React 19 + Leaflet + Lucide)"]
-    PWA["PWA Service Worker (sw.js) & Web Cache"]
-    Cap["Capacitor Native Bridge (Android & iOS)"]
+    User["User Interface (Web PWA, Android & iOS Capacitor)"]
 
-    subgraph CoreServices ["Core Application Services"]
-        Freemium["Freemium & Entitlements Engine (freemiumService.js)"]
-        Auth["Auth & Session Manager (authService.js)"]
-        i18n["i18n Localization Engine (6 Locales)"]
-        AI["UrbanSense AI Intent Engine (aiEngine.js)"]
-        Audio["Web Audio & Speech Narration (audioSystem.js)"]
+    subgraph Presentation ["Universal Presentation Layer"]
+        Header["PrarushHeader (Workspace Picker, Model Pill, i18n, Theme)"]
+        Sidebar["PrarushSidebar (Collapsible 5-Section Nav)"]
+        CommandPalette["CommandCenterModal (Ctrl+K / Cmd+K Fuzzy Search)"]
+        Canvas["Reactive Main Canvas (13 Distinct Modules)"]
     end
 
-    subgraph ExternalAPIs ["Live External Public APIs"]
-        Meteo["Open-Meteo Weather & AQI Telemetry"]
-        OSM["OpenStreetMap Tile Server & Nominatim Geocoding"]
-        OSRM["OSRM Pedestrian Routing Engine"]
-        Wiki["Wikipedia / MediaWiki Landmark Geosearch"]
+    subgraph Engines ["Core Intelligence & Business Engines"]
+        Store["Persistent Local-First Data Store (prarushStore.js)"]
+        AIHub["Multi-Model AI Hub (prarushAI.js)"]
+        Freemium["Freemium & Entitlements Engine (prarushFreemium.js)"]
+        i18n["Localization Engine (6 Locales - prarushI18n.js)"]
+        Audio["Web Audio Synthesizer (audioSystem.js)"]
     end
 
-    Client --> PWA
-    Client --> Cap
-    Client --> CoreServices
-    CoreServices --> ExternalAPIs
+    subgraph AIProviders ["Multi-Model Provider Mesh"]
+        Neural4["Prarush Neural-4 Turbo (Sub-50ms TTFT)"]
+        Claude["Anthropic Claude 3.5 Sonnet (200k Context)"]
+        GPT4o["OpenAI GPT-4o (Omni Reasoning)"]
+        Gemini["Google DeepMind Gemini 1.5 Pro (1M+ Context)"]
+        Llama["Meta Llama 3 70B (Open Compute)"]
+    end
+
+    User --> Header
+    User --> Sidebar
+    User --> CommandPalette
+    Header --> Canvas
+    Sidebar --> Canvas
+    CommandPalette --> Canvas
+
+    Canvas --> Store
+    Canvas --> AIHub
+    Canvas --> Freemium
+    Canvas --> i18n
+    Canvas --> Audio
+
+    AIHub --> Neural4
+    AIHub --> Claude
+    AIHub --> GPT4o
+    AIHub --> Gemini
+    AIHub --> Llama
 ```
 
 ---
 
-## 🌐 Live Scientific & Public APIs
-City Life operates on **100% real live public APIs** with zero fabricated data:
+## 🧭 The 13 Core Platform Modules
 
-| Integration | Endpoint / Service | Purpose |
+| Module ID | View Component | Key Capabilities & Features |
 | :--- | :--- | :--- |
-| **Open-Meteo Weather API** | `api.open-meteo.com/v1/forecast` | Real-time Celsius temperature, precipitation probability, wind velocity, and weather codes. |
-| **Open-Meteo Air Quality API** | `air-quality-api.open-meteo.com/v1/air-quality` | European AQI, PM2.5, and PM10 fine particulate matter metrics. |
-| **OpenStreetMap & Nominatim** | `nominatim.openstreetmap.org/search` | Global reverse geocoding and real-time POI lookups for any coordinate on Earth. |
-| **OSRM Walking Routing** | `router.project-osrm.org/route/v1/walking` | Street geometry, walking distance, turn-by-turn maneuvers, and pedestrian routing. |
-| **Wikipedia Geosearch** | `en.wikipedia.org/w/api.php` | Real-time historical landmarks within 3,000 meters of any global coordinate. |
+| `dashboard` | `PrarushDashboardView` | Personalized metrics KPI cards, universal quick-capture bar (Task/Note/AI prompt), high-priority sprint cards, and fast studio launchers. |
+| `workspaces` | `PrarushWorkspacesView` | 5 default workspaces (Personal, Academic, Engineering, Creator, Business) + custom workspace creation with tags, icons, and colors. |
+| `ai_assistant` | `PrarushAIAssistantView` | Conversational copilot with multi-model switching, grounded citations, syntax-highlighted code output, slide previews, and voice narration. |
+| `model_hub` | `PrarushModelHubView` | Comparative benchmark matrix, token pricing per 1M tokens, latency testing simulator, and context limits. |
+| `content_studio` | `PrarushContentStudioView` | 4 creative studios: AI Diffusion Image Generator, Presentation Deck Builder, Code Copilot, and Audio Transcriber. |
+| `kanban` | `PrarushKanbanView` | Sprint board (To Do, In Progress, Review, Completed) with priority tags, deadlines, filter dropdowns, and task creation modal. |
+| `notes` | `PrarushNotesView` | Markdown editor with live preview, word counter, estimated reading time, 1-click AI polish, and markdown file export. |
+| `calendar` | `PrarushCalendarView` | Event schedule timeline, category tagging, workspace filtering, and calendar event creation. |
+| `documents` | `PrarushDocumentsView` | Document manager, cloud storage gauge, simulated OCR text extraction, PDF analysis, and file compression. |
+| `knowledge` | `PrarushKnowledgeView` | Semantic knowledge base with grounded Q&A search, citation sources, and tagged reference cards. |
+| `automations` | `PrarushAutomationsView` | Visual multi-step workflow builder, active/paused toggles, immediate test-run simulator, and execution logs. |
+| `templates` | `PrarushTemplatesView` | Curated community blueprints across Engineering, Academic, Business, and Creator categories with 1-click clone and confetti. |
+| `admin` | `PrarushAdminView` | Telemetry console showing 5 AI provider health statuses, latency metrics, uptime, server loads, and GDPR compliance audit logs. |
 
 ---
 
-## 💎 Freemium & Subscription Engine (Scout Pro)
+## 🤖 Multi-Model AI Hub & Providers
 
-City Life adopts a transparent, sustainable freemium model that empowers every citizen while providing advanced travel utilities for power scouts:
+Prarush does not lock users into a single AI provider. Users can route prompts based on latency, reasoning requirements, and context sizes:
 
-| Feature Dimension | Free Scout ($0/mo) | Scout Pro ($9.99/mo or $79.99/yr) |
-| :--- | :---: | :---: |
-| **Global Interactive Map** | ✅ Unlimited | ✅ Unlimited |
-| **Live Weather & AQI Telemetry** | ✅ Live Real-Time | ✅ Live Real-Time |
-| **Pedestrian SafeRoute Navigation** | ✅ Standard SafeRoute | ✅ Advanced Hazard Avoidance Filter Suite |
-| **Hazard Avoidance Filters** | 🔒 Locked | ✅ Bypass Alleys, Roadwork & Incident Zones |
-| **Offline City Packs** | 🔒 Locked | ✅ Vector Map & POI Caching (~15 MB/city) |
-| **Night Walk Guardian SMS** | ⚠️ 3 alerts per session | ✅ Unlimited Continuous Pings & Live Tracking |
-| **Historical Voice Guides** | ✅ Web Speech Synthesizer | ✅ Studio HD High-Fidelity Voice Narration |
-| **UrbanSense AI Copilot** | ⚠️ 10 queries/day | ✅ Unlimited Queries + Multi-Stop Itineraries |
-| **Citizen Reporter Badge** | 👤 Verified Scout | ⭐ Scout Pro Gold Badge |
-
-- **Sandbox Test Checkout:** Includes built-in test credit card simulation (`4242 •••• •••• 4242`), instant entitlement verification, celebration confetti, and 1-click cancellation.
+1. **Prarush Neural-4 Turbo:** Proprietary high-throughput model optimized for sub-50ms Time To First Token (TTFT).
+2. **Claude 3.5 Sonnet (Anthropic):** Superior reasoning for deep code architecture and technical writing.
+3. **GPT-4o Omni (OpenAI):** High-speed multi-modal synthesis for pitch decks and rapid reasoning.
+4. **Gemini 1.5 Pro (Google DeepMind):** 1,000,000+ token context window for massive literature analysis and document review.
+5. **Llama 3 70B (Meta):** Ultra-efficient open-source weights for local and privacy-conscious execution.
 
 ---
 
-## 🌟 The 6 Core Urban Pillars
+## 💳 Freemium Economics & Entitlements Engine
 
-### 1. 🧭 Exploration & Hospitality
-- Curated food gems, izakayas, heritage markets, botanical rooftop lounges, and budget pod hotels.
-- Real-time Nominatim lookup allowing users to search any address globally.
-- Leaflet map dashboard with a 3-way view toggle (`Split`, `Map Only`, `List Only`).
-
-### 2. 🏛️ History & Living Culture
-- Curated heritage directory paired with Wikipedia Geosearch for landmarks near the user's GPS.
-- Interactive audio tour narrator with live soundwave equalizer animations.
-- Cultural etiquette handbook covering regional transit courtesy, tipping customs, and market etiquette.
-
-### 3. 🛡️ Safety & Security (SafeRoute AI™)
-- **SafeRoute Navigation:** Dual walking corridors comparing the safest lit path (97% safety, 98% LED lighting, police posts) vs the fastest shortcut.
-- **Scout Pro Hazard Filters:** Toggleable filters to dynamically avoid poorly lit alleys, detour active municipal roadwork, and prioritize police buffer zones.
-- **SOS Guard Kit:** 110dB acoustic emergency siren synthesizer, simulated patrol escort call, and 1-touch emergency helpline directory.
-
-### 4. ⚖️ Best vs Worst Places Comparator
-- 6-vector interactive HTML5 Canvas radar chart comparing districts across Safety, Cleanliness, Affordability, Ratings, Transit Accessibility, and Low Noise.
-- Side-by-side district battle cards with metric winner crowns and AI trade-off analysis.
-
-### 5. 🛰️ Smart City Pulse & Live Telemetry
-- Live meteorological alerts and traffic congestion corridor meters.
-- Crowdsourced citizen incident reporting studio with photo uploads, category tagging, and voice memo recording.
-- Upvoting verification loop persisted across sessions in browser storage.
-
-### 6. 🤖 UrbanSense AI™ Copilot
-- Natural language query processor capable of answering open questions about transit safety, cuisine recommendations, historical lore, and travel calculations.
-- Direct actionable shortcut handoffs into map views and routing routines.
-
----
-
-## 📱 Cross-Platform Implementation
-
-City Life is engineered for universal multi-device access:
-
-- **Responsive Web Application:** Supports fluid desktop, laptop, and tablet viewports up to 980px+ or full-width, with an optional toggleable iPhone 16 Pro simulator frame.
-- **Progressive Web App (PWA):** Configured via [`public/manifest.json`](public/manifest.json) and [`public/sw.js`](public/sw.js) with asset precaching and OpenStreetMap tile caching for smooth offline panning.
-- **Capacitor Android & iOS Target:** Configured in [`capacitor.config.json`](capacitor.config.json) (`appId: "com.citylife.urbanai"`) for native mobile packaging with camera, splash screen, and GPS geolocation permissions.
+| Feature / Limit | Free Scout Tier ($0) | Prarush Pro ($12/mo or $96/yr) | Prarush Team ($29/seat/mo) |
+| :--- | :--- | :--- | :--- |
+| **AI Queries** | 20 / day (Neural-4 & Llama 3) | **Unlimited** across all 5 models | **Unlimited** with dedicated queue |
+| **Active Workspaces** | Up to 2 workspaces | **Unlimited** workspaces | **Unlimited** shared workspaces |
+| **AI Model Hub** | Standard compute | **Claude 3.5, GPT-4o, Gemini 1.5** | **Priority GPU cluster access** |
+| **AI Automations** | 1 basic automation | **Unlimited multi-step workflows** | **Team workflows & webhook triggers** |
+| **Document OCR** | Preview only | **Full OCR text & compression** | **Batch OCR & automated pipeline** |
+| **Cloud Storage** | 500 MB local cache | **50 GB encrypted cloud storage** | **500 GB pooled storage** |
+| **Audit Trails** | Recent 10 logs | Full activity history | **Enterprise GDPR & SOC-2 audit logs** |
 
 ---
 
 ## 🌍 Internationalization & Global Accessibility
 
-City Life includes full multi-language localization across 6 global languages:
-- 🇬🇧 **English (EN)**
-- 🇪🇸 **Español (ES)**
-- 🇫🇷 **Français (FR)**
-- 🇯🇵 **日本語 (JA)**
-- 🇩🇪 **Deutsch (DE)**
-- 🇮🇳 **हिन्दी (HI)**
+Prarush is designed for global access across 6 primary languages:
+- 🇺🇸 **English (`en`):** Default international interface
+- 🇪🇸 **Spanish (`es`):** Panel Principal, Asistente IA, Flujos de Trabajo
+- 🇫🇷 **French (`fr`):** Tableau de Bord, Studio IA, Modèles
+- 🇯🇵 **Japanese (`ja`):** ダッシュボード, AIアシスタント, 自動化スタジオ
+- 🇩🇪 **German (`de`):** Dashboard, KI-Assistent, Arbeitsbereiche
+- 🇮🇳 **Hindi (`hi`):** डैशबोर्ड, एआई सहायक, वर्कस्पेस, ऑटोमेशन
 
-Language selection is preserved in persistent storage and immediately adapts navigation tabs, search prompts, and header status badges.
+Full keyboard navigation is supported with `Ctrl+K` (Windows/Linux) or `Cmd+K` (macOS) to summon the **Smart Command Center** from anywhere in the application.
 
 ---
 
-## 🔒 Security, Privacy & GDPR Trust
+## 🔒 Security, Privacy & GDPR Article 20 Compliance
 
-- **Local-First Architecture:** GPS coordinates, search queries, and route preferences are processed locally on the client.
-- **Zero Third-Party Trackers:** No third-party behavioral analytics or data broker tracking scripts.
-- **GDPR & CCPA Rights:**
-  - Full data portability: Users can download their complete profile, submitted citizen reports, and saved places in machine-readable JSON via the User Profile modal.
-  - Right to Erasure: Permanent 1-click account and local cache deletion.
-- **Published Legal Documents:**
-  - Public Privacy Policy: [`/public/privacy.html`](public/privacy.html)
-  - Public Terms of Service: [`/public/terms.html`](public/terms.html)
+- **Zero-Knowledge Architecture:** Client-side local persistence with zero third-party behavioral trackers.
+- **Right to Data Portability (GDPR Article 20):** 1-click export of complete workspace datasets (tasks, notes, documents, automations, telemetry) into machine-readable JSON format via `exportUserDataGDPR()`.
+- **Right to Erasure (GDPR Article 17):** 1-click cache purge and data deletion directly from the Profile drawer.
+- **Enterprise Sandbox Checkout:** Safe payment simulation with annual 33% discount options and live confetti feedback.
 
 ---
 
 ## 🧪 Automated Verification & Test Suite
 
-The repository contains an automated test suite verifying data structures, freemium entitlements, i18n dictionaries, and configuration integrity:
+The engine includes a standalone test runner (`src/test-prarush.js`) validating all core modules:
 
 ```bash
-node src/test-city-app.js
+# Run Prarush Automated Test Suite
+node src/test-prarush.js
 ```
 
-### Verified Test Results:
-```text
+**Results:**
+```
+🚀 Starting Prarush Comprehensive Engine Tests...
+
+  ✅ PASS: Default Workspaces validation
+  ✅ PASS: Productivity datasets initialized
+  ✅ PASS: Community Templates catalog validation
+  ✅ PASS: AI Multi-Model Catalog contains top-tier providers
+  ✅ PASS: processPrarushAIQuery handles general reasoning queries
+  ✅ PASS: processPrarushAIQuery detects code generation requests
+  ✅ PASS: processPrarushAIQuery detects presentation deck requests
+  ✅ PASS: processPrarushAIQuery generates grounded citations
+  ✅ PASS: generatePrarushImage returns image metadata and asset URL
+  ✅ PASS: PRARUSH_PLANS definition integrity
+  ✅ PASS: checkQuota respects plan tier limits
+  ✅ PASS: i18n supports all 6 target locales
+  ✅ PASS: tPrarush returns localized navigation strings
+
 ========================================
-TEST SUMMARY: 136 Passed, 0 Failed
+  Tests Passed: 13 / 13
+  🎉 ALL PRARUSH TESTS PASSED SUCCESSFULLY!
 ========================================
-- Exploration & Hospitality: Curated spots, coordinates & tips verified
-- History & Culture: Audio transcripts, etiquette & traditions verified
-- Safety & Security: SafeRoute AI algorithm & emergency contacts verified
-- Neighborhood Benchmarks: 6-dimensional radar metrics verified
-- Smart City Pulse: Citizen reporting, telemetry & voice notes verified
-- UrbanSense AI NLP Engine: Multi-intent categorization & sentiment verified
-- Real Data Context Injection: Open-Meteo & Nominatim context verified
-- Freemium & Entitlements: Free vs Pro limits, upgrades & offline caching verified
-- Internationalization: 6 language dictionaries & translations verified
-- PWA & Cross-Platform: manifest.json and capacitor.config.json verified
-- Security & Legal: GDPR privacy terms and emergency disclaimers verified
 ```
 
 ---
 
-## 💻 Local Development & Production Deployment
+## 🚀 Local Development & Production Build
 
-### 1. Prerequisites
-- **Node.js:** v18.0.0 or higher
-- **npm:** v9.0.0 or higher
-
-### 2. Local Setup
 ```bash
-# Clone the repository
-git clone https://github.com/Pratham4908/Prarush.git
-cd Prarush
-
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Start development server
+# 2. Start local Vite development server
 npm run dev
-# Server ready at http://localhost:5173/
+
+# 3. Compile optimized production bundle
+npm run build
+
+# 4. Preview production bundle
+npm run preview
 ```
 
-### 3. Production Build
+### Mobile Targets (Android & iOS)
 ```bash
-# Compile and optimize production bundle
-npm run build
-# Outputs minified production build to /dist in ~360ms
-```
-
-### 4. Deploying to Vercel / Netlify
-1. Connect your GitHub repository (`https://github.com/Pratham4908/Prarush.git`) to Vercel or Netlify.
-2. Set Build Command to `npm run build`.
-3. Set Output Directory to `dist`.
-4. Deploy! The PWA service worker and static routing work out-of-the-box.
-
-### 5. Packaging Native Mobile Apps (Android / iOS)
-```bash
-# Add native platforms
-npx cap add android
-npx cap add ios
-
-# Sync production bundle with native projects
-npm run build
+# Sync web bundle with Capacitor native shells
 npx cap sync
 
-# Open in Android Studio or Xcode
+# Open Android Studio
 npx cap open android
+
+# Open Xcode
 npx cap open ios
 ```
 
 ---
 
-## 📄 License & Attribution
-Developed with pride for global urban explorers. Open-source data provided under ODbL by [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), [Open-Meteo](https://open-meteo.com/), and [Wikimedia Foundation](https://wikimediafoundation.org/).
+*Designed and Engineered with precision by the Prarush Open Platform Team.*

@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, Check, X, Shield, Zap, Download, Volume2, 
-  CreditCard, Award, ArrowRight, RefreshCw, AlertCircle 
+  Sparkles, Check, X, Shield, Zap, Download, Cpu, 
+  CreditCard, Award, ArrowRight, RefreshCw, AlertCircle, Layers 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
-  PLANS, 
+  PRARUSH_PLANS, 
   getSubscription, 
   isProSubscriber, 
-  upgradeToPro, 
-  cancelProSubscription 
-} from '../utils/freemiumService.js';
+  isTeamSubscriber,
+  upgradeSubscription, 
+  cancelSubscription 
+} from '../utils/prarushFreemium.js';
 import { audioSystem } from '../utils/audioSystem.js';
 
 export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptionChanged }) {
   const [billingCycle, setBillingCycle] = useState('annual'); // 'monthly' | 'annual'
+  const [selectedTier, setSelectedTier] = useState('pro'); // 'pro' | 'team'
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
@@ -29,21 +31,19 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
     setPaymentError(null);
 
     try {
-      // Simulate secure payment gateway transaction
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      await new Promise(resolve => setTimeout(resolve, 1100));
 
-      const upgraded = upgradeToPro({
+      const upgraded = upgradeSubscription(
+        selectedTier,
         billingCycle,
-        paymentMethod: 'Test Card (4242)',
-        email: user?.email || 'guest@citylife.app'
-      });
+        user?.email || 'user@prarush.ai'
+      );
 
       audioSystem.playSuccessSound();
 
-      // Trigger celebratory confetti
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: 90,
+        spread: 75,
         origin: { y: 0.6 }
       });
 
@@ -56,8 +56,8 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
     }
   };
 
-  const handleCancelSub = () => {
-    const cancelled = cancelProSubscription();
+  const handleCancel = () => {
+    const cancelled = cancelSubscription();
     audioSystem.playWarningSound();
     if (onSubscriptionChanged) onSubscriptionChanged(cancelled);
     setShowCancelConfirm(false);
@@ -65,34 +65,35 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <div 
         className="bottom-sheet" 
         onClick={(e) => e.stopPropagation()} 
-        style={{ maxHeight: '92%', maxWidth: 520, margin: '0 auto' }}
+        style={{ maxHeight: '92%', maxWidth: 560, margin: '0 auto' }}
       >
         <div className="sheet-handle" />
 
         <div className="sheet-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#090d16'
+              color: '#fff',
+              boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
             }}>
-              <Sparkles size={18} />
+              <Sparkles size={20} />
             </div>
             <div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#fff' }}>
-                {isPro ? 'Scout Pro Membership' : 'Upgrade to Scout Pro'}
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>
+                {isPro ? 'Manage Prarush Membership' : 'Upgrade to Prarush Pro / Team'}
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#f59e0b', fontWeight: 600 }}>
-                {isPro ? 'Active Premium Subscription' : 'Unlock Global Urban Superpowers'}
+              <div style={{ fontSize: '0.7rem', color: '#06b6d4', fontWeight: 600 }}>
+                {isPro ? 'Active Premium Entitlement' : 'Unlock Claude 3.5, GPT-4o & Unlimited Automations'}
               </div>
             </div>
           </div>
@@ -106,8 +107,8 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
           {/* Active Subscription View */}
           {isPro ? (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
               borderRadius: 14,
               padding: 16,
               display: 'flex',
@@ -116,12 +117,14 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Award size={20} color="#f59e0b" />
-                  <strong style={{ color: '#fff', fontSize: '0.9rem' }}>Scout Pro Active</strong>
+                  <Award size={20} color="#06b6d4" />
+                  <strong style={{ color: '#fff', fontSize: '0.95rem' }}>
+                    {currentSub.planId === 'team' ? 'Prarush Team Active' : 'Prarush Pro Active'}
+                  </strong>
                 </div>
                 <span style={{
                   fontSize: '0.68rem',
-                  background: '#f59e0b',
+                  background: 'var(--accent-cyan)',
                   color: '#090d16',
                   fontWeight: 800,
                   padding: '3px 10px',
@@ -132,9 +135,9 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
               </div>
 
               <div style={{ fontSize: '0.74rem', color: '#cbd5e1', lineHeight: 1.5 }}>
-                <div><strong>Transaction:</strong> {currentSub.transactionId || 'TXN-ACTIVE'}</div>
+                <div><strong>Transaction:</strong> {currentSub.transactionId || 'PRARUSH-TXN-ACTIVE'}</div>
                 <div><strong>Renews:</strong> {new Date(currentSub.renewsAt || Date.now()).toLocaleDateString()}</div>
-                <div><strong>Plan:</strong> All Pro features, unlimited Guardian SMS &amp; offline packs enabled.</div>
+                <div><strong>Benefits:</strong> Claude 3.5 Sonnet, GPT-4o, 50GB storage, and unlimited AI Automation Studio.</div>
               </div>
 
               {!showCancelConfirm ? (
@@ -143,7 +146,7 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                   style={{ alignSelf: 'flex-start', fontSize: '0.72rem', padding: '6px 12px', color: '#fb7185', borderColor: 'rgba(244, 63, 94, 0.4)' }}
                   onClick={() => setShowCancelConfirm(true)}
                 >
-                  Cancel Pro Subscription
+                  Cancel Subscription
                 </button>
               ) : (
                 <div style={{
@@ -156,22 +159,22 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                   gap: 8
                 }}>
                   <span style={{ fontSize: '0.72rem', color: '#fca5a5' }}>
-                    Are you sure? You will lose offline pack caching and advanced hazard routing immediately.
+                    Are you sure? You will lose Claude 3.5 access, AI Automation Studio, and high-compute storage immediately.
                   </span>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       className="btn-primary"
-                      style={{ background: '#f43f5e', padding: '4px 10px', fontSize: '0.72rem' }}
-                      onClick={handleCancelSub}
+                      style={{ background: '#f43f5e', padding: '5px 12px', fontSize: '0.72rem' }}
+                      onClick={handleCancel}
                     >
                       Confirm Downgrade to Free
                     </button>
                     <button
                       className="btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+                      style={{ padding: '5px 12px', fontSize: '0.72rem' }}
                       onClick={() => setShowCancelConfirm(false)}
                     >
-                      Keep Pro
+                      Keep Active
                     </button>
                   </div>
                 </div>
@@ -202,8 +205,7 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 6,
-                    transition: 'all 0.2s'
+                    gap: 6
                   }}
                   onClick={() => setBillingCycle('annual')}
                 >
@@ -231,83 +233,81 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                     color: billingCycle === 'monthly' ? '#090d16' : '#94a3b8',
                     fontWeight: 700,
                     fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    cursor: 'pointer'
                   }}
                   onClick={() => setBillingCycle('monthly')}
                 >
-                  Monthly ($9.99/mo)
+                  Monthly
                 </button>
               </div>
 
-              {/* Pricing Display */}
-              <div style={{
-                textAlign: 'center',
-                padding: '10px 0',
-                background: 'rgba(255,255,255,0.02)',
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.05)'
-              }}>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>
-                  {billingCycle === 'annual' ? '$6.66' : '$9.99'}
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#94a3b8' }}> / month</span>
+              {/* Tier Selector (Pro vs Team) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div
+                  onClick={() => setSelectedTier('pro')}
+                  style={{
+                    border: selectedTier === 'pro' ? '2px solid #06b6d4' : '1px solid var(--border-glass)',
+                    borderRadius: 12,
+                    padding: 12,
+                    background: selectedTier === 'pro' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255,255,255,0.02)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ color: '#fff', fontSize: '0.85rem' }}>Prarush Pro</strong>
+                    <span style={{ fontSize: '0.62rem', background: '#06b6d4', color: '#090d16', padding: '1px 5px', borderRadius: 4, fontWeight: 800 }}>POPULAR</span>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: 4 }}>
+                    {billingCycle === 'annual' ? '$8' : '$12'}
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/mo</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#cbd5e1', marginTop: 2 }}>
+                    For power developers, researchers &amp; creators.
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#38bdf8', marginTop: 2 }}>
-                  {billingCycle === 'annual' ? 'Billed annually at $79.99/year (Save $39.89)' : 'Billed monthly, cancel anytime'}
+
+                <div
+                  onClick={() => setSelectedTier('team')}
+                  style={{
+                    border: selectedTier === 'team' ? '2px solid #f59e0b' : '1px solid var(--border-glass)',
+                    borderRadius: 12,
+                    padding: 12,
+                    background: selectedTier === 'team' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255,255,255,0.02)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ color: '#fff', fontSize: '0.85rem' }}>Prarush Team</strong>
+                    <span style={{ fontSize: '0.62rem', background: '#f59e0b', color: '#090d16', padding: '1px 5px', borderRadius: 4, fontWeight: 800 }}>BUSINESS</span>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: 4 }}>
+                    {billingCycle === 'annual' ? '$23' : '$29'}
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/seat/mo</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#cbd5e1', marginTop: 2 }}>
+                    Shared workspaces, audit logs &amp; webhooks.
+                  </div>
                 </div>
               </div>
 
-              {/* Comparison Matrix */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  What Scout Pro Unlocks:
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {[
-                    { title: 'Offline City Packs', desc: 'Download entire city vector maps & POIs for roaming without data', icon: Download },
-                    { title: 'Advanced Hazard Routing', desc: 'Auto-bypass poorly lit alleys, street construction & incident hotspots', icon: Shield },
-                    { title: 'Unlimited Guardian Pings', desc: 'Continuous SMS tracking & automatic emergency contact broadcasts', icon: Zap },
-                    { title: 'Studio Audio Narration', desc: 'Ultra-realistic historical voice guides for 500+ heritage monuments', icon: Volume2 },
-                    { title: 'Unlimited UrbanSense AI', desc: 'Instant itinerary generation, food matches & multi-district planning', icon: Sparkles }
-                  ].map((feat, i) => {
-                    const Icon = feat.icon;
-                    return (
-                      <div 
-                        key={i}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: 10,
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          background: 'rgba(255,255,255,0.03)'
-                        }}
-                      >
-                        <div style={{
-                          width: 26,
-                          height: 26,
-                          borderRadius: 6,
-                          background: 'rgba(245, 158, 11, 0.15)',
-                          color: '#f59e0b',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <Icon size={14} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>{feat.title}</div>
-                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: 1.3 }}>{feat.desc}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+              {/* Feature Highlights */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  'Access Claude 3.5 Sonnet, GPT-4o, and Gemini 1.5 Pro',
+                  'Unlimited workspaces, Kanban boards, and notes',
+                  'Visual AI Automation Studio with webhook triggers',
+                  'AI Image Generator & Presentation Deck builder',
+                  'Document OCR, entity extractor & file compressor',
+                  '50 GB secure cloud storage with GDPR data portability'
+                ].map((feat, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', color: '#cbd5e1' }}>
+                    <Check size={14} color="#10b981" />
+                    <span>{feat}</span>
+                  </div>
+                ))}
               </div>
 
-              {/* Mock Sandbox Payment Card */}
+              {/* Sandbox Test Card Indicator */}
               <div style={{
                 background: 'rgba(6, 182, 212, 0.08)',
                 border: '1px dashed rgba(6, 182, 212, 0.4)',
@@ -321,11 +321,11 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <CreditCard size={16} color="#06b6d4" />
                   <div>
-                    <span style={{ color: '#fff', fontWeight: 600 }}>Sandbox Test Card: </span>
+                    <span style={{ color: '#fff', fontWeight: 600 }}>Simulated Card: </span>
                     <span style={{ color: '#38bdf8' }}>4242 •••• •••• 4242</span>
                   </div>
                 </div>
-                <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.65rem' }}>SIMULATOR READY</span>
+                <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.65rem' }}>SANDBOX READY</span>
               </div>
 
               {paymentError && (
@@ -335,18 +335,15 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                 </div>
               )}
 
-              {/* Upgrade Action Button */}
+              {/* Upgrade Button */}
               <button
-                id="btn-confirm-upgrade"
                 className="btn-primary"
                 style={{
                   width: '100%',
                   padding: 13,
                   fontSize: '0.86rem',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#090d16',
-                  boxShadow: '0 4px 15px rgba(245, 158, 11, 0.35)',
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%)',
                   justifyContent: 'center'
                 }}
                 onClick={handleUpgrade}
@@ -359,17 +356,14 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                   </>
                 ) : (
                   <>
-                    <span>Activate Scout Pro ({billingCycle === 'annual' ? '$79.99/yr' : '$9.99/mo'})</span>
+                    <span>Activate {selectedTier === 'team' ? 'Prarush Team' : 'Prarush Pro'} ({billingCycle === 'annual' ? `$${selectedTier === 'team' ? '276' : '96'}/year` : `$${selectedTier === 'team' ? '29' : '12'}/mo`})</span>
                     <ArrowRight size={16} />
                   </>
                 )}
               </button>
 
-              {/* Disclaimer & Policy Notice */}
-              <div style={{ textAlign: 'center', fontSize: '0.65rem', color: '#64748b', lineHeight: 1.4 }}>
-                14-day 100% money-back guarantee. No lock-in contracts.
-                <br />
-                By continuing you agree to the <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>Privacy Policy</a>.
+              <div style={{ textAlign: 'center', fontSize: '0.66rem', color: '#64748b' }}>
+                14-day 100% money-back guarantee &bull; Cancel anytime from settings.
               </div>
             </>
           )}
