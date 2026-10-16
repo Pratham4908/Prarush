@@ -12,14 +12,14 @@ export const PRARUSH_PLANS = {
     priceAnnual: 0,
     badge: 'FREE',
     badgeColor: '#94a3b8',
-    description: 'Essential AI capabilities and productivity tools for students and casual creators.',
+    description: 'Essential local-first AI capabilities and productivity tools for developers and creators.',
     features: [
-      '20 AI queries per day (Prarush Neural-4 & Llama 3)',
+      'Local offline AI rules & templates (Prarush Local Engine)',
       'Up to 2 active workspaces',
-      'Kanban task manager & basic notes editor',
+      'Kanban task manager & markdown notes editor',
       'Community template browsing',
-      '500 MB file & document storage',
-      'Standard processing priority'
+      'Local file & document storage in browser memory',
+      'Zero tracking and private client-side execution'
     ],
     limits: {
       aiQueriesPerDay: 20,
@@ -239,13 +239,14 @@ export function cancelSubscription() {
 // GDPR Article 20: Machine-readable JSON Data Portability Export
 export function exportUserDataGDPR(user) {
   const sub = getSubscription();
-  const workspaces = localStorage.getItem('prarush_workspaces');
-  const tasks = localStorage.getItem('prarush_tasks');
-  const notes = localStorage.getItem('prarush_notes');
-  const docs = localStorage.getItem('prarush_documents');
-  const events = localStorage.getItem('prarush_events');
-  const automations = localStorage.getItem('prarush_automations');
-  const kb = localStorage.getItem('prarush_knowledge');
+  const userId = user?.id;
+  const workspaces = (userId && localStorage.getItem(`prarush_usr_${userId}_workspaces`)) || localStorage.getItem('prarush_workspaces');
+  const tasks = (userId && localStorage.getItem(`prarush_usr_${userId}_tasks`)) || localStorage.getItem('prarush_tasks');
+  const notes = (userId && localStorage.getItem(`prarush_usr_${userId}_notes`)) || localStorage.getItem('prarush_notes');
+  const docs = (userId && localStorage.getItem(`prarush_usr_${userId}_documents`)) || localStorage.getItem('prarush_documents');
+  const events = (userId && localStorage.getItem(`prarush_usr_${userId}_events`)) || localStorage.getItem('prarush_events');
+  const automations = (userId && localStorage.getItem(`prarush_usr_${userId}_automations`)) || localStorage.getItem('prarush_automations');
+  const kb = (userId && localStorage.getItem(`prarush_usr_${userId}_knowledge`)) || localStorage.getItem('prarush_knowledge');
   const activity = localStorage.getItem('prarush_activity_log');
   const theme = localStorage.getItem('prarush_theme_mode');
   const locale = localStorage.getItem('prarush_locale');

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Cpu, Zap, DollarSign, Clock, ShieldCheck, Check, Sparkles, 
-  Layers, ExternalLink, Play, CheckCircle2, Key, Info, AlertCircle 
+  Layers, ExternalLink, Play, CheckCircle2, Key, Info, AlertCircle, ShieldAlert 
 } from 'lucide-react';
 import { AI_MODELS } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
@@ -27,7 +27,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
     audioSystem.playTone(550, 'sine', 0.1);
     const start = performance.now();
 
-    // If real key exists for OpenAI or Gemini, perform real ping
+    // Live ping tests for providers where user configured real credentials
     if (modelId === 'gpt-4o' && apiKeys.openai) {
       try {
         await fetch('https://api.openai.com/v1/models', {
@@ -39,14 +39,17 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         const elapsed = Math.round(performance.now() - start);
         setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Network Error)` }));
       }
+    } else if (modelId === 'prarush-local-engine' || modelId === 'prarush-neural-4') {
+      const elapsed = Math.max(1, Math.round(performance.now() - start));
+      setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Local Engine)` }));
     } else {
-      // Local benchmark simulation
+      // Local benchmark without live network call
       setTimeout(() => {
-        const simulatedLatency = Math.floor(Math.random() * 35 + 40);
-        setLatencyResults(prev => ({ ...prev, [modelId]: `${simulatedLatency} ms (Simulated)` }));
+        const simulatedLatency = Math.floor(Math.random() * 20 + 30);
+        setLatencyResults(prev => ({ ...prev, [modelId]: `Est. ${simulatedLatency}ms (Key Needed)` }));
         setTestingModelId(null);
         audioSystem.playSuccessSound();
-      }, 500);
+      }, 350);
       return;
     }
 
@@ -82,11 +85,11 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
               padding: '2px 8px',
               borderRadius: 999
             }}>
-              MULTI-MODEL MESH
+              BYOK TRANSPARENT ROUTING
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '6px 0 0 0', maxWidth: 640 }}>
-            Compare specifications, pricing, and context limits. Prarush runs local offline intelligence by default, or connects directly to live cloud providers with your own API key (BYOK).
+            Compare specifications, estimated cloud pricing, and token limits. Prarush runs an offline rule engine by default, or connects directly from your browser to live providers with your own API key (BYOK).
           </p>
         </div>
 
@@ -107,47 +110,74 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
           }}
         >
           <Key size={15} />
-          <span>{showKeyConfig ? 'Close Key Settings' : 'Connect Cloud API Keys (BYOK)'}</span>
+          <span>{showKeyConfig ? 'Close Key Settings' : 'Configure Provider Keys (BYOK)'}</span>
         </button>
       </div>
 
       {/* Cloud API Key Configuration Drawer */}
       {showKeyConfig && (
         <form onSubmit={handleSaveKeys} style={{
-          background: 'rgba(15, 23, 42, 0.85)',
-          border: '1px solid rgba(6, 182, 212, 0.35)',
+          background: 'rgba(15, 23, 42, 0.95)',
+          border: '1px solid rgba(6, 182, 212, 0.45)',
           borderRadius: 16,
-          padding: '20px 24px',
+          padding: '22px 26px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 14
+          gap: 16
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Key size={18} color="#06b6d4" />
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Bring-Your-Own-Key (BYOK) Live Providers
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                Direct Client-Side Provider Keys (BYOK)
               </h3>
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Keys stay on your device and are never shared</span>
+            <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>
+              Prompts route directly to the provider endpoint. No intermediary proxy tracking.
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+            {/* Anthropic */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>
-                OpenAI API Key (sk-...)
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
+                Anthropic API Key (Claude 3.5 Sonnet)
+              </label>
+              <input
+                type="password"
+                placeholder="sk-ant-api03-..."
+                value={apiKeys.anthropic || ''}
+                onChange={(e) => setApiKeys({ ...apiKeys, anthropic: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* OpenAI */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#10b981', marginBottom: 4 }}>
+                OpenAI API Key (GPT-4o)
               </label>
               <input
                 type="password"
                 placeholder="sk-proj-..."
-                value={apiKeys.openai}
+                value={apiKeys.openai || ''}
                 onChange={(e) => setApiKeys({ ...apiKeys, openai: e.target.value })}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 8,
                   background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
                   color: '#f8fafc',
                   fontSize: '0.85rem',
                   outline: 'none',
@@ -156,21 +186,46 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
               />
             </div>
 
+            {/* Google Gemini */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>
-                Google Gemini API Key (AIza...)
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#8b5cf6', marginBottom: 4 }}>
+                Google Gemini Key (Gemini 1.5 Pro via x-goog-api-key)
               </label>
               <input
                 type="password"
                 placeholder="AIzaSy..."
-                value={apiKeys.gemini}
+                value={apiKeys.gemini || ''}
                 onChange={(e) => setApiKeys({ ...apiKeys, gemini: e.target.value })}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 8,
                   background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* OpenRouter */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#38bdf8', marginBottom: 4 }}>
+                OpenRouter Key (Llama 3 & Multi-Model Gateway)
+              </label>
+              <input
+                type="password"
+                placeholder="sk-or-v1-..."
+                value={apiKeys.openrouter || ''}
+                onChange={(e) => setApiKeys({ ...apiKeys, openrouter: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
                   color: '#f8fafc',
                   fontSize: '0.85rem',
                   outline: 'none',
@@ -180,14 +235,20 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-              When saved, the AI Assistant and Code Studio query your live cloud model endpoints directly.
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', color: '#cbd5e1', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={Boolean(apiKeys.sessionOnly)}
+                onChange={(e) => setApiKeys({ ...apiKeys, sessionOnly: e.target.checked })}
+              />
+              <span>Keep keys in Session Storage only (cleared automatically when browser tab closes)</span>
+            </label>
+
             <button
               type="submit"
               style={{
-                padding: '8px 18px',
+                padding: '8px 20px',
                 borderRadius: 8,
                 background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%)',
                 border: 'none',
@@ -210,7 +271,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         gap: 16
       }}>
         {AI_MODELS.map(model => {
-          const isSelected = selectedModelId === model.id;
+          const isSelected = selectedModelId === model.id || selectedModelId === model.aliasId;
           const latency = latencyResults[model.id];
 
           return (
@@ -271,15 +332,15 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                 }}>
                   <div>
                     <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Context</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8' }}>{model.contextWindow}</div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>{model.contextWindow}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Est. Cost</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981' }}>{model.costPer1k}</div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>{model.costPer1k}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Speed Tier</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b' }}>{model.speed}</div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f59e0b' }}>{model.speed}</div>
                   </div>
                 </div>
               </div>
@@ -323,7 +384,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                     alignItems: 'center',
                     gap: 6
                   }}
-                  title="Measure round-trip inference response time"
+                  title="Measure round-trip response or local benchmark"
                 >
                   <Play size={12} color="#06b6d4" />
                   <span>{testingModelId === model.id ? 'Testing...' : (latency || 'Test Latency')}</span>

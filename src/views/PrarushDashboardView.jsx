@@ -123,7 +123,7 @@ export default function PrarushDashboardView({
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '6px 0 0 0', maxWidth: 620 }}>
-            {currentWorkspace.description} — Grounded AI intelligence and cross-device continuity enabled.
+            {currentWorkspace.description} — Local-first persistence in browser storage.
           </p>
         </div>
 

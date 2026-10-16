@@ -57,31 +57,66 @@ export default function PrarushKnowledgeView({
       const qLower = qaQuestion.toLowerCase();
       const queryWords = qLower.split(/\s+/).filter(w => w.length > 2);
 
-      // Score each item by query word overlap
+      if (queryWords.length === 0) {
+        setGroundedAnswer({
+          noMatch: true,
+          answer: `Please enter at least one keyword (3+ characters) to search your notes and documents.`,
+          source: 'None',
+          title: 'Input Too Short'
+        });
+        setIsAsking(false);
+        return;
+      }
+
+      // Score each item by exact keyword overlap
       const scored = unifiedIndex.map(item => {
-        let score = 0;
-        const text = `${item.title} ${item.snippet} ${item.source}`.toLowerCase();
+        const matches = [];
+        const titleLower = item.title.toLowerCase();
+        const snippetLower = item.snippet.toLowerCase();
+        const sourceLower = item.source.toLowerCase();
+
         for (const w of queryWords) {
-          if (text.includes(w)) score += 1;
+          if (titleLower.includes(w) || snippetLower.includes(w) || sourceLower.includes(w)) {
+            matches.push(w);
+          }
         }
-        return { item, score };
+        return { item, score: matches.length, matches };
       });
 
       scored.sort((a, b) => b.score - a.score);
-      const topMatch = scored[0]?.score > 0 ? scored[0].item : unifiedIndex[0];
-      const matchScore = Math.min(99.4, 85 + (scored[0]?.score || 1) * 3.5).toFixed(1);
+      const top = scored[0];
+
+      // Genuine no-match handling: NEVER fall back to unifiedIndex[0]
+      if (!top || top.score === 0) {
+        setGroundedAnswer({
+          noMatch: true,
+          answer: `No matching passages found in your stored notes or documents for: "${qaQuestion}".\nTry searching with keywords that appear in your notes or uploaded files.`,
+          source: 'No Source Match',
+          title: 'No Matching Passages'
+        });
+        setIsAsking(false);
+        audioSystem.playWarningSound();
+        return;
+      }
+
+      // Extract the most relevant sentence from snippet
+      const sentences = top.item.snippet.split(/(?<=[.?!])\s+/);
+      const relevantSentence = sentences.find(s => 
+        top.matches.some(m => s.toLowerCase().includes(m))
+      ) || top.item.snippet.slice(0, 240);
 
       setGroundedAnswer({
-        answer: `Grounded in ${topMatch.source} ("${topMatch.title}"):\n\n"${topMatch.snippet}"\n\nVerified via local lexical indexing with ${matchScore}% contextual relevance.`,
-        source: topMatch.source,
-        title: topMatch.title,
-        type: topMatch.type,
-        confidence: `${matchScore}%`
+        noMatch: false,
+        answer: `Passage from ${top.item.source} ("${top.item.title}"):\n\n"${relevantSentence.trim()}"\n\nFull Reference Context:\n"${top.item.snippet}"`,
+        source: top.item.source,
+        title: top.item.title,
+        type: top.item.type,
+        matchedTerms: top.matches.join(', ')
       });
 
       setIsAsking(false);
       audioSystem.playSuccessSound();
-    }, 500);
+    }, 400);
   };
 
   const filteredItems = unifiedIndex.filter(i => 
@@ -102,7 +137,7 @@ export default function PrarushKnowledgeView({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Layers size={24} color="#06b6d4" />
           <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-            Personal Knowledge Hub &amp; Grounded Q&amp;A
+            Keyword &amp; Passage Search
           </h1>
           <span style={{
             fontSize: '0.62rem',
@@ -116,7 +151,7 @@ export default function PrarushKnowledgeView({
           </span>
         </div>
         <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '6px 0 0 0', maxWidth: 680 }}>
-          Searches across your stored notes, uploaded documents, and research references. Answers cite the exact source document and passage supporting each insight.
+          Performs local lexical matching across your stored notes, uploaded documents, and reference items. Extracts exact source passages without cloud dependencies or simulated scores.
         </p>
       </div>
 
@@ -133,7 +168,7 @@ export default function PrarushKnowledgeView({
         <Sparkles size={20} color="#06b6d4" />
         <input
           type="text"
-          placeholder="Ask a question grounded in your documents, notes, or knowledge..."
+          placeholder="Search by keyword or topic across your documents and notes..."
           value={qaQuestion}
           onChange={(e) => setQaQuestion(e.target.value)}
           style={{
@@ -151,7 +186,7 @@ export default function PrarushKnowledgeView({
           className="btn-primary"
           style={{ fontSize: '0.8rem', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          <span>{isAsking ? 'Retrieving Passages...' : 'Query Knowledge'}</span>
+          <span>{isAsking ? 'Searching...' : 'Search Passages'}</span>
           <ArrowRight size={14} />
         </button>
       </form>
@@ -159,8 +194,12 @@ export default function PrarushKnowledgeView({
       {/* Grounded AI Answer Box */}
       {groundedAnswer && (
         <div style={{
-          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.06) 100%)',
-          border: '1px solid rgba(6, 182, 212, 0.3)',
+          background: groundedAnswer.noMatch 
+            ? 'rgba(244, 63, 94, 0.08)' 
+            : 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.06) 100%)',
+          border: groundedAnswer.noMatch 
+            ? '1px solid rgba(244, 63, 94, 0.3)' 
+            : '1px solid rgba(6, 182, 212, 0.3)',
           borderRadius: 16,
           padding: '20px',
           display: 'flex',
@@ -168,32 +207,38 @@ export default function PrarushKnowledgeView({
           gap: 10
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#06b6d4' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: groundedAnswer.noMatch ? '#fb7185' : '#06b6d4' }}>
               <CheckCircle2 size={18} />
-              <strong style={{ fontSize: '0.92rem' }}>Grounded Answer with Source Citation</strong>
+              <strong style={{ fontSize: '0.92rem' }}>
+                {groundedAnswer.noMatch ? 'No Passages Found' : 'Matched Source Passage'}
+              </strong>
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700 }}>
-              Relevance: {groundedAnswer.confidence}
-            </span>
+            {!groundedAnswer.noMatch && groundedAnswer.matchedTerms && (
+              <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700 }}>
+                Matched: {groundedAnswer.matchedTerms}
+              </span>
+            )}
           </div>
 
           <p style={{ fontSize: '0.88rem', color: '#f8fafc', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
             {groundedAnswer.answer}
           </p>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Cited Source:</span>
-            <span style={{
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '3px 10px',
-              borderRadius: 6,
-              background: 'rgba(6, 182, 212, 0.15)',
-              color: '#38bdf8'
-            }}>
-              {groundedAnswer.source} ➔ {groundedAnswer.title}
-            </span>
-          </div>
+          {!groundedAnswer.noMatch && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Source:</span>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '3px 10px',
+                borderRadius: 6,
+                background: 'rgba(6, 182, 212, 0.15)',
+                color: '#38bdf8'
+              }}>
+                {groundedAnswer.source} ➔ {groundedAnswer.title}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

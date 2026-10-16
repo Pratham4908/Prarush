@@ -17,24 +17,6 @@ export const STORAGE_KEYS = {
 
 export const DEFAULT_WORKSPACES = [
   {
-    id: 'ws-personal',
-    name: 'Personal Life & Goals',
-    icon: '🌟',
-    description: 'Habits, personal projects, wellness, and life planning',
-    color: '#06b6d4',
-    category: 'personal',
-    createdAt: '2026-01-10T08:00:00Z'
-  },
-  {
-    id: 'ws-study',
-    name: 'Academic & Research',
-    icon: '🎓',
-    description: 'Course notes, exam prep, literature reviews, and research citations',
-    color: '#8b5cf6',
-    category: 'study',
-    createdAt: '2026-01-12T09:00:00Z'
-  },
-  {
     id: 'ws-work',
     name: 'Software Engineering & Dev',
     icon: '💻',
@@ -47,10 +29,19 @@ export const DEFAULT_WORKSPACES = [
     id: 'ws-creator',
     name: 'Content & Creative Studio',
     icon: '🎨',
-    description: 'Storyboards, AI image prompts, video scripts, presentation decks',
+    description: 'Storyboards, AI prompt workflows, video scripts, presentation decks',
     color: '#f59e0b',
     category: 'creator',
     createdAt: '2026-01-20T11:00:00Z'
+  },
+  {
+    id: 'ws-study',
+    name: 'Academic & Research',
+    icon: '🎓',
+    description: 'Course notes, exam prep, literature reviews, and research citations',
+    color: '#8b5cf6',
+    category: 'study',
+    createdAt: '2026-01-12T09:00:00Z'
   },
   {
     id: 'ws-business',
@@ -60,6 +51,15 @@ export const DEFAULT_WORKSPACES = [
     color: '#ec4899',
     category: 'business',
     createdAt: '2026-02-01T12:00:00Z'
+  },
+  {
+    id: 'ws-personal',
+    name: 'Personal Life & Goals',
+    icon: '🌟',
+    description: 'Habits, personal side projects, and reading list',
+    color: '#06b6d4',
+    category: 'personal',
+    createdAt: '2026-01-10T08:00:00Z'
   }
 ];
 
@@ -126,14 +126,14 @@ export const INITIAL_TASKS = [
   },
   {
     id: 'task-106',
-    workspaceId: 'ws-personal',
-    title: 'Complete Weekly 10K Running & Mindfulness Benchmark',
-    description: 'Track recovery pace, maintain hydration log, and complete deep meditation session.',
+    workspaceId: 'ws-work',
+    title: 'Implement Local-First SQLite/Wasm Offline Storage Cache',
+    description: 'Benchmark sub-5ms client query latency and implement atomic transaction journaling.',
     status: 'todo',
-    priority: 'low',
-    deadline: '2026-10-20',
-    tags: ['Wellness', 'Health', 'Habits'],
-    assignee: 'Self',
+    priority: 'medium',
+    deadline: '2026-10-25',
+    tags: ['Database', 'Wasm', 'Offline'],
+    assignee: 'Pratham (Lead Engineer)',
     createdAt: '2026-10-16T08:00:00Z'
   }
 ];
@@ -352,6 +352,23 @@ export function saveStoredData(key, data) {
   } catch (err) {
     console.warn(`Storage save error for ${key}:`, err);
   }
+}
+
+// User-scoped storage isolation: isolates records per user account
+export function getUserStorageKey(baseKey, userId) {
+  if (!userId || userId === 'usr-guest') return baseKey;
+  const cleanBase = baseKey.replace(/^prarush_/, '');
+  return `prarush_usr_${userId}_${cleanBase}`;
+}
+
+export function getUserStoredData(baseKey, userId, fallback) {
+  const scopedKey = getUserStorageKey(baseKey, userId);
+  return getStoredData(scopedKey, getStoredData(baseKey, fallback));
+}
+
+export function saveUserStoredData(baseKey, userId, data) {
+  const scopedKey = getUserStorageKey(baseKey, userId);
+  saveStoredData(scopedKey, data);
 }
 
 // Log an activity entry

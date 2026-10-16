@@ -57,6 +57,14 @@ export function getCurrentUser() {
     if (!raw) return DEFAULT_GUEST_USER;
     const session = JSON.parse(raw);
     if (!session || !session.user) return DEFAULT_GUEST_USER;
+
+    // Enforce session expiry verification
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      console.warn('Prarush session expired. Terminating session.');
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return DEFAULT_GUEST_USER;
+    }
+
     return session.user;
   } catch {
     return DEFAULT_GUEST_USER;

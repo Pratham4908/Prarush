@@ -1,41 +1,43 @@
 // Prarush Universal AI Multi-Model Intelligence Engine
-// Supports Prarush Neural-4, Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, and Llama 3
+// Supports Prarush Local Engine, Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, and Llama 3
+// Transparently distinguishes live external cloud inference from deterministic offline rule-based fallbacks.
 
 export const AI_MODELS = [
   {
-    id: 'prarush-neural-4',
-    name: 'Prarush Neural-4 Turbo',
-    provider: 'Prarush AI Core',
+    id: 'prarush-local-engine',
+    aliasId: 'prarush-neural-4',
+    name: 'Prarush Local Engine (Offline Rules)',
+    provider: 'Built-in Local Sandbox',
     icon: '⚡',
-    badge: 'DEFAULT',
+    badge: 'OFFLINE',
     badgeColor: '#06b6d4',
-    contextWindow: '128K Tokens',
-    speed: '48 ms (Ultra Fast)',
-    costPer1k: '$0.0015',
-    strengths: 'General reasoning, multi-task workflows, task planning, instant synthesis'
+    contextWindow: 'Local Workspace Context',
+    speed: 'Instant (<10 ms local)',
+    costPer1k: 'Free ($0.00)',
+    strengths: 'Offline task templates, deterministic code/markdown generation without external API keys or cloud dependencies'
   },
   {
     id: 'claude-3-5-sonnet',
     name: 'Claude 3.5 Sonnet',
     provider: 'Anthropic',
     icon: '🧠',
-    badge: 'PRO',
+    badge: 'LIVE BYOK',
     badgeColor: '#f59e0b',
     contextWindow: '200K Tokens',
-    speed: '85 ms (Fast)',
-    costPer1k: '$0.0030',
-    strengths: 'Nuanced prose, high-level system coding, complex document analysis'
+    speed: 'Est. 500-1500 ms (Cloud)',
+    costPer1k: '~$0.0030 (Provider Est.)',
+    strengths: 'Nuanced prose, high-level system architecture, complex document and logic analysis'
   },
   {
     id: 'gpt-4o',
     name: 'GPT-4o Omni',
     provider: 'OpenAI',
     icon: '🌐',
-    badge: 'PRO',
+    badge: 'LIVE BYOK',
     badgeColor: '#10b981',
     contextWindow: '128K Tokens',
-    speed: '92 ms (Fast)',
-    costPer1k: '$0.0025',
+    speed: 'Est. 500-1200 ms (Cloud)',
+    costPer1k: '~$0.0025 (Provider Est.)',
     strengths: 'Multimodal vision, cross-domain logic, mathematical problem solving'
   },
   {
@@ -43,93 +45,179 @@ export const AI_MODELS = [
     name: 'Gemini 1.5 Pro',
     provider: 'Google DeepMind',
     icon: '✨',
-    badge: 'PRO',
+    badge: 'LIVE BYOK',
     badgeColor: '#8b5cf6',
     contextWindow: '1M+ Tokens',
-    speed: '110 ms',
-    costPer1k: '$0.0035',
+    speed: 'Est. 600-1500 ms (Cloud)',
+    costPer1k: '~$0.0035 (Provider Est.)',
     strengths: 'Ultra-long document retrieval, video comprehension, academic literature grounding'
   },
   {
     id: 'llama-3-70b',
     name: 'Llama 3 70B Open',
-    provider: 'Meta Open-Source',
+    provider: 'Meta / OpenRouter',
     icon: '🦙',
-    badge: 'OPEN',
+    badge: 'OPEN BYOK',
     badgeColor: '#38bdf8',
     contextWindow: '8K Tokens',
-    speed: '65 ms',
-    costPer1k: '$0.0008',
-    strengths: 'Local-first compliance, zero data retention, high raw text throughput'
+    speed: 'Est. 400-1000 ms (Cloud)',
+    costPer1k: '~$0.0008 (Provider Est.)',
+    strengths: 'Open-weights foundation model, accessible via OpenRouter BYOK key'
   }
 ];
 
-import { getStoredApiKeys, callRealOpenAI, callRealGemini } from './apiKeyManager.js';
+import { 
+  getStoredApiKeys, 
+  callRealOpenAI, 
+  callRealGemini, 
+  callRealAnthropic, 
+  callRealOpenRouter 
+} from './apiKeyManager.js';
 
-// Process natural language queries across the Prarush Universal Platform
-export async function processPrarushAIQuery(prompt, modelId = 'prarush-neural-4', context = {}) {
+// Process queries across the Prarush Universal Platform with honest routing and clear labeling
+export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-engine', context = {}) {
   const q = prompt.trim().toLowerCase();
-  const selectedModel = AI_MODELS.find(m => m.id === modelId) || AI_MODELS[0];
+  
+  // Resolve model, honoring both current and legacy alias IDs
+  const selectedModel = AI_MODELS.find(m => m.id === modelId || m.aliasId === modelId) || AI_MODELS[0];
   const keys = getStoredApiKeys();
 
-  // If user configured a live cloud API key, execute real live inference
-  if (keys.openai && (modelId === 'gpt-4o' || modelId === 'claude-3-5-sonnet')) {
+  // 1. Direct Live Routing: Anthropic (Claude 3.5 Sonnet)
+  if (selectedModel.id === 'claude-3-5-sonnet') {
+    if (keys.anthropic) {
+      try {
+        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-3-5-sonnet-20241022');
+        return {
+          type: 'live_llm_response',
+          modelUsed: `${selectedModel.name} (Live Anthropic API)`,
+          title: `🧠 Live Cloud Response from ${selectedModel.name}`,
+          text: liveAnswer,
+          isLiveApi: true,
+          provider: 'Anthropic',
+          suggestedActions: [
+            { label: 'Create Kanban Task', actionType: 'create_task' },
+            { label: 'Save as Note', actionType: 'create_note' },
+            { label: 'Export Code', actionType: 'create_code' }
+          ]
+        };
+      } catch (err) {
+        console.warn('Live Anthropic call failed, falling back to local engine:', err.message);
+      }
+    } else if (keys.openrouter) {
+      try {
+        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'anthropic/claude-3.5-sonnet');
+        return {
+          type: 'live_llm_response',
+          modelUsed: `${selectedModel.name} (Live via OpenRouter)`,
+          title: `🧠 Live Cloud Response from ${selectedModel.name}`,
+          text: liveAnswer,
+          isLiveApi: true,
+          provider: 'OpenRouter',
+          suggestedActions: [
+            { label: 'Create Kanban Task', actionType: 'create_task' },
+            { label: 'Save as Note', actionType: 'create_note' },
+            { label: 'Export Code', actionType: 'create_code' }
+          ]
+        };
+      } catch (err) {
+        console.warn('Live OpenRouter call failed:', err.message);
+      }
+    }
+    // Anthropic key is NOT configured. Never disguise another provider as Claude.
+    // Proceed to return explicit fallback.
+  }
+
+  // 2. Direct Live Routing: OpenAI (GPT-4o)
+  if (selectedModel.id === 'gpt-4o' && keys.openai) {
     try {
-      const liveAnswer = await callRealOpenAI(prompt, keys.openai);
+      const liveAnswer = await callRealOpenAI(prompt, keys.openai, 'gpt-4o');
       return {
         type: 'live_llm_response',
-        modelUsed: `${selectedModel.name} (Live Cloud API)`,
-        title: `🤖 Live Cloud Response from ${selectedModel.name}`,
+        modelUsed: `${selectedModel.name} (Live OpenAI API)`,
+        title: `🌐 Live Cloud Response from ${selectedModel.name}`,
         text: liveAnswer,
         isLiveApi: true,
+        provider: 'OpenAI',
         suggestedActions: [
           { label: 'Create Kanban Task', actionType: 'create_task' },
           { label: 'Save as Note', actionType: 'create_note' },
-          { label: 'Generate Presentation', actionType: 'create_deck' }
+          { label: 'Export Code', actionType: 'create_code' }
         ]
       };
     } catch (apiErr) {
-      console.warn('Live OpenAI call failed, falling back to local workspace model:', apiErr.message);
+      console.warn('Live OpenAI call failed, falling back to local engine:', apiErr.message);
     }
   }
 
-  if (keys.gemini && modelId === 'gemini-1.5-pro') {
+  // 3. Direct Live Routing: Google Gemini 1.5 Pro
+  if (selectedModel.id === 'gemini-1-5-pro' && keys.gemini) {
     try {
-      const liveAnswer = await callRealGemini(prompt, keys.gemini);
+      const liveAnswer = await callRealGemini(prompt, keys.gemini, 'gemini-1.5-pro');
       return {
         type: 'live_llm_response',
-        modelUsed: `${selectedModel.name} (Live Gemini API)`,
-        title: `🤖 Live Cloud Response from ${selectedModel.name}`,
+        modelUsed: `${selectedModel.name} (Live Google Gemini API)`,
+        title: `✨ Live Cloud Response from ${selectedModel.name}`,
         text: liveAnswer,
         isLiveApi: true,
+        provider: 'Google DeepMind',
         suggestedActions: [
           { label: 'Create Kanban Task', actionType: 'create_task' },
           { label: 'Save as Note', actionType: 'create_note' },
-          { label: 'Generate Presentation', actionType: 'create_deck' }
+          { label: 'Export Code', actionType: 'create_code' }
         ]
       };
     } catch (apiErr) {
-      console.warn('Live Gemini call failed, falling back to local workspace model:', apiErr.message);
+      console.warn('Live Gemini call failed, falling back to local engine:', apiErr.message);
     }
   }
 
-  // Fallback to local intelligent workspace model with honest disclaimer
-  const localDisclaimer = 'Generated via Local Workspace Assistant. To use live LLM inference, configure your API key in the Model Hub.';
+  // 4. Direct Live Routing: Llama 3 via OpenRouter
+  if (selectedModel.id === 'llama-3-70b' && keys.openrouter) {
+    try {
+      const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'meta-llama/llama-3-70b-instruct');
+      return {
+        type: 'live_llm_response',
+        modelUsed: `${selectedModel.name} (Live OpenRouter API)`,
+        title: `🦙 Live Cloud Response from ${selectedModel.name}`,
+        text: liveAnswer,
+        isLiveApi: true,
+        provider: 'OpenRouter / Meta',
+        suggestedActions: [
+          { label: 'Create Kanban Task', actionType: 'create_task' },
+          { label: 'Save as Note', actionType: 'create_note' }
+        ]
+      };
+    } catch (err) {
+      console.warn('Live Llama 3 call failed:', err.message);
+    }
+  }
+
+  // Determine fallback label honestly
+  const isFallback = selectedModel.id !== 'prarush-local-engine' && selectedModel.id !== 'prarush-neural-4';
+  const fallbackNotice = isFallback 
+    ? `Notice: ${selectedModel.name} API key is not configured in Model Hub. Generated using Prarush Local Offline Rules.`
+    : 'Generated locally via Prarush deterministic offline engine.';
+
+  const displayModelName = isFallback
+    ? `Local Fallback (${selectedModel.name} Key Not Configured)`
+    : 'Prarush Local Engine (Offline Rules)';
 
   // 1. Code Generation Intent
   if (q.includes('code') || q.includes('function') || q.includes('component') || q.includes('python') || q.includes('react') || q.includes('javascript') || q.includes('api') || q.includes('sql')) {
     return {
       type: 'code_generation',
-      modelUsed: selectedModel.name,
-      title: '💻 AI Code Studio Completion',
+      modelUsed: displayModelName,
+      title: '💻 Code Generation (Local Rule Template)',
+      isLiveApi: false,
+      disclaimer: fallbackNotice,
       language: q.includes('python') ? 'python' : q.includes('sql') ? 'sql' : 'typescript',
       code: q.includes('python')
-        ? `def calculate_portfolio_metrics(weights: list[float], returns: list[float]) -> dict:\n    """Calculates weighted return and Sharpe ratio for asset allocations."""\n    portfolio_return = sum(w * r for w, r in zip(weights, returns))\n    volatility = 0.14  # estimated annual standard deviation\n    risk_free_rate = 0.04\n    sharpe_ratio = (portfolio_return - risk_free_rate) / volatility\n    return {\n        "portfolio_return": round(portfolio_return, 4),\n        "sharpe_ratio": round(sharpe_ratio, 2),\n        "risk_profile": "Optimal Growth"\n    }`
+        ? `def calculate_moving_average(data: list[float], window_size: int = 5) -> list[float]:\n    """Computes simple moving average over a sliding numerical window."""\n    if not data or window_size <= 0:\n        return []\n    averages = []\n    for i in range(len(data) - window_size + 1):\n        window = data[i:i + window_size]\n        averages.append(round(sum(window) / window_size, 4))\n    return averages`
         : q.includes('sql')
         ? `SELECT \n  user_id,\n  COUNT(task_id) AS completed_tasks,\n  ROUND(AVG(completion_time_hours), 2) AS avg_hours\nFROM prarush_productivity_metrics\nWHERE completed_at >= NOW() - INTERVAL '30 days'\nGROUP BY user_id\nHAVING COUNT(task_id) > 10\nORDER BY completed_tasks DESC;`
         : `import React, { useState } from 'react';\n\ninterface TaskProps {\n  title: string;\n  priority: 'low' | 'medium' | 'high';\n  onComplete: () => void;\n}\n\nexport const SmartTaskCard: React.FC<TaskProps> = ({ title, priority, onComplete }) => {\n  const [isDone, setIsDone] = useState(false);\n  return (\n    <div className="p-4 rounded-xl border border-glass bg-card hover:border-cyan-500 transition-all">\n      <h3 className="font-bold text-white">{title}</h3>\n      <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400">{priority}</span>\n      <button onClick={() => { setIsDone(true); onComplete(); }} className="mt-2 text-xs text-emerald-400">Mark Completed ✓</button>\n    </div>\n  );\n};`,
-      explanation: `Generated optimal implementation using **${selectedModel.name}**. Includes type safety, error boundaries, and modern design patterns.`,
-      citations: ['Prarush TypeScript Style Guide 2026', 'PEP 8 Specification']
+      explanation: `Generated offline code structure via local template engine. To generate context-aware code with live models, connect your provider key in the Model Hub.`,
+      citations: ['Local Template Catalog', 'PEP 8 Specification']
     };
   }
 
@@ -137,59 +225,63 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-neural-4'
   if (q.includes('presentation') || q.includes('slide') || q.includes('pitch deck') || q.includes('keynote')) {
     return {
       type: 'presentation_generation',
-      modelUsed: selectedModel.name,
-      title: '📊 AI Presentation Deck Blueprint',
-      deckTitle: 'Prarush: The Universal AI Digital Operating System',
+      modelUsed: displayModelName,
+      title: '📊 Presentation Deck Blueprint (Local Template)',
+      isLiveApi: false,
+      disclaimer: fallbackNotice,
+      deckTitle: 'Prarush: Local-First Digital Operating Canvas',
       slides: [
         {
           slideNumber: 1,
-          title: 'The Challenge: Tool Fragmentation',
+          title: 'The Problem: Workspace Fragmentation',
           bullets: [
-            'Modern knowledge workers switch between 9+ disconnected apps daily',
-            'Context switching destroys focus and fractures organizational memory',
-            'Siloed AI assistants cannot interact with project tasks or documents'
+            'Developers switch between separate note apps, task trackers, and disconnected AI tabs',
+            'Context fracture destroys flow and fragments project progress',
+            'Siloed AI tools lack awareness of your local tasks and notes'
           ]
         },
         {
           slideNumber: 2,
-          title: 'The Solution: Prarush Universal Platform',
+          title: 'The Solution: Prarush Unified Canvas',
           bullets: [
-            'All-in-one workspace uniting AI models, Kanban tasks, documents & automations',
-            'Multi-Model AI Hub with instant model comparison and zero vendor lock-in',
-            'Local-first privacy with seamless Android, iOS, and PWA cross-device continuity'
+            'Local-first architecture keeps tasks, notes, documents, and code on your device',
+            'Multi-Model AI Hub with BYOK enables direct provider inference with zero vendor lock-in',
+            'Offline-ready PWA ensures instant loading and zero server latency'
           ]
         },
         {
           slideNumber: 3,
-          title: 'Monetization & Scalable Freemium',
+          title: 'Developer Roadmap & Extensibility',
           bullets: [
-            'Free Scout Tier creates massive organic adoption for students and developers',
-            'Prarush Pro ($12/mo) unlocks high-compute AI models and workflow automations',
-            'Prarush Team ($29/seat) delivers organizational audit logs and shared knowledge'
+            'Open extensible storage keys allow seamless JSON export and automated backup',
+            'Bring-Your-Own-Key model eliminates surprise cloud markup and token caps',
+            'Ready for native mobile packaging via standard web technologies'
           ]
         }
       ],
-      explanation: 'Formatted into 3 executive slides ready for export to PDF or HTML5 deck presentation.'
+      explanation: 'Generated 3 executive slides ready for export to markdown or HTML5 presentation.'
     };
   }
 
-  // 3. Document / Content Summarization & Proofreading
+  // 3. Document / Content Summarization
   if (q.includes('summarize') || q.includes('proofread') || q.includes('rewrite') || q.includes('tldr') || q.includes('review')) {
     return {
       type: 'summarization',
-      modelUsed: selectedModel.name,
-      title: '📝 AI Executive Summary & Document Review',
+      modelUsed: displayModelName,
+      title: '📝 Document Summary (Local Rules)',
+      isLiveApi: false,
+      disclaimer: fallbackNotice,
       keyFindings: [
-        'Core Value Proposition: Unifies productivity, creative AI tools, and document management.',
-        'Architecture Advantage: Sub-second reactivity with local-first persistent data and zero tracking.',
-        'Market Positioning: Outperforms standalone note apps by grounding intelligence in the user\'s private workspace.'
+        'Local-first architecture guarantees client data ownership without mandatory cloud sync.',
+        'BYOK (Bring-Your-Own-Key) allows direct communication with AI providers without third-party proxy logging.',
+        'Offline capability ensures uninterrupted workflow during travel or network outages.'
       ],
       suggestedImprovements: [
-        'Clarify team invitation workflow for Enterprise workspaces.',
-        'Add scheduled cron execution option in AI Automation Studio.'
+        'Connect an API key in Model Hub for deep semantic synthesis.',
+        'Export workspace snapshot as JSON for offline backup.'
       ],
-      readabilityScore: '96/100 (Exceptional Clarity)',
-      wordCountReduced: 'Original: 480 words ➔ Summary: 65 words (86% compression)'
+      readabilityScore: 'Estimated High Clarity',
+      wordCountReduced: 'Local structural summary'
     };
   }
 
@@ -197,18 +289,19 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-neural-4'
   if (q.includes('research') || q.includes('verify') || q.includes('fact') || q.includes('citation') || q.includes('compare models')) {
     return {
       type: 'research',
-      modelUsed: selectedModel.name,
-      title: '🔍 Grounded AI Research & Fact Verification',
+      modelUsed: displayModelName,
+      title: '🔍 Reference Specifications & Model Details',
+      isLiveApi: false,
+      disclaimer: fallbackNotice,
       verifiedFacts: [
-        'Context Windows: Claude 3.5 Sonnet supports 200k tokens; Gemini 1.5 Pro scales up to 1M+ tokens.',
-        'Latency Benchmarks: Prarush Neural-4 executes with sub-50ms TTFT (Time To First Token).',
-        'GDPR Compliance: Article 20 mandates structured machine-readable JSON data portability.'
+        'Context Windows (Provider Specs): Claude 3.5 Sonnet supports 200k tokens; Gemini 1.5 Pro scales up to 1M+ tokens.',
+        'Privacy Protocol: Prarush stores tasks and notes locally in the browser; BYOK keys connect directly via HTTPS.',
+        'Data Portability: Full workspace data can be exported in standard JSON format.'
       ],
-      confidenceScore: '99.4% Verified',
       citations: [
-        'Prarush Core Architecture Whitepaper (2026)',
-        'Anthropic Model Card — Claude 3.5 Sonnet',
-        'EU General Data Protection Regulation (GDPR) Documentation'
+        'Anthropic Model Documentation (claude-3-5-sonnet)',
+        'Google Cloud Generative AI Documentation (gemini-1.5-pro)',
+        'OpenAI API Reference (gpt-4o)'
       ]
     };
   }
@@ -216,13 +309,15 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-neural-4'
   // 5. Default Conversational Assistant Completion
   return {
     type: 'general_assistant',
-    modelUsed: selectedModel.name,
-    title: `🤖 Response from ${selectedModel.name}`,
-    text: `I've analyzed your request: "${prompt}".\n\nPrarush gives you a unified canvas to think, build, and organize. You can directly turn this idea into a **Kanban Task**, create a **Rich Markdown Note**, generate an **AI Presentation**, or save it to your **Knowledge Hub**.\n\nWhat would you like to execute next?`,
+    modelUsed: displayModelName,
+    title: `⚡ Local Assistant Response`,
+    isLiveApi: false,
+    disclaimer: fallbackNotice,
+    text: `Request: "${prompt}".\n\nPrarush gives you a unified local-first workspace for software engineering and technical projects.\n\n* Note: To receive live answers from Claude, GPT-4o, or Gemini, connect your API key in the Model Hub. In local mode, you can turn this item into a **Kanban Task**, create a **Markdown Note**, or structure a **Code Snippet**.\n\nWhat would you like to execute?`,
     suggestedActions: [
       { label: 'Create Kanban Task', actionType: 'create_task' },
       { label: 'Save as Note', actionType: 'create_note' },
-      { label: 'Generate Presentation', actionType: 'create_deck' }
+      { label: 'Open Model Hub (BYOK)', actionType: 'open_model_hub' }
     ]
   };
 }
@@ -243,9 +338,9 @@ export function generatePrarushImage(promptText, style = 'cinematic') {
     style,
     imageUrl: stylesMap[style] || stylesMap.cinematic,
     generatedAt: new Date().toISOString(),
-    resolution: '1024x1024 UHD',
-    model: 'Prarush Diffusion-XL v2',
+    resolution: '1024x1024 Preview',
+    model: 'Prarush Visual Canvas (Sample Preview)',
     isDemoPreview: true,
-    disclaimer: 'Studio Visual Preview (Connect Replicate or Stability API for Custom Diffusion)'
+    disclaimer: 'Curated visual style demo. Connect Replicate, Stability AI, or DALL-E API for live generative rendering.'
   };
 }

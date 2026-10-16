@@ -13,6 +13,17 @@ if (typeof localStorage === 'undefined') {
     key: (i) => Array.from(store.keys())[i] || null
   };
 }
+
+if (typeof sessionStorage === 'undefined') {
+  const sStore = new Map();
+  globalThis.sessionStorage = {
+    getItem: (key) => (sStore.has(key) ? sStore.get(key) : null),
+    setItem: (key, val) => sStore.set(key, String(val)),
+    removeItem: (key) => sStore.delete(key),
+    clear: () => sStore.clear()
+  };
+}
+
 import { 
   DEFAULT_WORKSPACES, 
   INITIAL_TASKS, 
@@ -24,6 +35,9 @@ import {
   COMMUNITY_TEMPLATES, 
   getStoredData, 
   saveStoredData, 
+  getUserStorageKey,
+  getUserStoredData,
+  saveUserStoredData,
   logActivity,
   clearPrarushStorageOnly 
 } from './utils/prarushStore.js';
@@ -82,22 +96,35 @@ async function runTest(name, fn) {
 
 async function runAllTests() {
   // 1. Workspace & Store Tests
-  await runTest('Default Workspaces validation', () => {
+  await runTest('Default Workspace is Software Engineering & Dev for technical creators', () => {
     assert(Array.isArray(DEFAULT_WORKSPACES), 'DEFAULT_WORKSPACES should be an array');
-    assert(DEFAULT_WORKSPACES.length >= 5, 'Should have at least 5 default workspaces');
-    const ids = DEFAULT_WORKSPACES.map(w => w.id);
-    assert(ids.includes('ws-personal'), 'Should contain ws-personal');
-    assert(ids.includes('ws-work'), 'Should contain ws-work');
-    assert(ids.includes('ws-study'), 'Should contain ws-study');
+    assert.strictEqual(DEFAULT_WORKSPACES[0].id, 'ws-work', 'First default workspace must be ws-work');
+    assert.strictEqual(DEFAULT_WORKSPACES[0].name, 'Software Engineering & Dev');
   });
 
-  await runTest('Productivity datasets initialized', () => {
+  await runTest('Productivity datasets initialized with developer sprint tasks (no 10K running)', () => {
     assert(INITIAL_TASKS.length >= 5, 'Should have initial tasks');
+    const taskTitles = INITIAL_TASKS.map(t => t.title.toLowerCase());
+    assert(!taskTitles.some(t => t.includes('10k') || t.includes('marathon')), 'Should not contain 10K running task');
     assert(INITIAL_NOTES.length >= 3, 'Should have initial notes');
     assert(INITIAL_DOCUMENTS.length >= 3, 'Should have initial documents');
     assert(INITIAL_AUTOMATIONS.length >= 3, 'Should have initial automations');
     assert(INITIAL_KNOWLEDGE.length >= 3, 'Should have initial knowledge items');
     assert(INITIAL_CALENDAR_EVENTS.length >= 3, 'Should have initial calendar events');
+  });
+
+  await runTest('Per-user data access isolation functions properly', () => {
+    const key = getUserStorageKey('tasks', 'user-alpha');
+    assert.strictEqual(key, 'prarush_usr_user-alpha_tasks');
+
+    saveUserStoredData('tasks', 'user-alpha', [{ id: 't-1', title: 'Alpha Sprint Task' }]);
+    saveUserStoredData('tasks', 'user-beta', [{ id: 't-2', title: 'Beta Sprint Task' }]);
+
+    const alphaTasks = getUserStoredData('tasks', 'user-alpha', []);
+    const betaTasks = getUserStoredData('tasks', 'user-beta', []);
+
+    assert.strictEqual(alphaTasks[0].title, 'Alpha Sprint Task');
+    assert.strictEqual(betaTasks[0].title, 'Beta Sprint Task');
   });
 
   await runTest('Community Templates catalog validation', () => {
@@ -109,37 +136,46 @@ async function runAllTests() {
   });
 
   // 2. AI Multi-Model Hub Tests
-  await runTest('AI Multi-Model Catalog contains top-tier providers', () => {
+  await runTest('AI Multi-Model Catalog contains top-tier providers with Prarush Local Engine', () => {
     assert(AI_MODELS.length >= 5, 'Should support at least 5 distinct AI models');
     const modelIds = AI_MODELS.map(m => m.id);
-    assert(modelIds.includes('prarush-neural-4'), 'Should include Prarush Neural-4');
+    assert(modelIds.includes('prarush-local-engine'), 'Should include Prarush Local Engine');
     assert(modelIds.includes('claude-3-5-sonnet'), 'Should include Claude 3.5 Sonnet');
     assert(modelIds.includes('gpt-4o'), 'Should include OpenAI GPT-4o');
     assert(modelIds.includes('gemini-1-5-pro'), 'Should include Google Gemini 1.5 Pro');
     assert(modelIds.includes('llama-3-70b'), 'Should include Meta Llama 3 70B');
   });
 
-  await runTest('processPrarushAIQuery handles general reasoning queries', async () => {
-    const result = await processPrarushAIQuery('What is the architecture of Prarush?', 'prarush-neural-4');
+  await runTest('processPrarushAIQuery handles general reasoning queries via Local Engine', async () => {
+    const result = await processPrarushAIQuery('What is the architecture of Prarush?', 'prarush-local-engine');
     assert(result.text, 'Response should contain text');
-    assert(result.modelUsed, 'Response should declare model used');
-    assert(Array.isArray(result.suggestedActions) || Array.isArray(result.suggestions), 'Response should provide follow-up suggestions');
+    assert.strictEqual(result.isLiveApi, false, 'Offline engine response must have isLiveApi=false');
+    assert(result.modelUsed.includes('Local Engine') || result.modelUsed.includes('Fallback'), 'Model used declared');
+  });
+
+  await runTest('processPrarushAIQuery honestly labels unconfigured Claude requests as fallback (never OpenAI)', async () => {
+    // Clear keys to ensure fallback test
+    saveStoredApiKeys({ openai: '', gemini: '', anthropic: '', openrouter: '' });
+    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-3-5-sonnet');
+    assert.strictEqual(result.isLiveApi, false, 'Unconfigured Claude must not claim live API');
+    assert(result.modelUsed.includes('Key Not Configured') || result.modelUsed.includes('Fallback'), 'Must explicitly declare fallback');
+    assert(!result.modelUsed.includes('OpenAI'), 'Claude fallback must NEVER pretend to be OpenAI');
   });
 
   await runTest('processPrarushAIQuery detects code generation requests', async () => {
-    const result = await processPrarushAIQuery('Write a Python function to compute moving averages', 'claude-3-5-sonnet');
+    const result = await processPrarushAIQuery('Write a Python function to compute moving averages', 'prarush-local-engine');
     assert(result.code, 'Should extract code snippet');
     assert(result.language && result.language.toLowerCase().includes('python'), 'Language should be python');
   });
 
   await runTest('processPrarushAIQuery detects presentation deck requests', async () => {
-    const result = await processPrarushAIQuery('Generate a 3-slide pitch deck for our seed round', 'gpt-4o');
+    const result = await processPrarushAIQuery('Generate a 3-slide pitch deck for our seed round', 'prarush-local-engine');
     assert(Array.isArray(result.slides), 'Should output slides array');
     assert(result.slides.length >= 3, 'Should have at least 3 slides');
   });
 
-  await runTest('processPrarushAIQuery generates grounded citations', async () => {
-    const result = await processPrarushAIQuery('Research and verify paper citations', 'gemini-1-5-pro');
+  await runTest('processPrarushAIQuery generates reference specifications without unverified scores', async () => {
+    const result = await processPrarushAIQuery('Research and verify model specs', 'gemini-1-5-pro');
     assert(Array.isArray(result.citations), 'Should include citations array');
     assert(result.citations.length >= 1, 'Should have at least one citation');
   });
@@ -207,6 +243,19 @@ async function runAllTests() {
     assert.strictEqual(loggedIn.id, registered.id);
   });
 
+  await runTest('AuthManager terminates expired sessions when reading getCurrentUser()', () => {
+    const expiredSession = {
+      token: 'expired-token-123',
+      user: { id: 'usr-expired', name: 'Old User', email: 'old@example.com' },
+      expiresAt: new Date(Date.now() - 10000).toISOString() // 10 seconds in the past
+    };
+    localStorage.setItem('prarush_active_session', JSON.stringify(expiredSession));
+
+    const currentUser = getCurrentUser();
+    assert.strictEqual(currentUser.isGuest, true, 'Expired session must return DEFAULT_GUEST_USER');
+    assert.strictEqual(localStorage.getItem('prarush_active_session'), null, 'Expired session must be purged from storage');
+  });
+
   await runTest('AuthManager supports Guest mode seamlessly', () => {
     const guest = continueAsGuest();
     assert(guest.isGuest, 'Guest user should have isGuest=true');
@@ -215,11 +264,12 @@ async function runAllTests() {
 
   // 6. BYOK API Key Manager Tests
   await runTest('API Key Manager saves and retrieves cloud credentials safely', () => {
-    const keys = { openai: 'sk-test-mock', gemini: 'AIza-test-mock', anthropic: '', openrouter: '' };
+    const keys = { openai: 'sk-test-mock', gemini: 'AIza-test-mock', anthropic: 'sk-ant-test', openrouter: '' };
     saveStoredApiKeys(keys);
     const retrieved = getStoredApiKeys();
     assert.strictEqual(retrieved.openai, 'sk-test-mock');
     assert.strictEqual(retrieved.gemini, 'AIza-test-mock');
+    assert.strictEqual(retrieved.anthropic, 'sk-ant-test');
   });
 
   // 7. Origin-Safe Purge & Data Portability

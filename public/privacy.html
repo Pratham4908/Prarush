@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — Prarush Universal AI Platform</title>
+  <title>Privacy Notice — Prarush Local-First AI Platform</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     :root {
@@ -27,7 +27,7 @@
       margin: 0 auto;
       background: var(--card-bg);
       border: 1px solid var(--border);
-      borderRadius: 16px;
+      border-radius: 16px;
       padding: 40px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
@@ -54,40 +54,41 @@
   <div class="container">
     <a href="/" class="nav-back">← Back to Prarush Platform</a>
     <br>
-    <span class="badge">GDPR ARTICLE 20 &amp; CCPA COMPLIANT</span>
-    <h1>Privacy Policy</h1>
-    <p><em>Last Updated: October 2026 | Effective for all global users of Prarush</em></p>
+    <span class="badge">LOCAL-FIRST PRIVACY &amp; DATA TRANSPARENCY NOTICE</span>
+    <h1>Privacy Policy &amp; Data Notice</h1>
+    <p><em>Last Updated: October 2026 | Current Status: Local-First Developer Prototype</em></p>
 
-    <h2>1. Executive Commitment</h2>
-    <p>Prarush is engineered with a <strong>local-first, zero-tracking architecture</strong>. We believe your productivity workflows, notes, code snippets, project sprints, and uploaded documents belong exclusively to you. We do not sell user data, train proprietary foundation models on your private documents, or employ third-party advertising trackers.</p>
+    <h2>1. Architecture &amp; Data Ownership</h2>
+    <p>Prarush is currently engineered as a <strong>local-first browser application</strong>. Workspaces, Kanban sprint tasks, markdown notes, calendar events, and document records are stored locally in your browser's persistent storage (LocalStorage and client memory). We do not collect, monetize, or train foundation models on your private notes or project records.</p>
 
-    <h2>2. Data Collection &amp; Storage Architecture</h2>
+    <h2>2. Authentication &amp; API Keys</h2>
     <ul>
-      <li><strong>Client-Side Local Storage:</strong> By default, all workspaces, Kanban sprint tasks, markdown notes, calendar events, and document metadata reside locally in your browser's persistent storage.</li>
-      <li><strong>Authentication &amp; Passwords:</strong> Passwords are never stored in plaintext. Accounts use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and cryptographically random session tokens. Guest sessions require zero personal identifiable information.</li>
-      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure cloud API keys (OpenAI, Google Gemini, Anthropic), these keys are stored exclusively in your local device storage. Inference requests route directly from your client to the respective provider's HTTPS endpoint without passing through intermediate proxy logging.</li>
+      <li><strong>Client-Side Accounts:</strong> Account registration and passwords use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and random session tokens. Sessions expire after 30 days of inactivity. Cross-device cloud sync is not currently active.</li>
+      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (OpenAI, Google Gemini, Anthropic, OpenRouter), these keys are stored exclusively in your browser (with optional session-only storage). Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server.</li>
     </ul>
 
     <h2>3. Third-Party AI Providers</h2>
-    <p>When you trigger AI completion features with external provider keys:</p>
+    <p>When you initiate live model queries using your personal API keys:</p>
     <ul>
-      <li><strong>OpenAI:</strong> Subject to <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a>. Per enterprise terms, API data is not used for model training.</li>
-      <li><strong>Google DeepMind:</strong> Subject to <a href="https://policies.google.com/privacy" target="_blank">Google API Services User Data Policy</a>.</li>
+      <li><strong>Anthropic:</strong> Direct connection via official Messages API. Subject to <a href="https://www.anthropic.com/privacy" target="_blank">Anthropic Privacy Policy</a>.</li>
+      <li><strong>OpenAI:</strong> Direct connection via official Chat Completions API. Subject to <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a>.</li>
+      <li><strong>Google DeepMind:</strong> Direct connection via Generative Language API using header-based authentication. Subject to <a href="https://policies.google.com/privacy" target="_blank">Google API Services User Data Policy</a>.</li>
+      <li><strong>OpenRouter:</strong> Direct connection for open-weights models. Subject to <a href="https://openrouter.ai/privacy" target="_blank">OpenRouter Privacy Policy</a>.</li>
     </ul>
 
-    <h2>4. GDPR &amp; CCPA User Rights</h2>
-    <p>In full compliance with European General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA):</p>
+    <h2>4. Data Portability &amp; Erasure</h2>
+    <p>Prarush provides built-in tools for user data control:</p>
     <ul>
-      <li><strong>Right to Data Portability (Article 20):</strong> You can export 100% of your user-owned data at any time in machine-readable JSON format via the Profile drawer (including workspaces, tasks, notes, documents, events, and automations).</li>
-      <li><strong>Right to Erasure (Article 17):</strong> 1-click origin-safe data purge allows permanent deletion of all Prarush data records from your device without affecting other site cookies.</li>
-      <li><strong>Right to Rectification:</strong> All notes, task records, and user profiles can be directly edited or deleted in real time.</li>
+      <li><strong>JSON Data Export:</strong> You can export your stored workspaces, tasks, notes, documents, and preferences as a machine-readable JSON file at any time from the Profile drawer.</li>
+      <li><strong>Origin-Safe Storage Purge:</strong> 1-click storage reset allows clearing all <code>prarush_*</code> browser records from your device without affecting other websites' cookies.</li>
+      <li><strong>Local Modification:</strong> All notes, task records, and user profiles can be directly edited or deleted in real time.</li>
     </ul>
 
-    <h2>5. Security Standards</h2>
-    <p>We mandate HTTPS transport layer security (TLS 1.3), Content Security Policy (CSP) headers, and strict origin isolation. Service Workers operate strictly under standard W3C offline cache sandboxing.</p>
+    <h2>5. Prototype Status &amp; Future Cloud Services</h2>
+    <p>This privacy notice applies to the current client-side prototype. Before launching multi-user cloud synchronization, server databases, or payment processing, our terms and privacy documentation will be updated to describe backend storage, encryption at rest, and third-party subprocessors.</p>
 
-    <h2>6. Contact &amp; Data Protection Officer</h2>
-    <p>For inquiries regarding privacy, data rights, or security disclosures, reach our team at: <strong>privacy@prarush.ai</strong></p>
+    <h2>6. Contact &amp; Questions</h2>
+    <p>For questions or feedback regarding privacy or data handling, reach out at: <strong>privacy@prarush.local</strong></p>
   </div>
 </body>
 </html>

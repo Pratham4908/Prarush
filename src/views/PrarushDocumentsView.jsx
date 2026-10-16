@@ -6,6 +6,9 @@ import {
 import { audioSystem } from '../utils/audioSystem.js';
 import { isProSubscriber } from '../utils/prarushFreemium.js';
 
+// Module-level in-memory cache to preserve exact binary uploaded bytes
+const uploadedBinaryStore = new Map();
+
 export default function PrarushDocumentsView({
   documents = [],
   currentWorkspace,
@@ -49,6 +52,10 @@ export default function PrarushDocumentsView({
                       file.name.endsWith('.json') || 
                       file.name.endsWith('.csv');
 
+    const docId = `doc-${Date.now()}`;
+    // PRESERVE AUTHENTIC UPLOADED BYTES IN IN-MEMORY MAP
+    uploadedBinaryStore.set(docId, file);
+
     const reader = new FileReader();
 
     reader.onprogress = (evt) => {
@@ -64,20 +71,21 @@ export default function PrarushDocumentsView({
       const wordCount = isTextual ? rawContent.split(/\s+/).filter(Boolean).length : 0;
 
       const newDoc = {
-        id: `doc-${Date.now()}`,
+        id: docId,
         workspaceId: currentWorkspace.id,
         name: file.name,
         type: file.type.includes('pdf') ? 'pdf' : (file.type.includes('image') ? 'image' : 'text'),
         sizeKB: Math.round(file.size / 1024),
         uploadedAt: new Date().toISOString(),
         summary: isTextual 
-          ? `Text Document parsed: ${wordCount} words, ${rawContent.length} characters. Indexed for semantic knowledge search.` 
-          : `Binary file (${file.type || 'file'}) pre-processed and ready for OCR analysis.`,
+          ? `Text Document parsed: ${wordCount} words, ${rawContent.length} characters. Indexed for local search.` 
+          : `Binary file (${file.type || 'file'}) preserved in local memory with authentic bytes. Ready for analysis.`,
         extractedContent: isTextual ? rawContent : '',
         ocrText: isTextual 
           ? rawContent.slice(0, 800) + (rawContent.length > 800 ? '...' : '') 
-          : `[Extracted Metadata: ${file.name}, ${Math.round(file.size/1024)} KB, format: ${file.type}]`,
-        status: 'analyzed'
+          : `[Binary Content: ${file.name}, ${Math.round(file.size / 1024)} KB, ${file.type || 'raw file'}]`,
+        status: 'analyzed',
+        hasOriginalBinary: true
       };
 
       setTimeout(() => {
@@ -113,13 +121,13 @@ export default function PrarushDocumentsView({
 
     setTimeout(() => {
       if (selectedDoc.extractedContent) {
-        setOcrResult(`DOCUMENT TEXT CONTENT (Parsed directly from ${selectedDoc.name}):\n\n${selectedDoc.extractedContent}`);
+        setOcrResult(`PARSED DOCUMENT CONTENT (${selectedDoc.name}):\n\n${selectedDoc.extractedContent}`);
       } else {
-        setOcrResult(`OCR EXTRACTED TEXT FROM ${selectedDoc.name}:\n\n"Document Title: ${selectedDoc.name}\nSize: ${selectedDoc.sizeKB} KB\nExtracted Entities: System Specifications, API Endpoints, Architecture Schemas\nOCR Confidence Score: 98.6% (Verified via Optical Layout Parser)"`);
+        setOcrResult(`OCR STATUS FOR ${selectedDoc.name}:\n\nBinary file retained in local memory (${selectedDoc.sizeKB} KB).\nNote: Client-side optical recognition on binary PDFs/images requires an optical OCR microservice (e.g. Tesseract.js / Cloud Vision). Placeholder scores have been disabled to ensure data integrity.`);
       }
       setIsProcessingOCR(false);
       audioSystem.playSuccessSound();
-    }, 600);
+    }, 450);
   };
 
   const handleCompressFile = () => {
@@ -132,22 +140,66 @@ export default function PrarushDocumentsView({
       const reduced = Math.round(selectedDoc.sizeKB * 0.42);
       setCompressionResult({
         original: `${selectedDoc.sizeKB} KB`,
-        compressed: `${reduced} KB`,
-        saved: '58% space saved via Deflate stream compression'
+        compressed: `~${reduced} KB (Est.)`,
+        saved: 'Estimated ~58% space savings via Deflate algorithm. Complete file packaging is generated during workspace export.'
       });
       setIsCompressing(false);
       audioSystem.playSuccessSound();
-    }, 600);
+    }, 450);
   };
 
   const handleDownloadDoc = () => {
     if (!selectedDoc) return;
-    const content = selectedDoc.extractedContent || `Document: ${selectedDoc.name}\nSize: ${selectedDoc.sizeKB} KB\nPrarush Platform Export`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+
+    // 1. If we have the authentic original File object in memory, download exact original bytes!
+    if (uploadedBinaryStore.has(selectedDoc.id)) {
+      const originalFile = uploadedBinaryStore.get(selectedDoc.id);
+      const url = URL.createObjectURL(originalFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = selectedDoc.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      audioSystem.playSuccessSound();
+      return;
+    }
+
+    // 2. If it's a textual document, export with original text
+    const isTextDoc = selectedDoc.name.endsWith('.txt') || 
+                      selectedDoc.name.endsWith('.md') || 
+                      selectedDoc.name.endsWith('.json') || 
+                      selectedDoc.name.endsWith('.csv') ||
+                      selectedDoc.type === 'text';
+
+    if (isTextDoc && selectedDoc.extractedContent) {
+      const blob = new Blob([selectedDoc.extractedContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = selectedDoc.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      audioSystem.playSuccessSound();
+      return;
+    }
+
+    // 3. For seed binary documents where raw binary bytes were not uploaded in this session,
+    // export as a text summary rather than corrupting a PDF/image extension
+    const exportFileName = selectedDoc.name.includes('.')
+      ? `${selectedDoc.name.replace(/\.[^/.]+$/, '')}_summary.txt`
+      : `${selectedDoc.name}_summary.txt`;
+
+    const summaryContent = `Document: ${selectedDoc.name}\nSize: ${selectedDoc.sizeKB} KB\nStatus: Local Seed Document\n\nContent Summary:\n${selectedDoc.extractedContent || selectedDoc.summary || 'Prarush Platform File Record'}\n\n[Note: This export is provided as a text summary because original binary bytes for sample files are retained on the client canvas.]`;
+    
+    const blob = new Blob([summaryContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = selectedDoc.name;
+    a.download = exportFileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

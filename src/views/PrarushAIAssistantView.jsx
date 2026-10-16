@@ -8,7 +8,7 @@ import { audioSystem } from '../utils/audioSystem.js';
 import { checkQuota, recordUsage, isProSubscriber } from '../utils/prarushFreemium.js';
 
 export default function PrarushAIAssistantView({
-  selectedModelId = 'prarush-neural-4',
+  selectedModelId = 'prarush-local-engine',
   onSelectModel,
   onOpenSubscription,
   onNavigate
@@ -17,14 +17,14 @@ export default function PrarushAIAssistantView({
     {
       id: 1,
       sender: 'ai',
-      modelUsed: 'Prarush Neural-4 Turbo',
-      title: '👋 Welcome to Prarush Universal AI Assistant',
-      text: 'I am your unified AI copilot. You can ask me to **write code**, **generate presentations**, **summarize research documents**, **build workflow automations**, or brainstorm project strategies. How can I assist your workflow today?',
+      modelUsed: 'Prarush Local Engine (Offline Rules)',
+      title: '👋 Welcome to Prarush Local-First AI Assistant',
+      text: 'I am your unified developer copilot. In offline mode, I generate deterministic code structures, presentation outlines, and task templates locally. To run live completions via Claude 3.5 Sonnet, GPT-4o, or Gemini 1.5 Pro, configure your API key in the Model Hub.',
       suggestions: [
-        'Generate Python code for portfolio Sharpe ratio',
+        'Write Python code for calculating moving averages',
         'Create a 3-slide pitch deck for Prarush',
-        'Summarize RLHF alignment principles',
-        'Compare Claude 3.5 vs GPT-4o vs Neural-4'
+        'Generate TypeScript Kanban task component',
+        'Compare Claude 3.5 vs GPT-4o specs'
       ]
     }
   ]);
@@ -34,7 +34,7 @@ export default function PrarushAIAssistantView({
   const [copiedId, setCopiedId] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const activeModel = AI_MODELS.find(m => m.id === selectedModelId) || AI_MODELS[0];
+  const activeModel = AI_MODELS.find(m => m.id === selectedModelId || m.aliasId === selectedModelId) || AI_MODELS[0];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,18 +77,32 @@ export default function PrarushAIAssistantView({
     setIsTyping(true);
     audioSystem.playTone(700, 'sine', 0.08);
 
-    // AI reasoning latency simulation
-    setTimeout(() => {
-      const response = processPrarushAIQuery(q, selectedModelId);
-      const aiMsg = {
-        id: Date.now() + 1,
-        sender: 'ai',
-        ...response
-      };
-      setMessages(prev => [...prev, aiMsg]);
-      setIsTyping(false);
-      audioSystem.playTone(880, 'sine', 0.1);
-    }, 450);
+    // AI query execution with live cloud or deterministic local fallback
+    setTimeout(async () => {
+      try {
+        const response = await processPrarushAIQuery(q, selectedModelId);
+        const aiMsg = {
+          id: Date.now() + 1,
+          sender: 'ai',
+          ...response
+        };
+        setMessages(prev => [...prev, aiMsg]);
+      } catch (err) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender: 'ai',
+            modelUsed: activeModel.name,
+            title: '⚠️ Provider Request Error',
+            text: `Error contacting ${activeModel.name}: ${err.message}. Please check your API key in Model Hub.`
+          }
+        ]);
+      } finally {
+        setIsTyping(false);
+        audioSystem.playTone(880, 'sine', 0.1);
+      }
+    }, 250);
   };
 
   const handleCopy = (id, text) => {

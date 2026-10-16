@@ -39,6 +39,8 @@ import {
   INITIAL_CALENDAR_EVENTS, 
   getStoredData, 
   saveStoredData, 
+  getUserStoredData, 
+  saveUserStoredData, 
   logActivity 
 } from './utils/prarushStore.js';
 import { audioSystem } from './utils/audioSystem.js';
@@ -78,7 +80,7 @@ export default function App() {
   );
 
   // 4. Global Settings & Controls
-  const [selectedModelId, setSelectedModelId] = useState('prarush-neural-4');
+  const [selectedModelId, setSelectedModelId] = useState('prarush-local-engine');
   const [currentLocale, setCurrentLocale] = useState(() => 
     getStoredData('prarush_locale', 'en')
   );
@@ -95,6 +97,21 @@ export default function App() {
 
   // 6. User Profile (Dynamic Authenticated Session or Local Guest)
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
+
+  // Per-User Data Access Synchronization: reload user-isolated data when profile switches
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const userWorkspaces = getUserStoredData(STORAGE_KEYS.WORKSPACES, currentUser.id, DEFAULT_WORKSPACES);
+    setWorkspaces(userWorkspaces);
+    setActiveWorkspaceId(userWorkspaces[0]?.id || DEFAULT_WORKSPACES[0].id);
+
+    setTasks(getUserStoredData(STORAGE_KEYS.TASKS, currentUser.id, INITIAL_TASKS));
+    setNotes(getUserStoredData(STORAGE_KEYS.NOTES, currentUser.id, INITIAL_NOTES));
+    setDocuments(getUserStoredData(STORAGE_KEYS.DOCUMENTS, currentUser.id, INITIAL_DOCUMENTS));
+    setEvents(getUserStoredData(STORAGE_KEYS.EVENTS, currentUser.id, INITIAL_CALENDAR_EVENTS));
+    setAutomations(getUserStoredData(STORAGE_KEYS.AUTOMATIONS, currentUser.id, INITIAL_AUTOMATIONS));
+    setKnowledge(getUserStoredData(STORAGE_KEYS.KNOWLEDGE, currentUser.id, INITIAL_KNOWLEDGE));
+  }, [currentUser?.id]);
 
   // Global Keyboard Listener for Ctrl+K / Cmd+K (Command Center)
   useEffect(() => {
@@ -123,10 +140,18 @@ export default function App() {
     }
   }, [isDarkMode]);
 
+  // Helper to persist data for both active session and user-isolated storage key
+  const persistUserData = (key, data) => {
+    saveStoredData(key, data);
+    if (currentUser?.id) {
+      saveUserStoredData(key, currentUser.id, data);
+    }
+  };
+
   // Actions
   const handleSelectWorkspace = (wsId) => {
     setActiveWorkspaceId(wsId);
-    saveStoredData(STORAGE_KEYS.ACTIVE_WORKSPACE, wsId);
+    persistUserData(STORAGE_KEYS.ACTIVE_WORKSPACE, wsId);
     logActivity('Workspace Switch', `Switched active context to ${wsId}`, wsId);
     audioSystem.playTone(520, 'sine', 0.08);
   };
@@ -135,8 +160,8 @@ export default function App() {
     const updated = [...workspaces, newWs];
     setWorkspaces(updated);
     setActiveWorkspaceId(newWs.id);
-    saveStoredData(STORAGE_KEYS.WORKSPACES, updated);
-    saveStoredData(STORAGE_KEYS.ACTIVE_WORKSPACE, newWs.id);
+    persistUserData(STORAGE_KEYS.WORKSPACES, updated);
+    persistUserData(STORAGE_KEYS.ACTIVE_WORKSPACE, newWs.id);
     logActivity('Workspace Created', `Created project workspace: ${newWs.name}`, newWs.id);
     audioSystem.playSuccessSound();
   };
@@ -156,7 +181,7 @@ export default function App() {
     };
     const updated = [newTask, ...tasks];
     setTasks(updated);
-    saveStoredData(STORAGE_KEYS.TASKS, updated);
+    persistUserData(STORAGE_KEYS.TASKS, updated);
     logActivity('Task Created', `Added task "${newTask.title}"`, newTask.workspaceId);
     audioSystem.playSuccessSound();
   };
@@ -164,14 +189,14 @@ export default function App() {
   const handleUpdateTaskStatus = (taskId, newStatus) => {
     const updated = tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
     setTasks(updated);
-    saveStoredData(STORAGE_KEYS.TASKS, updated);
+    persistUserData(STORAGE_KEYS.TASKS, updated);
     logActivity('Task Status Changed', `Task moved to ${newStatus}`, activeWorkspaceId);
   };
 
   const handleDeleteTask = (taskId) => {
     const updated = tasks.filter(t => t.id !== taskId);
     setTasks(updated);
-    saveStoredData(STORAGE_KEYS.TASKS, updated);
+    persistUserData(STORAGE_KEYS.TASKS, updated);
     logActivity('Task Deleted', `Removed task ${taskId}`, activeWorkspaceId);
   };
 
@@ -195,33 +220,33 @@ export default function App() {
       updated = [newNote, ...notes];
     }
     setNotes(updated);
-    saveStoredData(STORAGE_KEYS.NOTES, updated);
+    persistUserData(STORAGE_KEYS.NOTES, updated);
     logActivity('Note Saved', `Saved document: ${noteData.title}`, activeWorkspaceId);
   };
 
   const handleDeleteNote = (noteId) => {
     const updated = notes.filter(n => n.id !== noteId);
     setNotes(updated);
-    saveStoredData(STORAGE_KEYS.NOTES, updated);
+    persistUserData(STORAGE_KEYS.NOTES, updated);
   };
 
   const handleUploadDocument = (docData) => {
     const updated = [docData, ...documents];
     setDocuments(updated);
-    saveStoredData(STORAGE_KEYS.DOCUMENTS, updated);
+    persistUserData(STORAGE_KEYS.DOCUMENTS, updated);
     logActivity('Document Added', `Uploaded file: ${docData.name}`, activeWorkspaceId);
   };
 
   const handleDeleteDocument = (docId) => {
     const updated = documents.filter(d => d.id !== docId);
     setDocuments(updated);
-    saveStoredData(STORAGE_KEYS.DOCUMENTS, updated);
+    persistUserData(STORAGE_KEYS.DOCUMENTS, updated);
   };
 
   const handleAddEvent = (evtData) => {
     const updated = [...events, evtData];
     setEvents(updated);
-    saveStoredData(STORAGE_KEYS.EVENTS, updated);
+    persistUserData(STORAGE_KEYS.EVENTS, updated);
     logActivity('Calendar Event', `Added event: ${evtData.title}`, activeWorkspaceId);
   };
 
