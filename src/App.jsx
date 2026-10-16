@@ -365,6 +365,7 @@ export default function App() {
           <PrarushDocumentsView
             documents={documents}
             currentWorkspace={currentWorkspace}
+            currentUser={currentUser}
             onUploadDocument={handleUploadDocument}
             onDeleteDocument={handleDeleteDocument}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}

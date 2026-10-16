@@ -79,7 +79,7 @@ export const INITIAL_TASKS = [
   {
     id: 'task-102',
     workspaceId: 'ws-work',
-    title: '[Sample] Integrate Claude Sonnet 5.5 & GPT-4o Multi-Model API Hub',
+    title: '[Sample] Integrate Claude Sonnet 4.5 & GPT-4o Multi-Model API Hub',
     description: 'Implement streaming SSE endpoints with token rate limiting, fallback error handling, and latency tracking.',
     status: 'done',
     priority: 'urgent',
@@ -143,7 +143,7 @@ export const INITIAL_NOTES = [
     id: 'note-201',
     workspaceId: 'ws-work',
     title: '[Sample] Prarush Local-First System Architecture',
-    content: `# Prarush Local-First Architecture\n\n## 1. High-Performance Core\n- **Client:** React 19 with Vite 8.3 & Lucide React design system.\n- **State Management:** Reactive local-first synchronization with persistent browser storage (LocalStorage & IndexedDB).\n- **Multi-Model Routing:** Direct BYOK inference with Claude Sonnet 5.5, GPT-4o, and Gemini 3.8 Flash.\n\n## 2. Security & Data Isolation\n- Client-side token encryption for session credentials.\n- Zero third-party data tracking; complete GDPR data export portability.\n- Strict per-user local storage isolation with zero cross-profile leakage.`,
+    content: `# Prarush Local-First Architecture\n\n## 1. High-Performance Core\n- **Client:** React 19 with Vite 8.3 & Lucide React design system.\n- **State Management:** Reactive local-first synchronization with persistent browser storage (LocalStorage & IndexedDB).\n- **Multi-Model Routing:** Direct BYOK inference with Claude Sonnet 4.5, GPT-4o, and Gemini 3.8 Flash.\n\n## 2. Security & Data Isolation\n- Client-side token encryption for session credentials.\n- Zero third-party data tracking; complete GDPR data export portability.\n- Strict per-user local storage isolation with zero cross-profile leakage.`,
     tags: ['Architecture', 'Tech Spec', 'System Design'],
     pinned: true,
     updatedAt: '2026-10-16T14:30:00Z'

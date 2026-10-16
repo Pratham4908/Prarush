@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { 
   User, Shield, Download, Trash2, CheckCircle2, X, Sparkles, 
-  Settings, Bell, Lock, Mail, ExternalLink, HardDrive 
+  Settings, Bell, Lock, Mail, ExternalLink, HardDrive, Archive, RefreshCw 
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
-import { isProSubscriber, exportUserDataGDPR } from '../utils/prarushFreemium.js';
+import { isProSubscriber, exportUserDataGDPR, exportCompleteBackupZip } from '../utils/prarushFreemium.js';
 import { clearPrarushStorageOnly } from '../utils/prarushStore.js';
 import { clearAllFilesFromIndexedDB } from '../utils/indexedDbStore.js';
 
@@ -17,11 +17,28 @@ export default function PrarushProfileModal({
   onLogout
 }) {
   const [copiedGDPR, setCopiedGDPR] = useState(false);
+  const [copiedZip, setCopiedZip] = useState(false);
+  const [isExportingZip, setIsExportingZip] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [telemetryConsent, setTelemetryConsent] = useState(true);
   const isPro = isProSubscriber();
 
   if (!isOpen) return null;
+
+  const handleExportZip = async () => {
+    setIsExportingZip(true);
+    audioSystem.playTone(600, 'sine', 0.1);
+    try {
+      await exportCompleteBackupZip(user);
+      audioSystem.playSuccessSound();
+      setCopiedZip(true);
+      setTimeout(() => setCopiedZip(false), 3000);
+    } catch (err) {
+      console.warn('Backup error:', err);
+    } finally {
+      setIsExportingZip(false);
+    }
+  };
 
   const handleExportGDPR = () => {
     audioSystem.playSuccessSound();
@@ -33,9 +50,18 @@ export default function PrarushProfileModal({
   const handleClearCache = async () => {
     if (window.confirm('Clear all local offline workspaces, notes, tasks, AND all uploaded binary files in IndexedDB? This will perform a complete factory reset of Prarush local storage on this browser.')) {
       audioSystem.playWarningSound();
-      clearPrarushStorageOnly();
-      await clearAllFilesFromIndexedDB();
-      window.location.reload();
+      try {
+        const idbCleared = await clearAllFilesFromIndexedDB();
+        if (!idbCleared) {
+          window.alert('Error: Could not clear IndexedDB file storage. Please verify browser storage permissions and try again.');
+          return;
+        }
+        clearPrarushStorageOnly();
+        window.alert('Reset Complete: All Prarush local storage and IndexedDB binary files have been purged.');
+        window.location.reload();
+      } catch (err) {
+        window.alert(`Reset error: ${err.message || 'Storage wipe failed.'}`);
+      }
     }
   };
 
@@ -205,6 +231,37 @@ export default function PrarushProfileModal({
               GDPR Compliance & Data Portability
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* 1. Complete Archive Backup (ZIP with Files) */}
+              <button
+                onClick={handleExportZip}
+                disabled={isExportingZip}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#10b981',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: isExportingZip ? 'wait' : 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                  {isExportingZip ? <RefreshCw size={16} className="spin-slow" /> : <Archive size={16} />}
+                  <div>
+                    <div style={{ fontWeight: 700 }}>Export Complete Backup (.ZIP with Files)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 400 }}>
+                      Includes metadata.json AND all uploaded binary files from IndexedDB
+                    </div>
+                  </div>
+                </div>
+                {copiedZip ? <CheckCircle2 size={16} color="#10b981" /> : <Download size={16} />}
+              </button>
+
+              {/* 2. Metadata-only JSON */}
               <button
                 onClick={handleExportGDPR}
                 style={{
@@ -224,9 +281,9 @@ export default function PrarushProfileModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
                   <Download size={16} />
                   <div>
-                    <div>Export Metadata &amp; Workspaces (JSON)</div>
+                    <div>Export Metadata Only (JSON)</div>
                     <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 400 }}>
-                      Exports tasks, notes &amp; doc metadata (excludes IndexedDB binary files)
+                      Lightweight export of tasks, notes &amp; document metadata
                     </div>
                   </div>
                 </div>
@@ -321,7 +378,7 @@ export default function PrarushProfileModal({
           fontSize: '0.75rem',
           color: '#64748b'
         }}>
-          <span>Prarush Platform v2.0 • Zero-Knowledge Encrypted</span>
+          <span>Prarush Platform v2.0 • Local-First Architecture</span>
           <button 
             onClick={onClose}
             style={{

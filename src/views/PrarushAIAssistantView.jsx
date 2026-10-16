@@ -19,7 +19,7 @@ export default function PrarushAIAssistantView({
       sender: 'ai',
       modelUsed: 'Prarush Local Engine (Offline Rules)',
       title: '👋 Welcome to Prarush Local-First AI Assistant',
-      text: 'I am your unified developer copilot. In offline mode, I generate deterministic code structures, presentation outlines, and task templates locally. To run live completions via Claude Sonnet 5.5, GPT-4o, or Gemini 3.8 Flash, configure your API key in the Model Hub.',
+      text: 'I am your unified developer copilot. In offline mode, I generate deterministic code structures, presentation outlines, and task templates locally. To run live completions via Claude Sonnet 4.5, GPT-4o, or Gemini 3.8 Flash, configure your API key in the Model Hub.',
       suggestions: [
         'Write Python code for calculating moving averages',
         'Create a 3-slide pitch deck for Prarush',

@@ -64,7 +64,7 @@
     <h2>2. Authentication &amp; API Keys</h2>
     <ul>
       <li><strong>Client-Side Accounts:</strong> Account registration and passwords use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and random session tokens. User data is strictly isolated per local profile ID. Sessions expire after 30 days of inactivity, with the expiration window refreshed upon active platform usage. Cross-device cloud sync is not currently active.</li>
-      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (Anthropic Claude Sonnet 5.5, Google Gemini 3.8 Flash, OpenAI GPT-4o, OpenRouter Llama 3.3), these keys are stored in your browser (defaulting to session-only storage) and can be purged immediately with 1-click. Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server. Prompts and files sent to external providers leave your device and are subject to those providers' processing terms.</li>
+      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (Anthropic Claude Sonnet 4.5, Google Gemini 3.8 Flash, OpenAI GPT-4o, OpenRouter Llama 3.3), these keys are stored in your browser (defaulting to session-only storage) and can be purged immediately with 1-click. Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server. Prompts and files sent to external providers leave your device and are subject to those providers' processing terms.</li>
     </ul>
 
     <h2>3. Third-Party AI Providers</h2>

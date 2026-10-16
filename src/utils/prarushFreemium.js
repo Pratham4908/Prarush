@@ -1,3 +1,6 @@
+import JSZip from 'jszip';
+import { getAllFilesForUserFromIndexedDB } from './indexedDbStore.js';
+
 // Prarush Universal Platform: Freemium & Subscription Entitlement Engine
 // Handles Free vs Prarush Pro vs Prarush Team tiers, usage quotas, sandbox checkout, and GDPR data export
 
@@ -42,7 +45,7 @@ export const PRARUSH_PLANS = {
     features: [
       '[Planned Cloud] Cloud database synchronization (PostgreSQL / Supabase)',
       '[Planned Cloud] Cross-device state replication for mobile and web',
-      '[Planned Cloud] Managed high-throughput AI endpoints (Claude Sonnet 5.5, GPT-4o, Gemini Flash)',
+      '[Planned Cloud] Managed high-throughput AI endpoints (Claude Sonnet 4.5, GPT-4o, Gemini Flash)',
       '[Planned Cloud] Cloud OCR text extraction microservice for binary PDFs & images',
       '[Planned Cloud] 50 GB secure cloud backup storage',
       '[Planned Cloud] Automated continuous cloud snapshots'
@@ -288,4 +291,42 @@ export function exportUserDataGDPR(user) {
   }
 
   return exportPayload;
+}
+
+// Complete Backup Archive: Bundles full metadata JSON AND all binary files from IndexedDB into a downloadable .zip
+export async function exportCompleteBackupZip(user) {
+  const userId = user?.id || 'usr-guest';
+  const zip = new JSZip();
+
+  // 1. Generate Metadata payload
+  const metadata = exportUserDataGDPR(user);
+  metadata.exportScopeNotice = 'Full system backup archive containing complete workspace metadata and all uploaded binary files retrieved from IndexedDB.';
+  zip.file('metadata.json', JSON.stringify(metadata, null, 2));
+
+  // 2. Retrieve all binary files for this user from IndexedDB
+  const files = await getAllFilesForUserFromIndexedDB(userId);
+  if (files && files.length > 0) {
+    const docsFolder = zip.folder('documents');
+    files.forEach((f, idx) => {
+      const fileName = f.name || `file_${idx + 1}`;
+      if (f.blob) {
+        docsFolder.file(fileName, f.blob);
+      }
+    });
+  }
+
+  // 3. Generate .zip Blob and trigger browser download
+  if (typeof document !== 'undefined' && typeof URL !== 'undefined') {
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prarush-complete-backup-${userId}-${Date.now()}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return { success: true, fileCount: files.length };
 }

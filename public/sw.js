@@ -1,6 +1,6 @@
-// City Life Progressive Web App (PWA) Service Worker
+// Prarush Progressive Web App (PWA) Service Worker
 // Version: 2.0.0
-const CACHE_NAME = 'citylife-cache-v2';
+const CACHE_NAME = 'prarush-cache-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
   // Cache-first for OpenStreetMap tiles (smooth offline map panning)
   if (url.hostname.includes('tile.openstreetmap.org') || url.hostname.includes('cartocdn.com')) {
     event.respondWith(
-      caches.open('citylife-map-tiles').then((cache) => {
+      caches.open('prarush-map-tiles').then((cache) => {
         return cache.match(request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           return fetch(request).then((networkResponse) => {

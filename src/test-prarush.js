@@ -1,5 +1,6 @@
 // Automated Verification Suite for Prarush Universal AI Platform
 import assert from 'assert';
+import fs from 'fs';
 
 // Node.js environment storage polyfill
 if (typeof localStorage === 'undefined') {
@@ -56,7 +57,8 @@ import {
   recordUsage, 
   upgradeSubscription, 
   cancelSubscription,
-  exportUserDataGDPR 
+  exportUserDataGDPR,
+  exportCompleteBackupZip 
 } from './utils/prarushFreemium.js';
 
 import { 
@@ -146,10 +148,13 @@ async function runAllTests() {
     assert(AI_MODELS.length >= 5, 'Should support at least 5 distinct AI models');
     const modelIds = AI_MODELS.map(m => m.id);
     assert(modelIds.includes('prarush-local-engine'), 'Should include Prarush Local Engine');
-    assert(modelIds.includes('claude-sonnet'), 'Should include Claude Sonnet (5.5)');
+    assert(modelIds.includes('claude-sonnet-4-5'), 'Should include Claude Sonnet 4.5');
     assert(modelIds.includes('gpt-4o'), 'Should include OpenAI GPT-4o');
     assert(modelIds.includes('gemini-3-8-flash'), 'Should include Google Gemini 3.8 Flash');
     assert(modelIds.includes('llama-3-3-70b'), 'Should include Meta Llama 3.3 70B');
+
+    const claudeModel = AI_MODELS.find(m => m.id === 'claude-sonnet-4-5');
+    assert.strictEqual(claudeModel.name, 'Claude Sonnet 4.5', 'Claude model name must accurately match ID');
   });
 
   await runTest('INITIAL_DOCUMENTS marks sample records with hasRealBinary=false', () => {
@@ -170,7 +175,7 @@ async function runAllTests() {
   await runTest('processPrarushAIQuery honestly labels unconfigured Claude requests as fallback (never OpenAI)', async () => {
     // Clear keys to ensure fallback test
     saveStoredApiKeys({ openai: '', gemini: '', anthropic: '', openrouter: '' });
-    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-sonnet');
+    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-sonnet-4-5');
     assert.strictEqual(result.isLiveApi, false, 'Unconfigured Claude must not claim live API');
     assert(result.modelUsed.includes('Key Not Configured') || result.modelUsed.includes('Fallback'), 'Must explicitly declare fallback');
     assert(!result.modelUsed.includes('OpenAI'), 'Claude fallback must NEVER pretend to be OpenAI');
@@ -324,6 +329,21 @@ async function runAllTests() {
     const exportData = exportUserDataGDPR();
     assert(exportData.exportScopeNotice, 'Export must explicitly describe metadata scope');
     assert(exportData.exportScopeNotice.toLowerCase().includes('binary'), 'Must clarify that binary Blobs in IndexedDB are not in JSON');
+  });
+
+  await runTest('exportCompleteBackupZip generates full archive container with files support', async () => {
+    const zipResult = await exportCompleteBackupZip({ id: 'usr-test', name: 'Test User' });
+    assert.strictEqual(zipResult.success, true, 'ZIP export should succeed');
+    assert(typeof zipResult.fileCount === 'number', 'Should report count of bundled files');
+  });
+
+  await runTest('Capacitor configuration specifies com.prarush.app and native folders exist', () => {
+    const capRaw = fs.readFileSync('./capacitor.config.json', 'utf8');
+    const capConfig = JSON.parse(capRaw);
+    assert.strictEqual(capConfig.appId, 'com.prarush.app');
+    assert.strictEqual(capConfig.appName, 'Prarush');
+    assert(fs.existsSync('./android'), 'Android native project folder must exist');
+    assert(fs.existsSync('./ios'), 'iOS native project folder must exist');
   });
 
   // Print Final Summary

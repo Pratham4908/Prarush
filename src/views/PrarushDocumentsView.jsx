@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Folder, Upload, FileText, FileCode, CheckCircle2, Download, 
-  Trash2, RefreshCw, Sparkles, HardDrive, Eye, Archive, ArrowRight, AlertCircle, File, Lock, Check 
+  Folder, Upload, FileText, CheckCircle2, Download, 
+  Trash2, Sparkles, Archive, AlertCircle, Lock
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
 import { 
@@ -15,9 +15,9 @@ import { compressBlob } from '../utils/compressionEngine.js';
 export default function PrarushDocumentsView({
   documents = [],
   currentWorkspace,
+  currentUser,
   onUploadDocument,
-  onDeleteDocument,
-  onOpenSubscription
+  onDeleteDocument
 }) {
   const [selectedDoc, setSelectedDoc] = useState(documents[0] || null);
   const [isProcessingOCR, setIsProcessingOCR] = useState(false);
@@ -30,6 +30,7 @@ export default function PrarushDocumentsView({
   const [storageEstimate, setStorageEstimate] = useState({ usedMB: '0.00', quotaMB: 'N/A' });
 
   const fileInputRef = useRef(null);
+  const userId = currentUser?.id || 'usr-guest';
 
   useEffect(() => {
     getBrowserStorageUsage().then(setStorageEstimate);
@@ -62,10 +63,10 @@ export default function PrarushDocumentsView({
 
     const docId = `doc-${Date.now()}`;
 
-    // PERSIST AUTHENTIC UPLOADED BYTES TO INDEXEDDB (Verify success)
+    // PERSIST AUTHENTIC UPLOADED BYTES TO INDEXEDDB (Scoped to local user profile)
     let isPersisted = false;
     try {
-      isPersisted = await saveFileToIndexedDB(docId, file);
+      isPersisted = await saveFileToIndexedDB(docId, file, userId);
     } catch (dbErr) {
       console.warn('IndexedDB write warning:', dbErr);
       isPersisted = false;
@@ -155,8 +156,8 @@ export default function PrarushDocumentsView({
   const handleCompressFile = async () => {
     if (!selectedDoc) return;
 
-    // Retrieve authentic blob from IndexedDB
-    let blob = await getFileFromIndexedDB(selectedDoc.id);
+    // Retrieve authentic blob from IndexedDB (Scoped to user profile)
+    let blob = await getFileFromIndexedDB(selectedDoc.id, userId);
 
     // If real text document uploaded by user
     if (!blob && selectedDoc.extractedContent && !selectedDoc.isSample) {
@@ -216,9 +217,9 @@ export default function PrarushDocumentsView({
   const handleDownloadDoc = async () => {
     if (!selectedDoc) return;
 
-    // 1. Check if the authentic raw file is stored in IndexedDB across reloads
+    // 1. Check if the authentic raw file is stored in IndexedDB across reloads (Scoped to user)
     try {
-      const persistedBlob = await getFileFromIndexedDB(selectedDoc.id);
+      const persistedBlob = await getFileFromIndexedDB(selectedDoc.id, userId);
       if (persistedBlob) {
         const url = URL.createObjectURL(persistedBlob);
         const a = document.createElement('a');
@@ -256,7 +257,7 @@ export default function PrarushDocumentsView({
   };
 
   const handleDelete = async (docId) => {
-    await deleteFileFromIndexedDB(docId);
+    await deleteFileFromIndexedDB(docId, userId);
     onDeleteDocument(docId);
     if (selectedDoc?.id === docId) setSelectedDoc(null);
     audioSystem.playTone(400, 'sine', 0.08);

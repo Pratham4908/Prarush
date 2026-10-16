@@ -73,7 +73,11 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
       } else {
         try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKeys.gemini}`);
+          const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+            headers: {
+              'x-goog-api-key': apiKeys.gemini
+            }
+          });
           const elapsed = Math.round(performance.now() - start);
           setLatencyResults(prev => ({
             ...prev,
@@ -86,7 +90,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
     }
 
     // 4. Anthropic Ping / Key Check
-    else if (modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
+    else if (modelId === 'claude-sonnet-4-5' || modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
       if (!apiKeys.anthropic) {
         setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
       } else {
@@ -223,7 +227,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Anthropic */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
-                Anthropic API Key (Claude Sonnet 5.5)
+                Anthropic API Key (Claude Sonnet 4.5)
               </label>
               <input
                 type="password"

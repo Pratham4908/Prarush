@@ -1,5 +1,5 @@
 // Prarush Universal AI Multi-Model Intelligence Engine
-// Supports Prarush Local Engine, Claude Sonnet 5.5, GPT-4o, Gemini 3.8 Flash, and Llama 3.3
+// Supports Prarush Local Engine, Claude Sonnet 4.5, GPT-4o, Gemini 3.8 Flash, and Llama 3.3
 // Transparently distinguishes live external cloud inference from deterministic offline rule-based fallbacks.
 
 export const AI_MODELS = [
@@ -17,10 +17,10 @@ export const AI_MODELS = [
     strengths: 'Offline task templates, deterministic code/markdown generation without external API keys or cloud dependencies'
   },
   {
-    id: 'claude-sonnet',
-    aliasId: 'claude-3-7-sonnet',
-    legacyAliasId: 'claude-3-5-sonnet',
-    name: 'Claude Sonnet 5.5',
+    id: 'claude-sonnet-4-5',
+    aliasId: 'claude-sonnet',
+    legacyAliasId: 'claude-3-7-sonnet',
+    name: 'Claude Sonnet 4.5',
     provider: 'Anthropic',
     icon: '🧠',
     badge: 'LIVE BYOK',
@@ -89,7 +89,7 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
   let liveCallError = null;
 
   // 1. Direct Live Routing: Anthropic (Claude Sonnet)
-  if (selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
+  if (selectedModel.id === 'claude-sonnet-4-5' || selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
     if (keys.anthropic) {
       try {
         const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-sonnet-4-5');
@@ -309,12 +309,12 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       isLiveApi: false,
       disclaimer: fallbackNotice,
       verifiedFacts: [
-        'Active Models: Claude Sonnet 5.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
+        'Active Models: Claude Sonnet 4.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
         'Direct Client Protocol: Browser BYOK requests route directly via HTTPS headers (x-api-key, Authorization, x-goog-api-key).',
         'Data Isolation: Workspaces and tasks persist locally per user profile without shared browser leakage.'
       ],
       citations: [
-        'Anthropic Model Documentation (Claude Sonnet 5.5)',
+        'Anthropic Model Documentation (Claude Sonnet 4.5)',
         'Google Cloud Generative AI Documentation (Gemini 3.8 Flash)',
         'OpenAI API Reference (GPT-4o)'
       ]

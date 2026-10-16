@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>City Life - Pitch Deck Presentation</title>
+  <title>Prarush Platform — Architecture &amp; Investor Pitch Deck</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -98,564 +98,395 @@
       display: none;
       width: 100%;
       max-width: 1050px;
-      height: 600px;
       background: var(--card-bg);
-      backdrop-filter: blur(20px);
       border: 1px solid var(--border);
-      border-radius: 28px;
-      box-shadow: 0 25px 70px rgba(0,0,0,0.7), 0 0 40px rgba(6,182,212,0.15);
+      border-radius: 24px;
       padding: 44px 52px;
-      position: relative;
-      flex-direction: column;
-      justify-content: space-between;
-      animation: fadeIn 0.35s ease;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+      backdrop-filter: blur(20px);
+      animation: fadeIn 0.3s ease-out;
     }
-    .slide.active { display: flex; }
-
+    .slide.active { display: block; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.98); }
-      to { opacity: 1; transform: scale(1); }
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Slide Elements */
     .slide-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
       color: var(--accent-cyan);
-      font-weight: 700;
-      font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       margin-bottom: 8px;
     }
-    h1 {
+    .slide-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 2.8rem;
-      font-weight: 900;
-      line-height: 1.1;
-      background: linear-gradient(135deg, #fff 0%, #cbd5e1 50%, #38bdf8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
       margin-bottom: 12px;
     }
-    h2 {
-      font-family: 'Outfit', sans-serif;
-      font-size: 2.1rem;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-    p.lead {
-      font-size: 1.1rem;
-      color: #cbd5e1;
+    .slide-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
       line-height: 1.5;
-      max-width: 800px;
     }
-    .grid-2 {
-      display: grid;
-      grid-templateColumns: 1fr 1fr;
-      gap: 24px;
-      margin-top: 20px;
-    }
-    .grid-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 18px;
-      margin-top: 20px;
-    }
-    .feature-box {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+
+    /* Grid Layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
       padding: 18px 20px;
     }
-    .feature-box h3 {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.05rem;
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
       color: #fff;
       margin-bottom: 6px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .feature-box p {
+    .card-desc {
       font-size: 0.82rem;
-      color: #94a3b8;
+      color: var(--text-muted);
       line-height: 1.45;
     }
-    .stat-callout {
-      background: rgba(6, 182, 212, 0.1);
-      border-left: 4px solid var(--accent-cyan);
-      padding: 12px 18px;
-      border-radius: 8px;
-      margin-top: 16px;
-      font-size: 0.88rem;
-      color: #e2e8f0;
+    .highlight { color: var(--accent-cyan); font-weight: 700; }
+    .metric {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 4px;
     }
-    .badge-pill {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
+
+    /* Navigation Progress Bar */
+    .progress-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      position: relative;
     }
-    .footer-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 14px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+      width: 10%;
+      transition: width 0.3s ease;
     }
   </style>
 </head>
 <body>
 
+  <!-- Presentation Header -->
   <header>
     <div class="brand">
-      <span>🏙️ City Life</span>
-      <span class="badge">Official Pitch Deck</span>
+      <span style="font-size: 1.4rem;">⚡</span>
+      <span>PRARUSH</span>
+      <span class="badge">PLATFORM ARCHITECTURE &amp; PITCH DECK</span>
     </div>
-
     <div class="controls">
-      <span class="slide-counter" id="slide-num">Slide 1 / 10</span>
-      <button class="btn" onclick="prevSlide()">← Prev</button>
-      <button class="btn btn-primary" onclick="nextSlide()">Next →</button>
-      <button class="btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
-      <a href="/" class="btn" style="text-decoration:none;">🚀 Launch App</a>
+      <span class="slide-counter" id="counter">Slide 01 / 10</span>
+      <button class="btn" onclick="prevSlide()">◀ Prev</button>
+      <button class="btn btn-primary" onclick="nextSlide()">Next ▶</button>
+      <a href="/" class="btn" style="text-decoration: none;">Launch App ↗</a>
     </div>
   </header>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
 
+  <!-- Deck Container -->
   <div class="deck-container">
 
-    <!-- SLIDE 1: COVER -->
-    <div class="slide active" id="slide-1">
-      <div>
-        <div class="slide-tag">Autonomous Urban Exploration Platform</div>
-        <h1>City Life: Exploring, Experiencing &amp; Navigating the Chaos</h1>
-        <p class="lead">
-          A smart, accessible mobile platform transforming real-world global telemetry, pedestrian safety audits, living heritage lore, and crowdsourced citizen voice reports into verified, actionable urban intelligence.
-        </p>
-      </div>
-
+    <!-- Slide 1: Mission & Vision -->
+    <div class="slide active">
+      <span class="slide-tag">Executive Overview &bull; 01</span>
+      <h1 class="slide-title">Local-First Digital Workspace for Technical Creators</h1>
+      <p class="slide-subtitle">
+        Prarush unifies fast idea capture, Kanban sprint boards, markdown notes, persistent document storage, authentic GZIP stream compression, and direct multi-model AI into one fluid, private canvas.
+      </p>
       <div class="grid-3">
-        <div class="feature-box">
-          <h3>🧭 Smart Exploration</h3>
-          <p>Curated hidden food gems, rooftop lounges, and budget capsule stays across any global city.</p>
+        <div class="card">
+          <div class="card-title">🔒 True Local-First</div>
+          <div class="card-desc">Client-side persistence via localStorage and IndexedDB. Zero cloud tracking, telemetric snooping, or mandatory account lock-in.</div>
         </div>
-        <div class="feature-box">
-          <h3>🛡️ SafeRoute AI™</h3>
-          <p>Dual-engine navigation enforcing 98% LED lighting and 94% CCTV coverage over dark alleys.</p>
+        <div class="card">
+          <div class="card-title">⚡ BYOK Multi-Model AI</div>
+          <div class="card-desc">Direct browser-to-provider inference using Claude Sonnet 4.5, GPT-4o, Gemini 3.8 Flash, and Llama 3.3. Offline deterministic rules engine built in.</div>
         </div>
-        <div class="feature-box">
-          <h3>🤖 UrbanSense AI</h3>
-          <p>Autonomous conversational AI copilot answering any inquiry with real-time urban reasoning.</p>
+        <div class="card">
+          <div class="card-title">📦 Authentic Binary Storage</div>
+          <div class="card-desc">Real file Blobs preserved in IndexedDB with native browser GZIP stream compression and 1-click full archive backup (.zip).</div>
         </div>
-      </div>
-
-      <div class="footer-bar">
-        <span>Team Prarush • Urban Innovation Challenge 2026</span>
-        <span>Use Left/Right Arrow Keys to Navigate Slides</span>
       </div>
     </div>
 
-    <!-- SLIDE 2: THE PROBLEM -->
-    <div class="slide" id="slide-2">
-      <div>
-        <div class="slide-tag" style="color:var(--accent-rose);">The Challenge &amp; The Gap</div>
-        <h2>The Urban Paradox: Cities are Full of Life, yet Fraught with Chaos</h2>
-        <p class="lead">
-          Traditional navigation apps only optimize for the absolute shortest travel time — completely blind to whether a shortcut leads through an unlit alley, an accident hotspot, or misses an authentic cultural landmark.
-        </p>
-      </div>
-
+    <!-- Slide 2: The Problem -->
+    <div class="slide">
+      <span class="slide-tag">The Problem &bull; 02</span>
+      <h1 class="slide-title">The Trap of Modern Cloud-Locked Workspaces</h1>
+      <p class="slide-subtitle">Modern productivity and AI platforms increasingly sacrifice user autonomy, privacy, and speed.</p>
       <div class="grid-3">
-        <div class="feature-box" style="border-color: rgba(244,63,94,0.3);">
-          <h3 style="color:#fb7185;">1. Speed Over Safety</h3>
-          <p>Google/Apple Maps routings cut through hazardous, unmonitored alleys to save 2 minutes, putting solo nightwalkers at risk.</p>
+        <div class="card">
+          <div class="card-title" style="color: var(--accent-rose);">☁️ Mandatory Cloud Lock-In</div>
+          <div class="card-desc">Workspaces refuse to open without active connectivity. Data is held hostage on proprietary servers with opaque subscription price hikes.</div>
         </div>
-        <div class="feature-box" style="border-color: rgba(245,158,11,0.3);">
-          <h3 style="color:#f59e0b;">2. Scattered Urban Data</h3>
-          <p>Weather alerts, accident records, citizen complaints, and heritage lore remain locked in separate siloed municipal databases.</p>
+        <div class="card">
+          <div class="card-title" style="color: var(--accent-amber);">👁️ AI Privacy Exposure</div>
+          <div class="card-desc">Code snippets, confidential architecture specs, and notes are routed through centralized proxies and training corpora without granular controls.</div>
         </div>
-        <div class="feature-box" style="border-color: rgba(139,92,246,0.3);">
-          <h3 style="color:#c084fc;">3. Superficial Reviews</h3>
-          <p>Mainstream review portals are flooded with sponsored listings, burying authentic local culinary secrets and budget gems.</p>
+        <div class="card">
+          <div class="card-title" style="color: var(--accent-purple);">💸 Fragmented Monthly Taxes</div>
+          <div class="card-desc">Developers juggle $20/mo Notion, $20/mo Claude Pro, $20/mo ChatGPT Plus, and $15/mo Kanban tools. Costs scale per seat rapidly.</div>
         </div>
-      </div>
-
-      <div class="stat-callout">
-        🚨 <strong>Over 68% of urban travelers and solo walkers</strong> report feeling anxiety when navigating unfamiliar cities after dark due to poor lighting and lack of CCTV intelligence.
-      </div>
-
-      <div class="footer-bar">
-        <span>The Problem Definition</span>
-        <span>City Life Solution Pitch</span>
       </div>
     </div>
 
-    <!-- SLIDE 3: THE 6 PILLARS -->
-    <div class="slide" id="slide-3">
-      <div>
-        <div class="slide-tag">Comprehensive Solution Architecture</div>
-        <h2>The 6 Pillars of the City Life Platform</h2>
-        <p class="lead">
-          Designed mobile-first to empower travelers, nomads, families, and everyday commuters to experience cities with confidence.
-        </p>
-      </div>
-
-      <div class="grid-3">
-        <div class="feature-box">
-          <h3>1. Exploration &amp; Stays</h3>
-          <p>Verified street food, budget pods, rooftop lounges, and crowd meters with local tips.</p>
-        </div>
-        <div class="feature-box">
-          <h3>2. History &amp; Lore</h3>
-          <p>Interactive speech-synthesized Audio Tours, living traditions, and cultural etiquette.</p>
-        </div>
-        <div class="feature-box">
-          <h3>3. SafeRoute AI™</h3>
-          <p>Dual-engine pedestrian routing, turn-by-turn walking, and 110dB acoustic SOS sirens.</p>
-        </div>
-        <div class="feature-box">
-          <h3>4. Benchmark Radar</h3>
-          <p>Canvas 6-vector radar comparing Safety, Cleanliness, Affordability, Ratings, and Peace.</p>
-        </div>
-        <div class="feature-box">
-          <h3>5. Smart City Telemetry</h3>
-          <p>Open-Meteo real weather &amp; AQI feeds, traffic delay meters, and citizen voice memos.</p>
-        </div>
-        <div class="feature-box">
-          <h3>6. UrbanSense AI Agent</h3>
-          <p>Conversational reasoning engine answering any typed query with live city handoffs.</p>
-        </div>
-      </div>
-
-      <div class="footer-bar">
-        <span>Architectural Framework</span>
-        <span>Global Accessibility by Design</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 4: SAFEROUTE AI -->
-    <div class="slide" id="slide-4">
-      <div>
-        <div class="slide-tag" style="color:var(--accent-emerald);">Pillar #3 Deep Dive</div>
-        <h2>SafeRoute AI™: Dual-Engine Pedestrian Navigation</h2>
-        <p class="lead">
-          Instead of forcing a single route, SafeRoute AI transparently calculates and contrasts the Fastest Path against the Guardian Verified Path.
-        </p>
-      </div>
-
+    <!-- Slide 3: The Architecture -->
+    <div class="slide">
+      <span class="slide-tag">Core Architecture &bull; 03</span>
+      <h1 class="slide-title">Local-First Engine with User Profile Isolation</h1>
+      <p class="slide-subtitle">Engineered from ground up with client-side cryptography and isolated browser data boundaries.</p>
       <div class="grid-2">
-        <div class="feature-box" style="border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.06);">
-          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <h3 style="color:#f59e0b;">⚡ Fastest Path (Speed-First)</h3>
-            <span class="badge-pill" style="background:#f59e0b22; color:#f59e0b;">62% Safety</span>
+        <div class="card">
+          <div class="card-title">🔐 Cryptographic Client Sessions</div>
+          <div class="card-desc">
+            - Salted SHA-256 password hashing (Web Crypto API)<br>
+            - Zero plaintext password persistence<br>
+            - Per-user namespace isolation (`prarush_usr_${userId}_*`)<br>
+            - Sliding 30-day inactivity expiration refreshed on usage
           </div>
-          <p>• <strong>Time:</strong> 11 mins (1.1 km)<br>
-          • <strong>Lighting Index:</strong> 48% (Dim lampposts)<br>
-          • <strong>CCTV Coverage:</strong> 32% Smart Cameras<br>
-          • <strong>Hazard Risk:</strong> Cuts through dark Elm Lane &amp; Shadow Alley.</p>
         </div>
-
-        <div class="feature-box" style="border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.08);">
-          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <h3 style="color:#10b981;">🛡️ SafeRoute AI™ (Guardian Mode)</h3>
-            <span class="badge-pill">97% Safety A+</span>
+        <div class="card">
+          <div class="card-title">🗄️ Dual-Store Persistence Engine</div>
+          <div class="card-desc">
+            - <strong>LocalStorage:</strong> Workspaces, Kanban boards, markdown notes, preferences<br>
+            - <strong>IndexedDB (`prarush_files_db`):</strong> Authentic binary files (PDFs, images, archives) scoped by local user profile ID<br>
+            - Real browser origin storage quota monitoring
           </div>
-          <p>• <strong>Time:</strong> 14 mins (1.4 km)<br>
-          • <strong>Lighting Index:</strong> 98% High-Output LED<br>
-          • <strong>CCTV Coverage:</strong> 94% Smart Camera Monitored<br>
-          • <strong>Guaranteed Safety:</strong> Passes 24/7 Civic Plaza Police Substation.</p>
         </div>
-      </div>
-
-      <div class="stat-callout">
-        💡 <strong>Integrated SOS Suite:</strong> Features an acoustic 110dB synthesized emergency siren, fake incoming police call simulator, and 1-touch rapid location dispatch.
-      </div>
-
-      <div class="footer-bar">
-        <span>Pedestrian Safety Intelligence</span>
-        <span>Award-Winning Innovation</span>
       </div>
     </div>
 
-    <!-- SLIDE 5: REAL DATA APIS -->
-    <div class="slide" id="slide-5">
-      <div>
-        <div class="slide-tag">Real Data Not Fake Data</div>
-        <h2>Global APIs &amp; Zero-Config Worldwide Accessibility</h2>
-        <p class="lead">
-          The app is not restricted to dummy presets. Anyone on Earth can use City Life in their hometown or vacation spot immediately.
-        </p>
+    <!-- Slide 4: AI Model Hub -->
+    <div class="slide">
+      <span class="slide-tag">AI Multi-Model Hub &bull; 04</span>
+      <h1 class="slide-title">Direct BYOK Provider Gateway</h1>
+      <p class="slide-subtitle">Connect your personal API keys directly from browser to provider without intermediate proxy servers.</p>
+      <div class="grid-4">
+        <div class="card">
+          <div class="card-title">Anthropic</div>
+          <div class="metric" style="font-size: 1.15rem; color: var(--accent-amber);">Claude Sonnet 4.5</div>
+          <div class="card-desc">Official Messages API via `x-api-key` header with browser access flag. 200K token context.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">OpenAI</div>
+          <div class="metric" style="font-size: 1.15rem; color: var(--accent-emerald);">GPT-4o Omni</div>
+          <div class="card-desc">Direct Chat Completions API with Bearer token authentication. 128K token context.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Google</div>
+          <div class="metric" style="font-size: 1.15rem; color: var(--accent-purple);">Gemini 3.8 Flash</div>
+          <div class="card-desc">Official Generative Language API via secure `x-goog-api-key` header (never in URL query string).</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Meta / OpenRouter</div>
+          <div class="metric" style="font-size: 1.15rem; color: var(--accent-cyan);">Llama 3.3 70B</div>
+          <div class="card-desc">Open-weights gateway access. Fallback: Prarush Local Engine (deterministic offline rules).</div>
+        </div>
       </div>
+    </div>
 
+    <!-- Slide 5: Engineering Productivity -->
+    <div class="slide">
+      <span class="slide-tag">Universal Productivity &bull; 05</span>
+      <h1 class="slide-title">13 Modules for Software Engineers &amp; Creators</h1>
+      <p class="slide-subtitle">Tailored workspace defaulting to Software Engineering &amp; Dev with quick 1-click clean canvas option.</p>
       <div class="grid-3">
-        <div class="feature-box">
-          <h3>🛰️ Open-Meteo Live API</h3>
-          <p>Fetches real-time temperature, apparent feels-like, UV index, rain probability, and sunset hours with zero API keys required.</p>
+        <div class="card">
+          <div class="card-title">📋 Kanban Sprints</div>
+          <div class="card-desc">Backlog, In-Progress, Review, and Done swimlanes with priority tags, deadlines, and real-time activity logging.</div>
         </div>
-        <div class="feature-box">
-          <h3>🌿 Real Live AQI API</h3>
-          <p>Monitors European and US Air Quality Index (AQI), PM2.5, and PM10 particulates directly from satellite sensor feeds.</p>
+        <div class="card">
+          <div class="card-title">📝 Markdown Knowledge Notes</div>
+          <div class="card-desc">Full markdown editor with live preview, syntax highlighting, keyword passage search, and folder tagging.</div>
         </div>
-        <div class="feature-box">
-          <h3>🗺️ OpenStreetMap &amp; Nominatim</h3>
-          <p>Global geocoding, reverse geocoding, and Overpass POI queries mapping verified businesses and monuments anywhere on Earth.</p>
+        <div class="card">
+          <div class="card-title">⚡ Command Center (Ctrl+K)</div>
+          <div class="card-desc">Global modal palette for fuzzy searching tasks, notes, templates, and triggering AI actions in under 20ms.</div>
         </div>
-      </div>
-
-      <div class="stat-callout">
-        📍 <strong>One-Tap Auto-GPS Detection:</strong> Tap the Crosshair button or launch the app to automatically lock your live browser GPS coordinates, reverse geocode your city, and prime local telemetry!
-      </div>
-
-      <div class="footer-bar">
-        <span>Live Sensor Integrations</span>
-        <span>Production-Grade Architecture</span>
       </div>
     </div>
 
-    <!-- SLIDE 6: URBANSENSE AI AGENT -->
-    <div class="slide" id="slide-6">
-      <div>
-        <div class="slide-tag" style="color:var(--accent-purple);">Conversational Intelligence</div>
-        <h2>UrbanSense AI: An Autonomous Agent That Answers Anything</h2>
-        <p class="lead">
-          Unlike brittle chatbots, UrbanSense AI uses an advanced NLP intent reasoning engine that answers any typed prompt with depth, reasoning, and direct app actions.
-        </p>
-      </div>
-
-      <div class="grid-3">
-        <div class="feature-box">
-          <h3>1. Urban Reasoning</h3>
-          <p>Evaluates night walk safety, compares district trade-offs, and recommends budget food with direct map-trigger buttons.</p>
-        </div>
-        <div class="feature-box">
-          <h3>2. Universal Knowledge</h3>
-          <p>Answers math, tip calculations, travel packing rules, geography facts, science, and casual conversation seamlessly.</p>
-        </div>
-        <div class="feature-box">
-          <h3>3. Voice Synthesis</h3>
-          <p>Integrated with the Web Speech API to read answers aloud in natural speech for hands-free audio listening while walking.</p>
-        </div>
-      </div>
-
-      <div class="stat-callout">
-        💬 <strong>Example:</strong> Type <em>"Calculate 18% tip on $85"</em> or <em>"Is Old Quarter safe after 10 PM?"</em> — UrbanSense analyzes context, formats structured markdown, and suggests natural follow-ups.
-      </div>
-
-      <div class="footer-bar">
-        <span>NLP Engine &amp; Intent Classifier</span>
-        <span>Universal Conversational Companion</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 7: BENCHMARK RADAR -->
-    <div class="slide" id="slide-7">
-      <div>
-        <div class="slide-tag">Pillar #4: Best vs. Worst Places</div>
-        <h2>Interactive 6-Vector Canvas Urban Benchmark Radar</h2>
-        <p class="lead">
-          Enables objective neighborhood benchmarking across six empirical urban health vectors rendered live on an HTML5 Canvas polygon.
-        </p>
-      </div>
-
+    <!-- Slide 6: File Storage & GZIP Engine -->
+    <div class="slide">
+      <span class="slide-tag">Binary Storage &amp; Streams &bull; 06</span>
+      <h1 class="slide-title">Persistent Files &amp; Native GZIP Streams</h1>
+      <p class="slide-subtitle">Authentic binary preservation in IndexedDB with zero fake simulated placeholders.</p>
       <div class="grid-2">
-        <div class="feature-box">
-          <h3>Six Empirical Vectors Evaluated:</h3>
-          <p>
-            1. <strong>Safety &amp; Security:</strong> Lighting index, CCTV, low crime rate.<br>
-            2. <strong>Cleanliness &amp; Hygiene:</strong> Sanitation, waste management, air quality.<br>
-            3. <strong>Affordability:</strong> Dining and lodging value for money.<br>
-            4. <strong>Visitor Ratings:</strong> Aggregated reviews and traveler satisfaction.<br>
-            5. <strong>Transit &amp; Accessibility:</strong> Metro density, walkability, ramps.<br>
-            6. <strong>Peace &amp; Noise:</strong> Absence of heavy traffic and sirens.
-          </p>
+        <div class="card">
+          <div class="card-title">🗃️ Persistent IndexedDB Storage</div>
+          <div class="card-desc">
+            - Real byte storage up to local browser origin quotas<br>
+            - Uploaded files persist across page reloads and browser restarts<br>
+            - Scoped by user profile ID to prevent local cross-account leakage<br>
+            - Sample metadata records explicitly labeled and prevented from fake downloads
+          </div>
         </div>
-
-        <div class="feature-box">
-          <h3>City District Leaderboard:</h3>
-          <p>
-            • <strong>Safest District:</strong> Financial Uptown (96/100)<br>
-            • <strong>Best for Culture &amp; Food:</strong> Old Quarter (88/100 value)<br>
-            • <strong>Cleanest Air:</strong> Eco Garden Haven (AQI &lt; 20)<br>
-            • <strong>Chaos Warning:</strong> North Freight Terminal (52/100)<br><br>
-            Includes instant category winner badges and actionable AI tradeoff verdicts.
-          </p>
+        <div class="card">
+          <div class="card-title">🗜️ Native Browser GZIP Engine</div>
+          <div class="card-desc">
+            - Built on native browser `CompressionStream('gzip')`<br>
+            - Calculates genuine byte reduction and compression ratios<br>
+            - Exports real `.gz` archives from authentic binary bytes<br>
+            - Text parsing for Markdown, JSON, CSV, and code files
+          </div>
         </div>
-      </div>
-
-      <div class="footer-bar">
-        <span>Urban Data Analytics</span>
-        <span>Empirical Neighborhood Benchmarking</span>
       </div>
     </div>
 
-    <!-- SLIDE 8: ACCOUNTS & GUARDIAN MODE -->
-    <div class="slide" id="slide-8">
-      <div>
-        <div class="slide-tag" style="color:var(--accent-emerald);">User Security &amp; Privacy</div>
-        <h2>Account Ecosystem &amp; Night Walk Guardian™</h2>
-        <p class="lead">
-          Complete privacy-first authentication lifecycle with live companion tools designed to protect solo travelers and night commuters.
-        </p>
-      </div>
-
+    <!-- Slide 7: Data Sovereignty -->
+    <div class="slide">
+      <span class="slide-tag">Data Portability &bull; 07</span>
+      <h1 class="slide-title">Complete Backup Archive (.ZIP) &amp; GDPR Purge</h1>
+      <p class="slide-subtitle">Absolute data ownership with verified dual-store factory reset.</p>
       <div class="grid-3">
-        <div class="feature-box">
-          <h3>🔐 Account Lifecycle</h3>
-          <p>Sign Up, Sign In, Profile dashboard, avatar customization, and <strong>1-Click Permanent Account Deletion</strong> with local GDPR data clearing.</p>
+        <div class="card">
+          <div class="card-title">📦 Complete Backup (.ZIP)</div>
+          <div class="card-desc">Bundles entire workspace metadata (`metadata.json`) AND all uploaded binary files from IndexedDB into a single archive.</div>
         </div>
-        <div class="feature-box">
-          <h3>⏱️ Night Walk Guardian™</h3>
-          <p>Live countdown companion. Prompts gentle periodic pings. If a check-in is missed, automatically triggers sirens and pre-formats SMS emergency alerts.</p>
+        <div class="card">
+          <div class="card-title">📄 Metadata Export (JSON)</div>
+          <div class="card-desc">Lightweight GDPR Article 20 portable JSON export with explicit scope disclosure for quick inspection.</div>
         </div>
-        <div class="feature-box">
-          <h3>🗣️ Multilingual Phrasebook</h3>
-          <p>Instant audio pronunciations for medical, police, and safety phrases across Spanish, French, Japanese, German, and Hindi.</p>
+        <div class="card">
+          <div class="card-title">🧹 Verified Dual Reset</div>
+          <div class="card-desc">1-click factory reset that verifies IndexedDB binary deletion and wipes `prarush_*` localStorage keys with confirmation.</div>
         </div>
-      </div>
-
-      <div class="stat-callout">
-        🏅 <strong>Gamified Scout Badging:</strong> Users unlock scout badges by verifying street hazards, logging safe walking kilometers, and contributing authentic tips.
-      </div>
-
-      <div class="footer-bar">
-        <span>Privacy-Compliant Auth</span>
-        <span>Award-Winning Safety Innovations</span>
       </div>
     </div>
 
-    <!-- SLIDE 9: TECH STACK & QUALITY -->
-    <div class="slide" id="slide-9">
-      <div>
-        <div class="slide-tag">Engineering Rigor</div>
-        <h2>Technology Stack &amp; Quality Metrics</h2>
-        <p class="lead">
-          Architected for zero latency, lightning-fast client-side execution, offline robustness, and strict accessibility standards.
-        </p>
+    <!-- Slide 8: Business Model & Roadmap -->
+    <div class="slide">
+      <span class="slide-tag">Commercial Roadmap &bull; 08</span>
+      <h1 class="slide-title">Transparent Freemium &amp; Cloud Evolution</h1>
+      <p class="slide-subtitle">100% free for local-first use today, with server-backed team features on the roadmap.</p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">Free Scout (Live Now)</div>
+          <div class="metric" style="color: var(--accent-cyan);">$0 / mo</div>
+          <div class="card-desc">100% free forever. Local-first storage, BYOK AI routing, native GZIP compression, and unlimited local workspaces.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Prarush Pro (Planned)</div>
+          <div class="metric" style="color: var(--accent-amber);">$8–$12 / mo</div>
+          <div class="card-desc">[Planned Cloud] PostgreSQL cloud database sync, cross-device replication, dedicated inference endpoints, and automated cloud backups.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Prarush Team (Planned)</div>
+          <div class="metric" style="color: var(--accent-purple);">$23–$29 / seat</div>
+          <div class="card-desc">[Planned Cloud] Multi-user collaborative workspaces, organizational audit logs, shared document repositories, and central billing.</div>
+        </div>
       </div>
+    </div>
 
+    <!-- Slide 9: Tech Stack & Benchmarks -->
+    <div class="slide">
+      <span class="slide-tag">Engineering Quality &bull; 09</span>
+      <h1 class="slide-title">Production Performance &amp; Automated Verification</h1>
+      <p class="slide-subtitle">High-throughput client bundle tested across 23 automated engine checks.</p>
+      <div class="grid-4">
+        <div class="card">
+          <div class="metric" style="color: var(--accent-cyan);">423 ms</div>
+          <div class="card-desc">Vite production compilation time</div>
+        </div>
+        <div class="card">
+          <div class="metric" style="color: var(--accent-emerald);">128 KB</div>
+          <div class="card-desc">Optimized gzipped application bundle</div>
+        </div>
+        <div class="card">
+          <div class="metric" style="color: var(--accent-purple);">23 / 23</div>
+          <div class="card-desc">Automated engine test suites passing</div>
+        </div>
+        <div class="card">
+          <div class="metric" style="color: var(--accent-amber);">PWA</div>
+          <div class="card-desc">Offline Service Worker cache active</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 10: Summary & Community -->
+    <div class="slide">
+      <span class="slide-tag">Conclusion &bull; 10</span>
+      <h1 class="slide-title">Prarush — Developer Sovereignty Restored</h1>
+      <p class="slide-subtitle">Open, private, high-performance workspace engineered for the next generation of builders.</p>
       <div class="grid-2">
-        <div class="feature-box">
-          <h3>Core Technology Stack</h3>
-          <p>
-            • <strong>Frontend:</strong> React 19 + Vite 8.3.4 (ultra-fast HMR)<br>
-            • <strong>GIS &amp; Mapping:</strong> Leaflet.js with CartoDB &amp; OpenStreetMap tiles<br>
-            • <strong>Audio Synthesis:</strong> Web Audio API (110dB siren) + SpeechSynthesis<br>
-            • <strong>Styling:</strong> Pure Vanilla CSS Design System with dark-luxe glassmorphism<br>
-            • <strong>APIs:</strong> Open-Meteo Weather &amp; AQI, OpenStreetMap Overpass, Nominatim
-          </p>
+        <div class="card">
+          <div class="card-title">🚀 Try Prarush Today</div>
+          <div class="card-desc">
+            - Open web preview: Instant start in guest mode<br>
+            - Full responsive support: Mobile, tablet, desktop<br>
+            - Open source: Transparent code on GitHub<br>
+            - Licensed under the open MIT License
+          </div>
         </div>
-
-        <div class="feature-box">
-          <h3>Verification &amp; Test Quality</h3>
-          <p>
-            • <strong>Automated Tests:</strong> 97 / 97 Passed (Zero Failures)<br>
-            • <strong>Production Build:</strong> 704ms compile time via Vite<br>
-            • <strong>Deployment:</strong> Vercel-ready with vercel.json pre-configured<br>
-            • <strong>Accessibility:</strong> ARIA landmarks, screen-reader friendly, keyboard navigable<br>
-            • <strong>Responsive:</strong> Realistic iPhone 16 Pro mockup + full viewport toggle
-          </p>
+        <div class="card" style="display: flex; flex-direction: column; justify-content: center; gap: 12px;">
+          <a href="/" class="btn btn-primary" style="padding: 12px 20px; font-size: 0.95rem; justify-content: center; text-decoration: none;">
+            ⚡ Open Prarush Workspace
+          </a>
+          <a href="https://github.com/Pratham4908/Prarush" target="_blank" class="btn" style="padding: 12px 20px; font-size: 0.95rem; justify-content: center; text-decoration: none;">
+            GitHub Repository (Pratham4908/Prarush)
+          </a>
         </div>
-      </div>
-
-      <div class="footer-bar">
-        <span>Software Engineering Standards</span>
-        <span>Production Ready</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 10: CONCLUSION -->
-    <div class="slide" id="slide-10">
-      <div>
-        <div class="slide-tag" style="color:var(--accent-cyan);">Summary &amp; Vision</div>
-        <h2>City Life: Turning Urban Chaos into an Empowering Adventure</h2>
-        <p class="lead">
-          Combining pedestrian safety intelligence, living heritage audio tours, empirical benchmarking, and an autonomous conversational AI into one unified, award-winning platform.
-        </p>
-      </div>
-
-      <div class="grid-3" style="margin-top:24px;">
-        <div class="feature-box" style="text-align:center;">
-          <div style="font-size:2rem; margin-bottom:8px;">🌍</div>
-          <h3>Works Anywhere</h3>
-          <p>Real live Open-Meteo &amp; OpenStreetMap telemetry for any city or coordinate worldwide.</p>
-        </div>
-        <div class="feature-box" style="text-align:center;">
-          <div style="font-size:2rem; margin-bottom:8px;">🛡️</div>
-          <h3>Protects Citizens</h3>
-          <p>SafeRoute AI, 110dB Siren SOS, Guardian countdown, and crowdsourced hazard verification.</p>
-        </div>
-        <div class="feature-box" style="text-align:center;">
-          <div style="font-size:2rem; margin-bottom:8px;">🚀</div>
-          <h3>Ready for Deployment</h3>
-          <p>Committed to GitHub, configured for Vercel, and fully operational locally right now.</p>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:center; gap:16px; margin-top:24px;">
-        <a href="/" class="btn btn-primary" style="padding:12px 24px; font-size:1rem; text-decoration:none;">
-          📱 Open Live Mobile App Demo
-        </a>
-        <a href="https://github.com/Pratham4908/Prarush" target="_blank" class="btn" style="padding:12px 24px; font-size:1rem; text-decoration:none;">
-          💻 View GitHub Repository
-        </a>
-      </div>
-
-      <div class="footer-bar">
-        <span>Thank You Judges &amp; Evaluators</span>
-        <span>City Life Platform • Ready to Deploy</span>
       </div>
     </div>
 
   </div>
 
   <script>
-    let currentSlide = 1;
-    const totalSlides = 10;
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
 
-    function showSlide(n) {
-      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
-      const activeEl = document.getElementById(`slide-${n}`);
-      if (activeEl) {
-        activeEl.classList.add('active');
-        currentSlide = n;
-        document.getElementById('slide-num').innerText = `Slide ${currentSlide} / ${totalSlides}`;
-      }
+    function updateSlide() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      const num = String(currentSlide + 1).padStart(2, '0');
+      const total = String(slides.length).padStart(2, '0');
+      counter.textContent = `Slide ${num} / ${total}`;
+      progress.style.width = `${((currentSlide + 1) / slides.length) * 100}%`;
     }
 
     function nextSlide() {
-      if (currentSlide < totalSlides) showSlide(currentSlide + 1);
-      else showSlide(1);
-    }
-
-    function prevSlide() {
-      if (currentSlide > 1) showSlide(currentSlide - 1);
-      else showSlide(totalSlides);
-    }
-
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        updateSlide();
       }
     }
 
-    // Keyboard controls (Arrow Left / Right / Space / F)
-    window.addEventListener('keydown', (e) => {
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
         nextSlide();
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         prevSlide();
-      } else if (e.key.toLowerCase() === 'f') {
-        toggleFullScreen();
       }
     });
   </script>

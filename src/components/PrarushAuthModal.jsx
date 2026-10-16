@@ -100,8 +100,8 @@ export default function PrarushAuthModal({
             </div>
             <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0' }}>
               {authMode === 'signin' 
-                ? 'Access your cross-device workspaces and AI history' 
-                : 'Zero-knowledge encrypted client session'}
+                ? 'Sign in to access your local workspace & notes on this device' 
+                : 'Create a local browser profile isolated to this device'}
             </p>
           </div>
           <button 
@@ -161,6 +161,20 @@ export default function PrarushAuthModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Local-First Notice */}
+          <div style={{
+            padding: '8px 12px',
+            background: 'rgba(6, 182, 212, 0.08)',
+            border: '1px solid rgba(6, 182, 212, 0.25)',
+            borderRadius: 8,
+            fontSize: '0.73rem',
+            color: '#94a3b8',
+            lineHeight: 1.4
+          }}>
+            <strong style={{ color: '#38bdf8' }}>Local-First Preview: </strong>
+            Profiles and credentials (salted SHA-256) are stored locally in your browser. Cross-device cloud synchronization is a planned feature.
+          </div>
+
           {errorMessage && (
             <div style={{
               padding: '10px 14px',
@@ -310,7 +324,7 @@ export default function PrarushAuthModal({
               boxShadow: '0 4px 16px rgba(6, 182, 212, 0.3)'
             }}
           >
-            {isLoading ? 'Encrypting & Verifying...' : (authMode === 'signin' ? 'Sign In Securely' : 'Create Free Account')}
+            {isLoading ? 'Verifying Hash...' : (authMode === 'signin' ? 'Sign In Locally' : 'Create Local Profile')}
             <ArrowRight size={16} />
           </button>
         </form>

@@ -25,15 +25,16 @@ function openDatabase() {
   });
 }
 
-// Persist a binary File or Blob to IndexedDB
-export async function saveFileToIndexedDB(id, file) {
+// Persist a binary File or Blob to IndexedDB scoped by userId
+export async function saveFileToIndexedDB(id, file, userId = 'usr-guest') {
   try {
     const db = await openDatabase();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const record = {
         id,
+        userId: userId || 'usr-guest',
         name: file.name,
         type: file.type,
         size: file.size,
@@ -42,7 +43,10 @@ export async function saveFileToIndexedDB(id, file) {
       };
       const req = store.put(record);
       req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
+      req.onerror = () => {
+        console.warn('IndexedDB put error:', req.error);
+        resolve(false);
+      };
     });
   } catch (err) {
     console.warn('IndexedDB saveFile error:', err);
@@ -50,22 +54,28 @@ export async function saveFileToIndexedDB(id, file) {
   }
 }
 
-// Retrieve a persisted File or Blob by docId
-export async function getFileFromIndexedDB(id) {
+// Retrieve a persisted File or Blob by docId (with optional user scoping)
+export async function getFileFromIndexedDB(id, userId = null) {
   try {
     const db = await openDatabase();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const req = store.get(id);
       req.onsuccess = () => {
-        if (req.result && req.result.blob) {
-          resolve(req.result.blob);
+        const result = req.result;
+        if (result && result.blob) {
+          // If userId requested, ensure ownership match
+          if (userId && result.userId && result.userId !== userId) {
+            resolve(null);
+            return;
+          }
+          resolve(result.blob);
         } else {
           resolve(null);
         }
       };
-      req.onerror = () => reject(req.error);
+      req.onerror = () => resolve(null);
     });
   } catch (err) {
     console.warn('IndexedDB getFile error:', err);
@@ -74,15 +84,31 @@ export async function getFileFromIndexedDB(id) {
 }
 
 // Delete a persisted File from IndexedDB
-export async function deleteFileFromIndexedDB(id) {
+export async function deleteFileFromIndexedDB(id, userId = null) {
   try {
     const db = await openDatabase();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
-      const req = store.delete(id);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
+
+      if (userId) {
+        const checkReq = store.get(id);
+        checkReq.onsuccess = () => {
+          if (checkReq.result && checkReq.result.userId && checkReq.result.userId !== userId) {
+            // Mismatch, do not delete other user's file
+            resolve(false);
+            return;
+          }
+          const delReq = store.delete(id);
+          delReq.onsuccess = () => resolve(true);
+          delReq.onerror = () => resolve(false);
+        };
+        checkReq.onerror = () => resolve(false);
+      } else {
+        const req = store.delete(id);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      }
     });
   } catch (err) {
     console.warn('IndexedDB deleteFile error:', err);
@@ -90,16 +116,86 @@ export async function deleteFileFromIndexedDB(id) {
   }
 }
 
-// Clear all persisted files from IndexedDB
+// Retrieve all binary files belonging to a specific local user profile
+export async function getAllFilesForUserFromIndexedDB(userId = null) {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.openCursor();
+      const files = [];
+
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          const val = cursor.value;
+          if (!userId || !val.userId || val.userId === userId) {
+            files.push({
+              id: val.id,
+              name: val.name,
+              type: val.type,
+              size: val.size,
+              blob: val.blob,
+              savedAt: val.savedAt,
+              userId: val.userId
+            });
+          }
+          cursor.continue();
+        } else {
+          resolve(files);
+        }
+      };
+      req.onerror = () => resolve([]);
+    });
+  } catch (err) {
+    console.warn('IndexedDB getAllFilesForUser error:', err);
+    return [];
+  }
+}
+
+// Clear all files for a specific local user profile
+export async function clearUserFilesFromIndexedDB(userId) {
+  if (!userId) return false;
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.openCursor();
+
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          if (cursor.value.userId === userId) {
+            cursor.delete();
+          }
+          cursor.continue();
+        } else {
+          resolve(true);
+        }
+      };
+      req.onerror = () => resolve(false);
+    });
+  } catch (err) {
+    console.warn('IndexedDB clearUserFiles error:', err);
+    return false;
+  }
+}
+
+// Clear all persisted files from IndexedDB (Factory Reset)
 export async function clearAllFilesFromIndexedDB() {
   try {
     const db = await openDatabase();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const req = store.clear();
       req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
+      req.onerror = () => {
+        console.warn('IndexedDB clear error:', req.error);
+        resolve(false);
+      };
     });
   } catch (err) {
     console.warn('IndexedDB clearAllFiles error:', err);

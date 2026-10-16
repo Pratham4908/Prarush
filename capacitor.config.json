@@ -2,7 +2,6 @@
   "appId": "com.prarush.app",
   "appName": "Prarush",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   },

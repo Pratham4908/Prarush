@@ -19,7 +19,7 @@ export default function PrarushAdminView() {
 
   const providers = [
     { name: 'Prarush Local Rule Engine', status: 'OPERATIONAL (OFFLINE)', latency: '<1ms', uptime: '100% (Local)', load: '0% (On-Device)' },
-    { name: 'Anthropic (Claude Sonnet 5.5) [Mock Status]', status: 'SAMPLE DATA', latency: '82ms', uptime: '99.94%', load: '34%' },
+    { name: 'Anthropic (Claude Sonnet 4.5) [Mock Status]', status: 'SAMPLE DATA', latency: '82ms', uptime: '99.94%', load: '34%' },
     { name: 'OpenAI (GPT-4o Omni) [Mock Status]', status: 'SAMPLE DATA', latency: '89ms', uptime: '99.91%', load: '41%' },
     { name: 'Google (Gemini 3.8 Flash) [Mock Status]', status: 'SAMPLE DATA', latency: '104ms', uptime: '99.95%', load: '22%' },
     { name: 'Meta Open-Source (Llama 3.3 70B) [Mock Status]', status: 'SAMPLE DATA', latency: '61ms', uptime: '100%', load: '12%' }
