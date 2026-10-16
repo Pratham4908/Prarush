@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { AI_MODELS } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
-import { getStoredApiKeys, saveStoredApiKeys } from '../utils/apiKeyManager.js';
+import { getStoredApiKeys, saveStoredApiKeys, purgeAllApiKeys } from '../utils/apiKeyManager.js';
 
 export default function PrarushModelHubView({ selectedModelId, onSelectModel, onOpenSubscription }) {
   const [testingModelId, setTestingModelId] = useState(null);
@@ -13,6 +13,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
   const [showKeyConfig, setShowKeyConfig] = useState(false);
   const [apiKeys, setApiKeys] = useState(() => getStoredApiKeys());
   const [saveStatus, setSaveStatus] = useState(false);
+  const [purgeStatus, setPurgeStatus] = useState(false);
 
   const handleSaveKeys = (e) => {
     e.preventDefault();
@@ -22,35 +23,116 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
     setTimeout(() => setSaveStatus(false), 2500);
   };
 
-  const handleTestLatency = async (modelId) => {
+  const handlePurgeKeys = () => {
+    if (window.confirm('Remove all stored AI provider API keys from both sessionStorage and localStorage?')) {
+      purgeAllApiKeys();
+      setApiKeys({ openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true });
+      audioSystem.playWarningSound();
+      setPurgeStatus(true);
+      setTimeout(() => setPurgeStatus(false), 2500);
+    }
+  };
+
+  const handleTestConnection = async (modelId) => {
     setTestingModelId(modelId);
     audioSystem.playTone(550, 'sine', 0.1);
     const start = performance.now();
 
-    // Live ping tests for providers where user configured real credentials
-    if (modelId === 'gpt-4o' && apiKeys.openai) {
-      try {
-        await fetch('https://api.openai.com/v1/models', {
-          headers: { 'Authorization': `Bearer ${apiKeys.openai}` }
-        });
-        const elapsed = Math.round(performance.now() - start);
-        setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Live Network)` }));
-      } catch {
-        const elapsed = Math.round(performance.now() - start);
-        setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Network Error)` }));
-      }
-    } else if (modelId === 'prarush-local-engine' || modelId === 'prarush-neural-4') {
+    // 1. Prarush Local Engine
+    if (modelId === 'prarush-local-engine' || modelId === 'prarush-neural-4') {
       const elapsed = Math.max(1, Math.round(performance.now() - start));
-      setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Local Engine)` }));
-    } else {
-      // Local benchmark without live network call
-      setTimeout(() => {
-        const simulatedLatency = Math.floor(Math.random() * 20 + 30);
-        setLatencyResults(prev => ({ ...prev, [modelId]: `Est. ${simulatedLatency}ms (Key Needed)` }));
-        setTestingModelId(null);
-        audioSystem.playSuccessSound();
-      }, 350);
+      setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed}ms (Offline Rules)` }));
+      setTestingModelId(null);
+      audioSystem.playSuccessSound();
       return;
+    }
+
+    // 2. OpenAI Ping
+    if (modelId === 'gpt-4o') {
+      if (!apiKeys.openai) {
+        setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
+      } else {
+        try {
+          const res = await fetch('https://api.openai.com/v1/models', {
+            headers: { 'Authorization': `Bearer ${apiKeys.openai}` }
+          });
+          const elapsed = Math.round(performance.now() - start);
+          setLatencyResults(prev => ({
+            ...prev,
+            [modelId]: res.ok ? `${elapsed}ms (Ping Verified)` : `Auth Error (${res.status})`
+          }));
+        } catch (err) {
+          setLatencyResults(prev => ({ ...prev, [modelId]: 'Network Error' }));
+        }
+      }
+    }
+
+    // 3. Google Gemini Ping
+    else if (modelId === 'gemini-3-8-flash' || modelId === 'gemini-2-5-pro' || modelId === 'gemini-1-5-pro') {
+      if (!apiKeys.gemini) {
+        setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
+      } else {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKeys.gemini}`);
+          const elapsed = Math.round(performance.now() - start);
+          setLatencyResults(prev => ({
+            ...prev,
+            [modelId]: res.ok ? `${elapsed}ms (Ping Verified)` : `Auth Error (${res.status})`
+          }));
+        } catch {
+          setLatencyResults(prev => ({ ...prev, [modelId]: 'Network Error' }));
+        }
+      }
+    }
+
+    // 4. Anthropic Ping / Key Check
+    else if (modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
+      if (!apiKeys.anthropic) {
+        setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
+      } else {
+        // Direct browser ping to Anthropic API requires dangerous-direct-browser-access header
+        try {
+          const res = await fetch('https://api.anthropic.com/v1/models', {
+            headers: {
+              'x-api-key': apiKeys.anthropic,
+              'anthropic-version': '2023-06-01',
+              'anthropic-dangerous-direct-browser-access': 'true'
+            }
+          });
+          const elapsed = Math.round(performance.now() - start);
+          setLatencyResults(prev => ({
+            ...prev,
+            [modelId]: res.ok ? `${elapsed}ms (Ping Verified)` : `Auth Error (${res.status})`
+          }));
+        } catch {
+          // If CORS block on models endpoint, acknowledge key syntax
+          const isValidFormat = apiKeys.anthropic.startsWith('sk-ant-');
+          setLatencyResults(prev => ({
+            ...prev,
+            [modelId]: isValidFormat ? 'Key Ready (Browser Direct)' : 'Key Format Invalid'
+          }));
+        }
+      }
+    }
+
+    // 5. OpenRouter Ping
+    else if (modelId === 'llama-3-3-70b' || modelId === 'llama-3-70b') {
+      if (!apiKeys.openrouter) {
+        setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
+      } else {
+        try {
+          const res = await fetch('https://openrouter.ai/api/v1/models', {
+            headers: { 'Authorization': `Bearer ${apiKeys.openrouter}` }
+          });
+          const elapsed = Math.round(performance.now() - start);
+          setLatencyResults(prev => ({
+            ...prev,
+            [modelId]: res.ok ? `${elapsed}ms (Ping Verified)` : `Auth Error (${res.status})`
+          }));
+        } catch {
+          setLatencyResults(prev => ({ ...prev, [modelId]: 'Network Error' }));
+        }
+      }
     }
 
     setTestingModelId(null);
@@ -141,7 +223,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Anthropic */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
-                Anthropic API Key (Claude 3.7 Sonnet)
+                Anthropic API Key (Claude Sonnet 5.5)
               </label>
               <input
                 type="password"
@@ -189,7 +271,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Google Gemini */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#8b5cf6', marginBottom: 4 }}>
-                Google Gemini Key (Gemini 2.5 Pro via x-goog-api-key)
+                Google Gemini Key (Gemini 3.8 Flash via x-goog-api-key)
               </label>
               <input
                 type="password"
@@ -235,6 +317,20 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             </div>
           </div>
 
+          {/* Privacy Callout Banner */}
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            borderRadius: 10,
+            padding: '10px 14px',
+            fontSize: '0.75rem',
+            color: '#cbd5e1',
+            lineHeight: 1.45
+          }}>
+            <strong style={{ color: '#f59e0b' }}>BYOK Privacy Notice: </strong>
+            When you enter API keys and prompt live models, your query text and attached notes leave this device and are sent directly to the respective external provider endpoint (Anthropic, OpenAI, Google, or OpenRouter). You are responsible for any provider API usage fees incurred.
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', color: '#cbd5e1', cursor: 'pointer' }}>
               <input
@@ -242,24 +338,43 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                 checked={Boolean(apiKeys.sessionOnly)}
                 onChange={(e) => setApiKeys({ ...apiKeys, sessionOnly: e.target.checked })}
               />
-              <span>Keep keys in Session Storage only (cleared automatically when browser tab closes)</span>
+              <span>Session Storage only (Default &bull; Cleared automatically when browser tab closes)</span>
             </label>
 
-            <button
-              type="submit"
-              style={{
-                padding: '8px 20px',
-                borderRadius: 8,
-                background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%)',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer'
-              }}
-            >
-              {saveStatus ? 'Keys Saved ✓' : 'Save API Keys'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={handlePurgeKeys}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  background: 'rgba(244, 63, 94, 0.12)',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  color: '#fb7185',
+                  fontWeight: 600,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {purgeStatus ? 'Keys Cleared ✓' : 'Purge All Keys'}
+              </button>
+
+              <button
+                type="submit"
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {saveStatus ? 'Keys Saved ✓' : 'Save API Keys'}
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -370,7 +485,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                 </button>
 
                 <button
-                  onClick={() => handleTestLatency(model.id)}
+                  onClick={() => handleTestConnection(model.id)}
                   disabled={testingModelId === model.id}
                   style={{
                     padding: '8px 12px',
@@ -384,15 +499,33 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                     alignItems: 'center',
                     gap: 6
                   }}
-                  title="Measure round-trip response or local benchmark"
+                  title="Check provider authentication & network connectivity (Ping Auth). Does not run generative inference."
                 >
                   <Play size={12} color="#06b6d4" />
-                  <span>{testingModelId === model.id ? 'Testing...' : (latency || 'Test Latency')}</span>
+                  <span>{testingModelId === model.id ? 'Testing...' : (latency || 'Ping Auth')}</span>
                 </button>
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Connectivity Check Note */}
+      <div style={{
+        padding: '12px 16px',
+        background: 'rgba(15, 23, 42, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.07)',
+        borderRadius: 10,
+        fontSize: '0.74rem',
+        color: '#94a3b8',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }}>
+        <span style={{ color: '#06b6d4', fontWeight: 700 }}>Note:</span>
+        <span>
+          "Ping Auth" tests endpoint reachability and API key authentication directly from your browser. It does not measure generative model completion latency or incur token generation costs.
+        </span>
       </div>
     </div>
   );

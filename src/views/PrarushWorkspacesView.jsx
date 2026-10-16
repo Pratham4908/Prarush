@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Layers, Plus, CheckCircle2, ArrowRight, Folder, 
-  Trash2, Edit, Check 
+  Trash2, Edit, Check, Sparkles 
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
 
@@ -16,6 +16,22 @@ export default function PrarushWorkspacesView({
   const [icon, setIcon] = useState('🚀');
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState('work');
+
+  const handleCreateCleanWorkspace = () => {
+    const cleanWs = {
+      id: `ws-clean-${Date.now()}`,
+      name: 'Clean Workspace',
+      icon: '✨',
+      description: 'Clean workspace with zero sample tasks, notes, or demo records. Fresh canvas for your real project.',
+      category: 'work',
+      color: '#10b981',
+      isClean: true,
+      createdAt: new Date().toISOString()
+    };
+    onCreateWorkspace(cleanWs);
+    onSelectWorkspace(cleanWs.id);
+    audioSystem.playSuccessSound();
+  };
 
   const handleCreate = (e) => {
     e.preventDefault();
@@ -64,14 +80,37 @@ export default function PrarushWorkspacesView({
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAddOpen(true)}
-          className="btn-primary"
-          style={{ fontSize: '0.78rem', padding: '8px 14px' }}
-        >
-          <Plus size={15} />
-          <span>New Workspace</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            onClick={handleCreateCleanWorkspace}
+            style={{
+              fontSize: '0.78rem',
+              padding: '8px 14px',
+              borderRadius: 10,
+              background: 'rgba(16, 185, 129, 0.16)',
+              border: '1px solid rgba(16, 185, 129, 0.45)',
+              color: '#10b981',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+            title="Create a clean workspace with no sample tasks or demo notes"
+          >
+            <Sparkles size={14} />
+            <span>Create Clean Workspace</span>
+          </button>
+
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="btn-primary"
+            style={{ fontSize: '0.78rem', padding: '8px 14px' }}
+          >
+            <Plus size={15} />
+            <span>New Custom Workspace</span>
+          </button>
+        </div>
       </div>
 
       {/* Workspaces Grid */}

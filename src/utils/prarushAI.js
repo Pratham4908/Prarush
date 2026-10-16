@@ -1,5 +1,5 @@
 // Prarush Universal AI Multi-Model Intelligence Engine
-// Supports Prarush Local Engine, Claude 3.7 Sonnet, GPT-4o, Gemini 2.5 Pro, and Llama 3.3
+// Supports Prarush Local Engine, Claude Sonnet 5.5, GPT-4o, Gemini 3.8 Flash, and Llama 3.3
 // Transparently distinguishes live external cloud inference from deterministic offline rule-based fallbacks.
 
 export const AI_MODELS = [
@@ -17,16 +17,17 @@ export const AI_MODELS = [
     strengths: 'Offline task templates, deterministic code/markdown generation without external API keys or cloud dependencies'
   },
   {
-    id: 'claude-3-7-sonnet',
-    aliasId: 'claude-3-5-sonnet',
-    name: 'Claude 3.7 Sonnet',
+    id: 'claude-sonnet',
+    aliasId: 'claude-3-7-sonnet',
+    legacyAliasId: 'claude-3-5-sonnet',
+    name: 'Claude Sonnet 5.5',
     provider: 'Anthropic',
     icon: '🧠',
     badge: 'LIVE BYOK',
     badgeColor: '#f59e0b',
     contextWindow: '200K Tokens',
-    speed: 'Est. 600-1400 ms (Cloud)',
-    costPer1k: '~$0.0030 (Provider Est.)',
+    speed: 'Est. 500-1100 ms (Cloud)',
+    costPer1k: '~$0.0020 (Provider Est.)',
     strengths: 'Hybrid reasoning, nuanced prose, full-stack architectural design, and complex code debugging'
   },
   {
@@ -42,17 +43,18 @@ export const AI_MODELS = [
     strengths: 'Multimodal vision, cross-domain logic, mathematical problem solving, rapid structured completions'
   },
   {
-    id: 'gemini-2-5-pro',
-    aliasId: 'gemini-1-5-pro',
-    name: 'Gemini 2.5 Pro',
+    id: 'gemini-3-8-flash',
+    aliasId: 'gemini-2-5-pro',
+    legacyAliasId: 'gemini-1-5-pro',
+    name: 'Gemini 3.8 Flash',
     provider: 'Google DeepMind',
     icon: '✨',
     badge: 'LIVE BYOK',
     badgeColor: '#8b5cf6',
-    contextWindow: '2M+ Tokens',
-    speed: 'Est. 500-1200 ms (Cloud)',
-    costPer1k: '~$0.0025 (Provider Est.)',
-    strengths: 'Deep reasoning, massive multimodal context windows, code repository ingestion'
+    contextWindow: '1M+ Tokens',
+    speed: 'Est. 300-800 ms (Cloud)',
+    costPer1k: '~$0.0005 (Provider Est.)',
+    strengths: 'High-speed reasoning, large multimodal context, and instant codebase ingestion'
   },
   {
     id: 'llama-3-3-70b',
@@ -81,16 +83,16 @@ import {
 export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-engine', context = {}) {
   const q = prompt.trim().toLowerCase();
   
-  // Resolve model, honoring both current and legacy alias IDs
-  const selectedModel = AI_MODELS.find(m => m.id === modelId || m.aliasId === modelId) || AI_MODELS[0];
+  // Resolve model, honoring current, alias, and legacy alias IDs
+  const selectedModel = AI_MODELS.find(m => m.id === modelId || m.aliasId === modelId || m.legacyAliasId === modelId) || AI_MODELS[0];
   const keys = getStoredApiKeys();
   let liveCallError = null;
 
-  // 1. Direct Live Routing: Anthropic (Claude 3.7 Sonnet)
-  if (selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
+  // 1. Direct Live Routing: Anthropic (Claude Sonnet)
+  if (selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
     if (keys.anthropic) {
       try {
-        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-3-7-sonnet-20250219');
+        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-sonnet-4-5');
         return {
           type: 'live_llm_response',
           modelUsed: `${selectedModel.name} (Live Anthropic API)`,
@@ -110,7 +112,7 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       }
     } else if (keys.openrouter) {
       try {
-        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'anthropic/claude-3.7-sonnet');
+        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'anthropic/claude-sonnet-4.5');
         return {
           type: 'live_llm_response',
           modelUsed: `${selectedModel.name} (Live via OpenRouter)`,
@@ -154,10 +156,10 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
     }
   }
 
-  // 3. Direct Live Routing: Google Gemini 2.5 Pro
-  if ((selectedModel.id === 'gemini-2-5-pro' || selectedModel.id === 'gemini-1-5-pro') && keys.gemini) {
+  // 3. Direct Live Routing: Google Gemini 3.8 Flash
+  if ((selectedModel.id === 'gemini-3-8-flash' || selectedModel.id === 'gemini-2-5-pro' || selectedModel.id === 'gemini-1-5-pro') && keys.gemini) {
     try {
-      const liveAnswer = await callRealGemini(prompt, keys.gemini, 'gemini-2.5-pro');
+      const liveAnswer = await callRealGemini(prompt, keys.gemini, 'gemini-3.8-flash');
       return {
         type: 'live_llm_response',
         modelUsed: `${selectedModel.name} (Live Google Gemini API)`,
@@ -307,13 +309,13 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       isLiveApi: false,
       disclaimer: fallbackNotice,
       verifiedFacts: [
-        'Active Models: Claude 3.7 Sonnet (Anthropic), Gemini 2.5 Pro (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
+        'Active Models: Claude Sonnet 5.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
         'Direct Client Protocol: Browser BYOK requests route directly via HTTPS headers (x-api-key, Authorization, x-goog-api-key).',
         'Data Isolation: Workspaces and tasks persist locally per user profile without shared browser leakage.'
       ],
       citations: [
-        'Anthropic Model Documentation (Claude 3.7 Sonnet)',
-        'Google Cloud Generative AI Documentation (Gemini 2.5 Pro)',
+        'Anthropic Model Documentation (Claude Sonnet 5.5)',
+        'Google Cloud Generative AI Documentation (Gemini 3.8 Flash)',
         'OpenAI API Reference (GPT-4o)'
       ]
     };
@@ -326,7 +328,7 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
     title: `⚡ Local Assistant Response`,
     isLiveApi: false,
     disclaimer: fallbackNotice,
-    text: `Request: "${prompt}".\n\nPrarush provides a local-first workspace for software engineers and technical creators.\n\n* Note: To receive live answers from Claude 3.7 Sonnet, GPT-4o, or Gemini 2.5 Pro, configure your API key in the Model Hub. In local mode, you can turn this item into a **Kanban Task**, create a **Markdown Note**, or structure a **Code Snippet**.\n\nWhat would you like to execute?`,
+    text: `Request: "${prompt}".\n\nPrarush provides a local-first workspace for software engineers and technical creators.\n\n* Note: To receive live answers from Claude Sonnet, GPT-4o, or Gemini 3.8 Flash, configure your API key in the Model Hub. In local mode, you can turn this item into a **Kanban Task**, create a **Markdown Note**, or structure a **Code Snippet**.\n\nWhat would you like to execute?`,
     suggestedActions: [
       { label: 'Create Kanban Task', actionType: 'create_task' },
       { label: 'Save as Note', actionType: 'create_note' },

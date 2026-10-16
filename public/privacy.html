@@ -64,7 +64,7 @@
     <h2>2. Authentication &amp; API Keys</h2>
     <ul>
       <li><strong>Client-Side Accounts:</strong> Account registration and passwords use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and random session tokens. User data is strictly isolated per local profile ID. Sessions expire after 30 days of inactivity, with the expiration window refreshed upon active platform usage. Cross-device cloud sync is not currently active.</li>
-      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (Anthropic Claude 3.7 Sonnet, Google Gemini 2.5 Pro, OpenAI GPT-4o, OpenRouter Llama 3.3), these keys are stored exclusively in your browser (with optional session-only storage). Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server.</li>
+      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (Anthropic Claude Sonnet 5.5, Google Gemini 3.8 Flash, OpenAI GPT-4o, OpenRouter Llama 3.3), these keys are stored in your browser (defaulting to session-only storage) and can be purged immediately with 1-click. Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server. Prompts and files sent to external providers leave your device and are subject to those providers' processing terms.</li>
     </ul>
 
     <h2>3. Third-Party AI Providers</h2>
@@ -79,8 +79,8 @@
     <h2>4. Data Portability &amp; Erasure</h2>
     <p>Prarush provides built-in tools for user data control:</p>
     <ul>
-      <li><strong>JSON Data Export:</strong> You can export your stored workspaces, tasks, notes, documents, and preferences as a machine-readable JSON file at any time from the Profile drawer.</li>
-      <li><strong>Origin-Safe Storage Purge:</strong> 1-click storage reset allows clearing all <code>prarush_*</code> browser records from your device without affecting other websites' cookies.</li>
+      <li><strong>JSON Data Export:</strong> You can export your stored workspaces, tasks, notes, document metadata, and preferences as a machine-readable JSON file at any time from the Profile drawer. Uploaded binary files remain stored locally in your browser's IndexedDB.</li>
+      <li><strong>Origin-Safe Storage Purge:</strong> 1-click storage reset allows clearing all <code>prarush_*</code> browser records from LocalStorage and wiping all uploaded binary files from IndexedDB without affecting other websites' data.</li>
       <li><strong>Local Modification:</strong> All notes, task records, and user profiles can be directly edited or deleted in real time.</li>
     </ul>
 

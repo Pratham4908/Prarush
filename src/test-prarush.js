@@ -74,7 +74,8 @@ import {
 
 import { 
   getStoredApiKeys, 
-  saveStoredApiKeys 
+  saveStoredApiKeys,
+  purgeAllApiKeys 
 } from './utils/apiKeyManager.js';
 
 console.log('🚀 Starting Prarush Comprehensive Engine Tests...\n');
@@ -145,10 +146,18 @@ async function runAllTests() {
     assert(AI_MODELS.length >= 5, 'Should support at least 5 distinct AI models');
     const modelIds = AI_MODELS.map(m => m.id);
     assert(modelIds.includes('prarush-local-engine'), 'Should include Prarush Local Engine');
-    assert(modelIds.includes('claude-3-7-sonnet'), 'Should include Claude 3.7 Sonnet');
+    assert(modelIds.includes('claude-sonnet'), 'Should include Claude Sonnet (5.5)');
     assert(modelIds.includes('gpt-4o'), 'Should include OpenAI GPT-4o');
-    assert(modelIds.includes('gemini-2-5-pro'), 'Should include Google Gemini 2.5 Pro');
+    assert(modelIds.includes('gemini-3-8-flash'), 'Should include Google Gemini 3.8 Flash');
     assert(modelIds.includes('llama-3-3-70b'), 'Should include Meta Llama 3.3 70B');
+  });
+
+  await runTest('INITIAL_DOCUMENTS marks sample records with hasRealBinary=false', () => {
+    assert(INITIAL_DOCUMENTS.length >= 3, 'Should have initial documents');
+    INITIAL_DOCUMENTS.forEach(doc => {
+      assert.strictEqual(doc.isSample, true, 'Initial document must be marked as sample');
+      assert.strictEqual(doc.hasRealBinary, false, 'Sample document must not pretend to have real binary');
+    });
   });
 
   await runTest('processPrarushAIQuery handles general reasoning queries via Local Engine', async () => {
@@ -161,7 +170,7 @@ async function runAllTests() {
   await runTest('processPrarushAIQuery honestly labels unconfigured Claude requests as fallback (never OpenAI)', async () => {
     // Clear keys to ensure fallback test
     saveStoredApiKeys({ openai: '', gemini: '', anthropic: '', openrouter: '' });
-    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-3-7-sonnet');
+    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-sonnet');
     assert.strictEqual(result.isLiveApi, false, 'Unconfigured Claude must not claim live API');
     assert(result.modelUsed.includes('Key Not Configured') || result.modelUsed.includes('Fallback'), 'Must explicitly declare fallback');
     assert(!result.modelUsed.includes('OpenAI'), 'Claude fallback must NEVER pretend to be OpenAI');
@@ -180,7 +189,7 @@ async function runAllTests() {
   });
 
   await runTest('processPrarushAIQuery generates reference specifications without unverified scores', async () => {
-    const result = await processPrarushAIQuery('Research and verify model specs', 'gemini-2-5-pro');
+    const result = await processPrarushAIQuery('Research and verify model specs', 'gemini-3-8-flash');
     assert(Array.isArray(result.citations), 'Should include citations array');
     assert(result.citations.length >= 1, 'Should have at least one citation');
   });
@@ -286,13 +295,19 @@ async function runAllTests() {
   });
 
   // 6. BYOK API Key Manager Tests
-  await runTest('API Key Manager saves and retrieves cloud credentials safely', () => {
+  await runTest('API Key Manager saves, retrieves, and purges cloud credentials safely', () => {
     const keys = { openai: 'sk-test-mock', gemini: 'AIza-test-mock', anthropic: 'sk-ant-test', openrouter: '' };
-    saveStoredApiKeys(keys);
+    saveStoredApiKeys(keys, false);
     const retrieved = getStoredApiKeys();
     assert.strictEqual(retrieved.openai, 'sk-test-mock');
     assert.strictEqual(retrieved.gemini, 'AIza-test-mock');
     assert.strictEqual(retrieved.anthropic, 'sk-ant-test');
+
+    purgeAllApiKeys();
+    const purged = getStoredApiKeys();
+    assert.strictEqual(purged.openai, '');
+    assert.strictEqual(purged.gemini, '');
+    assert.strictEqual(purged.anthropic, '');
   });
 
   // 7. Origin-Safe Purge & Data Portability
@@ -303,6 +318,12 @@ async function runAllTests() {
     assert.strictEqual(localStorage.getItem('other_app_key'), 'preserved_value', 'Non-Prarush keys must be preserved');
     assert.strictEqual(localStorage.getItem('prarush_temp_test'), null, 'Prarush keys must be removed');
     localStorage.removeItem('other_app_key');
+  });
+
+  await runTest('exportUserDataGDPR generates honest metadata-only payload structure', () => {
+    const exportData = exportUserDataGDPR();
+    assert(exportData.exportScopeNotice, 'Export must explicitly describe metadata scope');
+    assert(exportData.exportScopeNotice.toLowerCase().includes('binary'), 'Must clarify that binary Blobs in IndexedDB are not in JSON');
   });
 
   // Print Final Summary

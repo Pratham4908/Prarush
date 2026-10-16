@@ -6,6 +6,7 @@ import {
 import { audioSystem } from '../utils/audioSystem.js';
 import { isProSubscriber, exportUserDataGDPR } from '../utils/prarushFreemium.js';
 import { clearPrarushStorageOnly } from '../utils/prarushStore.js';
+import { clearAllFilesFromIndexedDB } from '../utils/indexedDbStore.js';
 
 export default function PrarushProfileModal({ 
   isOpen, 
@@ -29,10 +30,11 @@ export default function PrarushProfileModal({
     setTimeout(() => setCopiedGDPR(false), 3000);
   };
 
-  const handleClearCache = () => {
-    if (window.confirm('Clear local offline workspace caches and reset to factory demo state? This only removes Prarush application data and preserves your other website storage.')) {
+  const handleClearCache = async () => {
+    if (window.confirm('Clear all local offline workspaces, notes, tasks, AND all uploaded binary files in IndexedDB? This will perform a complete factory reset of Prarush local storage on this browser.')) {
       audioSystem.playWarningSound();
       clearPrarushStorageOnly();
+      await clearAllFilesFromIndexedDB();
       window.location.reload();
     }
   };
@@ -219,9 +221,14 @@ export default function PrarushProfileModal({
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
                   <Download size={16} />
-                  <span>Export Complete Data Archive (GDPR JSON)</span>
+                  <div>
+                    <div>Export Metadata &amp; Workspaces (JSON)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 400 }}>
+                      Exports tasks, notes &amp; doc metadata (excludes IndexedDB binary files)
+                    </div>
+                  </div>
                 </div>
                 {copiedGDPR ? <CheckCircle2 size={16} color="#10b981" /> : <HardDrive size={16} />}
               </button>
@@ -239,11 +246,17 @@ export default function PrarushProfileModal({
                   color: '#f43f5e',
                   fontWeight: 600,
                   fontSize: '0.85rem',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  textAlign: 'left'
                 }}
               >
                 <Trash2 size={16} />
-                <span>Reset Local Workspaces & Wipe Cache</span>
+                <div>
+                  <div>Reset Local Storage &amp; IndexedDB Files</div>
+                  <div style={{ fontSize: '0.68rem', color: '#fb7185', fontWeight: 400 }}>
+                    Wipes localStorage preferences AND all binary files in IndexedDB
+                  </div>
+                </div>
               </button>
             </div>
           </div>

@@ -90,17 +90,36 @@ export async function deleteFileFromIndexedDB(id) {
   }
 }
 
+// Clear all persisted files from IndexedDB
+export async function clearAllFilesFromIndexedDB() {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.clear();
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn('IndexedDB clearAllFiles error:', err);
+    return false;
+  }
+}
+
 // Get realistic local browser origin storage estimate
 export async function getBrowserStorageUsage() {
   if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
     try {
       const estimate = await navigator.storage.estimate();
-      const usedMB = ((estimate.usage || 0) / (1024 * 1024)).toFixed(2);
-      const quotaMB = ((estimate.quota || 0) / (1024 * 1024)).toFixed(0);
-      return { usedMB, quotaMB, isRealEstimate: true };
+      const usedBytes = estimate.usage || 0;
+      const quotaBytes = estimate.quota || 0;
+      const usedMB = (usedBytes / (1024 * 1024)).toFixed(2);
+      const quotaMB = (quotaBytes / (1024 * 1024)).toFixed(0);
+      return { usedMB, quotaMB, usedBytes, quotaBytes, isRealEstimate: true };
     } catch {
-      return { usedMB: '0.00', quotaMB: 'N/A', isRealEstimate: false };
+      return { usedMB: '0.00', quotaMB: 'N/A', usedBytes: 0, quotaBytes: 0, isRealEstimate: false };
     }
   }
-  return { usedMB: '0.00', quotaMB: 'N/A', isRealEstimate: false };
+  return { usedMB: '0.00', quotaMB: 'N/A', usedBytes: 0, quotaBytes: 0, isRealEstimate: false };
 }

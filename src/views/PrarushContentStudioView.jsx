@@ -216,7 +216,7 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
               style={{ padding: 12, justifyContent: 'center', marginTop: 'auto' }}
             >
               {isGeneratingImg ? <RefreshCw size={15} className="spin-slow" /> : <Wand2 size={15} />}
-              <span>{isGeneratingImg ? 'Synthesizing Visual...' : 'Generate 1024x1024 Image'}</span>
+              <span>{isGeneratingImg ? 'Synthesizing Visual...' : 'Generate Style Preview (1024x1024)'}</span>
             </button>
           </div>
 
@@ -315,7 +315,7 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
               style={{ padding: '10px 16px' }}
             >
               {isGeneratingDeck ? <RefreshCw size={15} className="spin-slow" /> : <Layers size={15} />}
-              <span>{isGeneratingDeck ? 'Generating...' : 'Generate Deck'}</span>
+              <span>{isGeneratingDeck ? 'Generating...' : 'Generate Deck Outline Preview'}</span>
             </button>
           </div>
 
@@ -383,7 +383,7 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
               style={{ padding: '10px 16px' }}
             >
               {isGeneratingCode ? <RefreshCw size={15} className="spin-slow" /> : <Code size={15} />}
-              <span>{isGeneratingCode ? 'Writing Code...' : 'Generate Code'}</span>
+              <span>{isGeneratingCode ? 'Writing Code...' : 'Generate Template Code Preview'}</span>
             </button>
           </div>
 

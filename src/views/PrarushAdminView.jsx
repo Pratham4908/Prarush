@@ -18,19 +18,19 @@ export default function PrarushAdminView() {
   };
 
   const providers = [
-    { name: 'Prarush Neural-4 Core', status: 'OPERATIONAL', latency: '42ms', uptime: '99.99%', load: '18%' },
-    { name: 'Anthropic (Claude 3.5 Sonnet)', status: 'OPERATIONAL', latency: '82ms', uptime: '99.94%', load: '34%' },
-    { name: 'OpenAI (GPT-4o Omni)', status: 'OPERATIONAL', latency: '89ms', uptime: '99.91%', load: '41%' },
-    { name: 'Google DeepMind (Gemini 1.5 Pro)', status: 'OPERATIONAL', latency: '104ms', uptime: '99.95%', load: '22%' },
-    { name: 'Meta Open-Source (Llama 3 70B)', status: 'OPERATIONAL', latency: '61ms', uptime: '100%', load: '12%' }
+    { name: 'Prarush Local Rule Engine', status: 'OPERATIONAL (OFFLINE)', latency: '<1ms', uptime: '100% (Local)', load: '0% (On-Device)' },
+    { name: 'Anthropic (Claude Sonnet 5.5) [Mock Status]', status: 'SAMPLE DATA', latency: '82ms', uptime: '99.94%', load: '34%' },
+    { name: 'OpenAI (GPT-4o Omni) [Mock Status]', status: 'SAMPLE DATA', latency: '89ms', uptime: '99.91%', load: '41%' },
+    { name: 'Google (Gemini 3.8 Flash) [Mock Status]', status: 'SAMPLE DATA', latency: '104ms', uptime: '99.95%', load: '22%' },
+    { name: 'Meta Open-Source (Llama 3.3 70B) [Mock Status]', status: 'SAMPLE DATA', latency: '61ms', uptime: '100%', load: '12%' }
   ];
 
   const auditLogs = [
-    { time: '18:54:12', user: 'pratham@prarush.ai', event: 'Scout Pro Subscription Renewed ($96/yr)', level: 'INFO' },
-    { time: '18:48:33', user: 'system_daemon', event: 'AI Automation Studio: Daily Briefing Executed (28 recipients)', level: 'SUCCESS' },
-    { time: '18:32:05', user: 'guest_session_881', event: 'Document OCR Text Extracted (2.4 MB PDF)', level: 'INFO' },
-    { time: '18:15:40', user: 'security_auditor', event: 'GDPR Data Export Archive Generated (JSON Schema v2.0)', level: 'COMPLIANCE' },
-    { time: '17:59:11', user: 'api_gateway', event: 'Rate Limiter Handled 480 req/sec across European edge cluster', level: 'INFO' }
+    { time: '18:54:12', user: 'pratham@prarush.ai', event: '[Sample Log] Scout Pro Subscription Renewed ($96/yr)', level: 'INFO' },
+    { time: '18:48:33', user: 'system_daemon', event: '[Sample Log] AI Automation Studio: Daily Briefing Executed (28 recipients)', level: 'SUCCESS' },
+    { time: '18:32:05', user: 'guest_session_881', event: '[Sample Log] Document OCR Text Extracted (2.4 MB PDF)', level: 'INFO' },
+    { time: '18:15:40', user: 'security_auditor', event: '[Sample Log] GDPR Data Export Archive Generated (JSON Schema v2.0)', level: 'COMPLIANCE' },
+    { time: '17:59:11', user: 'api_gateway', event: '[Sample Log] Rate Limiter Handled 480 req/sec across European edge cluster', level: 'INFO' }
   ];
 
   return (
@@ -56,17 +56,17 @@ export default function PrarushAdminView() {
             <span style={{
               fontSize: '0.62rem',
               fontWeight: 800,
-              background: 'rgba(244, 63, 94, 0.2)',
-              color: '#f43f5e',
-              border: '1px solid rgba(244, 63, 94, 0.4)',
+              background: 'rgba(239, 68, 68, 0.2)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
               padding: '2px 8px',
               borderRadius: 999
             }}>
-              SIMULATED BASELINE TELEMETRY
+              MOCK / SAMPLE TELEMETRY ONLY
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '4px 0 0 0', maxWidth: 660 }}>
-            Operational architecture demonstration. These baseline metrics represent system design targets; connect Prometheus/Datadog endpoints in production for live telemetry.
+            Operational architecture demonstration. All stats shown below are simulated baseline mockups for design review. In production, this view connects to real backend telemetry (Prometheus / Datadog / OpenTelemetry).
           </p>
         </div>
 
@@ -77,8 +77,26 @@ export default function PrarushAdminView() {
           style={{ fontSize: '0.78rem', padding: '8px 14px' }}
         >
           <RefreshCw size={14} className={isRefreshing ? "spin-slow" : ""} />
-          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Metrics'}</span>
+          <span>{isRefreshing ? 'Refreshing...' : 'Refresh Mock Data'}</span>
         </button>
+      </div>
+
+      {/* Prominent Disclaimer Notice */}
+      <div style={{
+        padding: '12px 18px',
+        background: 'rgba(239, 68, 68, 0.12)',
+        border: '1px solid rgba(239, 68, 68, 0.35)',
+        borderRadius: 12,
+        fontSize: '0.78rem',
+        color: '#fca5a5',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10
+      }}>
+        <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+        <span>
+          <strong>Prototype Disclosure:</strong> This dashboard does not reflect live production server activity, actual paying subscriptions, or real cloud token usage. Prarush operates as a local-first client preview; live telemetry requires deploying a dedicated backend service.
+        </span>
       </div>
 
       {/* Top 4 KPI Metrics */}
@@ -88,10 +106,10 @@ export default function PrarushAdminView() {
         gap: 14
       }}>
         {[
-          { label: 'Active Users (24h)', value: '18,420', sub: '+12.4% this week', icon: Users, color: '#06b6d4' },
-          { label: 'Token Throughput', value: '1.48M', sub: 'Sub-60ms avg latency', icon: Cpu, color: '#8b5cf6' },
-          { label: 'Monthly Recurring (MRR)', value: '$48,250', sub: 'Pro & Team seats', icon: DollarSign, color: '#10b981' },
-          { label: 'System Uptime', value: '99.98%', sub: 'Global edge network', icon: Server, color: '#f59e0b' }
+          { label: 'Active Users (24h) [Mock]', value: '18,420', sub: 'Target benchmark simulation', icon: Users, color: '#06b6d4' },
+          { label: 'Token Throughput [Mock]', value: '1.48M', sub: 'Calculated baseline target', icon: Cpu, color: '#8b5cf6' },
+          { label: 'Monthly Recurring [Mock]', value: '$48,250', sub: 'Purchases currently disabled', icon: DollarSign, color: '#10b981' },
+          { label: 'System Uptime [Mock]', value: '99.98%', sub: 'Local browser host', icon: Server, color: '#f59e0b' }
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -141,10 +159,15 @@ export default function PrarushAdminView() {
         flexDirection: 'column',
         gap: 12
       }}>
-        <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Activity size={18} color="#06b6d4" />
-          <span>AI Model Provider Latency &amp; Status Monitor</span>
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Activity size={18} color="#06b6d4" />
+            <span>AI Model Provider Latency &amp; Status Monitor [Sample Values]</span>
+          </h3>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+            To test real live auth with your own key, visit the Model Hub view.
+          </span>
+        </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', textAlign: 'left' }}>
@@ -162,7 +185,14 @@ export default function PrarushAdminView() {
                 <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', color: '#cbd5e1' }}>
                   <td style={{ padding: '10px 12px', fontWeight: 600, color: '#fff' }}>{p.name}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontSize: '0.62rem', background: '#10b98120', color: '#10b981', padding: '2px 8px', borderRadius: 999, fontWeight: 800 }}>
+                    <span style={{
+                      fontSize: '0.62rem',
+                      background: p.status.includes('OFFLINE') ? '#3b82f620' : '#f59e0b20',
+                      color: p.status.includes('OFFLINE') ? '#60a5fa' : '#fbbf24',
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      fontWeight: 800
+                    }}>
                       {p.status}
                     </span>
                   </td>
@@ -186,10 +216,15 @@ export default function PrarushAdminView() {
         flexDirection: 'column',
         gap: 12
       }}>
-        <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Lock size={18} color="#f59e0b" />
-          <span>Security &amp; Compliance Audit Logs (GDPR / ISO 27001 Ready)</span>
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Lock size={18} color="#f59e0b" />
+            <span>Security &amp; Compliance Audit Logs [Sample Trail]</span>
+          </h3>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+            Local-only demo. Real events require backend audit database.
+          </span>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {auditLogs.map((log, i) => (
@@ -230,3 +265,4 @@ export default function PrarushAdminView() {
     </div>
   );
 }
+

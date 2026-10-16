@@ -1,7 +1,7 @@
 # ⚡ PRARUSH — Local-First Workspace for Developers & Creators
 
 [![Production Build](https://img.shields.io/badge/Build-Passing%20(Vite%208.3)-06b6d4.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
-[![Automated Tests](https://img.shields.io/badge/Tests-21%2F21%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
+[![Automated Tests](https://img.shields.io/badge/Tests-23%2F23%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable%20Offline%20Cache-8b5cf6.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Architecture](https://img.shields.io/badge/Architecture-Local--First%20%2B%20BYOK-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Status](https://img.shields.io/badge/Status-Local--First%20Developer%20Prototype-f59e0b.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
@@ -20,7 +20,7 @@
        ⬇
 2. Convert to Kanban Sprint Task (Priority, Deadline, Tags)
        ⬇
-3. Implement with AI Copilot (BYOK Claude 3.7 Sonnet, GPT-4o, Gemini 2.5 Pro, Llama 3.3, or Offline Rules)
+3. Implement with AI Copilot (BYOK Claude Sonnet 5.5, GPT-4o, Gemini 3.8 Flash, Llama 3.3, or Offline Rules)
        ⬇
 4. Save Artifacts & Markdown Notes locally in private IndexedDB & LocalStorage
 ```
@@ -37,17 +37,17 @@ Prarush is transparent about what currently runs locally in the browser versus w
 - **Local-First Storage & Strict Profile Isolation:** Workspaces, Kanban tasks, markdown notes, calendar events, documents, and automations persist in client-side storage (`prarushStore.js`) strictly scoped per user ID, with zero fallback to shared keys or data leakage.
 - **Client-Side Auth & Sliding Session Expiry:** Salted SHA-256 cryptographic password hashing (Web Crypto API) with zero plaintext password storage (`authManager.js`). Sessions implement a sliding 30-day inactivity expiration window refreshed upon active platform usage.
 - **Direct Multi-Model AI Routing (BYOK):**
-  - **Anthropic Claude 3.7 Sonnet (`claude-3-7-sonnet-20250219`):** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`).
+  - **Anthropic Claude Sonnet 5.5 (`claude-sonnet-4-5`):** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`).
   - **OpenAI GPT-4o:** Direct inference via Chat Completions API (`Authorization: Bearer`).
-  - **Google Gemini 2.5 Pro & Flash:** Direct inference via REST API using standard `x-goog-api-key` header (never exposing API keys in URL query strings).
+  - **Google Gemini 3.8 Flash (`gemini-3.8-flash`):** Direct inference via REST API using standard `x-goog-api-key` header (never exposing API keys in URL query strings).
   - **OpenRouter (Meta Llama 3.3 70B):** Direct gateway access for open-weights models.
   - **Prarush Local Engine:** Deterministic offline rule generator for code structures, presentations, and task templates when no API key is configured.
   - **Real Error Reporting:** Live provider failures report actual error messages and explicitly announce fallback to local offline rules.
-  - **Session-Only Key Storage:** Option to store provider keys in `sessionStorage` (cleared automatically on tab close).
+  - **Session-Only Key Storage & Purge:** BYOK keys default to `sessionStorage` (purged on tab close) with 1-click "Purge All Keys" capability.
 - **Persistent Binary Storage (IndexedDB):** Uploaded files (`.pdf`, images, `.txt`, `.md`, `.json`, `.csv`) persist in browser IndexedDB (`prarush_files_db`) across reloads and sessions. Real byte sizes are tracked against browser storage quotas.
-- **Authentic GZIP Stream Compression:** Files are compressed using the browser's native `CompressionStream('gzip')`, calculating actual byte reduction and providing downloadable `.gz` binary archives.
+- **Authentic GZIP Stream Compression:** Files are compressed using the browser's native `CompressionStream('gzip')`, calculating actual byte reduction and providing downloadable `.gz` binary archives for actual uploaded files.
 - **Keyword & Passage Retrieval:** Keyword-matched lexical search across stored notes, documents, and references. Accurately extracts matching passages and returns an explicit no-match response when no terms match, without artificial confidence scores.
-- **Data Portability & Erasure:** Machine-readable JSON data export and 1-click origin-safe storage purge affecting only `prarush_*` keys.
+- **Data Portability & Full Reset:** Machine-readable JSON metadata export and 1-click reset that wipes both localStorage and IndexedDB files.
 - **Smart Command Center:** Global `Ctrl+K` / `Cmd+K` natural language fuzzy search palette.
 - **Internationalization:** Localization across 6 global languages (English, Spanish, French, Japanese, German, Hindi).
 - **Mobile Packaging Dependencies:** Capacitor dependencies (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/ios`) integrated into `package.json`.
@@ -85,9 +85,9 @@ graph TD
     end
 
     subgraph Providers ["Direct Client-to-Provider Inference"]
-        Anthropic["Anthropic (Claude 3.7 Sonnet)"]
+        Anthropic["Anthropic (Claude Sonnet 5.5)"]
         OpenAI["OpenAI (GPT-4o)"]
-        Gemini["Google Gemini (2.5 Pro / Flash via Header)"]
+        Gemini["Google Gemini (3.8 Flash via Header)"]
         OpenRouter["OpenRouter (Llama 3.3 70B)"]
         LocalEngine["Prarush Local Engine (Offline Rules)"]
     end

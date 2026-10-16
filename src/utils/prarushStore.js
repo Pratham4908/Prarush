@@ -79,7 +79,7 @@ export const INITIAL_TASKS = [
   {
     id: 'task-102',
     workspaceId: 'ws-work',
-    title: 'Integrate Claude 3.5 Sonnet & GPT-4o Multi-Model API Hub',
+    title: '[Sample] Integrate Claude Sonnet 5.5 & GPT-4o Multi-Model API Hub',
     description: 'Implement streaming SSE endpoints with token rate limiting, fallback error handling, and latency tracking.',
     status: 'done',
     priority: 'urgent',
@@ -91,8 +91,8 @@ export const INITIAL_TASKS = [
   {
     id: 'task-103',
     workspaceId: 'ws-study',
-    title: 'Prepare Autonomous Agent Architecture Literature Review',
-    description: 'Summarize key papers on Tree-of-Thought, ReAct prompting, and vector memory retrieval pipelines.',
+    title: '[Sample] Autonomous Agent Architecture Literature Review',
+    description: 'Summarize key papers on Tree-of-Thought, ReAct prompting, and local retrieval pipelines.',
     status: 'todo',
     priority: 'medium',
     deadline: '2026-10-28',
@@ -103,7 +103,7 @@ export const INITIAL_TASKS = [
   {
     id: 'task-104',
     workspaceId: 'ws-creator',
-    title: 'Design Prarush Platform Keynote & Demo Video Storyboard',
+    title: '[Sample] Design Prarush Platform Keynote & Demo Storyboard',
     description: 'Generate high-fidelity AI UI visuals, craft narrative script, and record product walkthrough video.',
     status: 'review',
     priority: 'high',
@@ -115,8 +115,8 @@ export const INITIAL_TASKS = [
   {
     id: 'task-105',
     workspaceId: 'ws-business',
-    title: 'Finalize Prarush Freemium Tier Economics & Pricing Model',
-    description: 'Calibrate token margins for Free ($0), Pro ($12/mo), and Enterprise ($29/mo) plans.',
+    title: '[Sample] Finalize Local-First Pricing Tier Disclosures',
+    description: 'Calibrate disclosures for Free ($0), Pro ($12/mo preview), and Team ($29/mo preview) plans with disabled checkout.',
     status: 'done',
     priority: 'high',
     deadline: '2026-10-16',
@@ -127,7 +127,7 @@ export const INITIAL_TASKS = [
   {
     id: 'task-106',
     workspaceId: 'ws-work',
-    title: 'Implement Local-First SQLite/Wasm Offline Storage Cache',
+    title: '[Sample] Implement Local-First IndexedDB Binary Storage Cache',
     description: 'Benchmark sub-5ms client query latency and implement atomic transaction journaling.',
     status: 'todo',
     priority: 'medium',
@@ -142,8 +142,8 @@ export const INITIAL_NOTES = [
   {
     id: 'note-201',
     workspaceId: 'ws-work',
-    title: 'Prarush Universal AI System Architecture',
-    content: `# Prarush Universal System Architecture\n\n## 1. High-Performance Core\n- **Client:** React 19 with Vite 8.3 & Lucide React design system.\n- **State Management:** Reactive local-first synchronization with persistent browser storage.\n- **Multi-Model Routing:** Universal adapter interfacing with Prarush Neural-4, Claude 3.5 Sonnet, GPT-4o, and Gemini 1.5 Pro.\n\n## 2. Security & Data Isolation\n- Client-side token encryption for session credentials.\n- Zero third-party data tracking; complete GDPR data export portability.\n- Row-level access control simulation across personal and team workspaces.`,
+    title: '[Sample] Prarush Local-First System Architecture',
+    content: `# Prarush Local-First Architecture\n\n## 1. High-Performance Core\n- **Client:** React 19 with Vite 8.3 & Lucide React design system.\n- **State Management:** Reactive local-first synchronization with persistent browser storage (LocalStorage & IndexedDB).\n- **Multi-Model Routing:** Direct BYOK inference with Claude Sonnet 5.5, GPT-4o, and Gemini 3.8 Flash.\n\n## 2. Security & Data Isolation\n- Client-side token encryption for session credentials.\n- Zero third-party data tracking; complete GDPR data export portability.\n- Strict per-user local storage isolation with zero cross-profile leakage.`,
     tags: ['Architecture', 'Tech Spec', 'System Design'],
     pinned: true,
     updatedAt: '2026-10-16T14:30:00Z'
@@ -151,7 +151,7 @@ export const INITIAL_NOTES = [
   {
     id: 'note-202',
     workspaceId: 'ws-study',
-    title: 'Reinforcement Learning from Human Feedback (RLHF) Primer',
+    title: '[Sample] Reinforcement Learning & Preference Optimization Primer',
     content: `# RLHF & Preference Optimization\n\nRLHF combines reward modeling with proximal policy optimization (PPO) or Direct Preference Optimization (DPO).\n\n### Key Stages:\n1. **Pre-training:** Massive web-scale language modeling.\n2. **Supervised Fine-Tuning (SFT):** Curated prompt-response pairs.\n3. **Reward Modeling:** Pairwise ranking of model completions.\n4. **Optimization:** Aligning policy models to maximize human preference scores while constraining KL divergence.`,
     tags: ['Machine Learning', 'RLHF', 'Study'],
     pinned: false,
@@ -160,7 +160,7 @@ export const INITIAL_NOTES = [
   {
     id: 'note-203',
     workspaceId: 'ws-creator',
-    title: 'Viral Product Launch Playbook & Social Campaign',
+    title: '[Sample] Viral Product Launch Playbook & Social Campaign',
     content: `# Product Launch Checklist\n\n- [x] Publish interactive HTML5 Pitch Deck\n- [x] Verify PWA installable manifest on mobile viewports\n- [ ] Release short product walkthrough on X / LinkedIn\n- [ ] Launch on Product Hunt with interactive sandbox demo\n- [ ] Open GitHub repository with open-source MIT license`,
     tags: ['Marketing', 'Launch', 'Checklist'],
     pinned: true,
@@ -172,35 +172,44 @@ export const INITIAL_DOCUMENTS = [
   {
     id: 'doc-301',
     workspaceId: 'ws-work',
-    name: 'Prarush-Product-Specification-v2.pdf',
+    name: '[Sample] Prarush-Product-Specification-v2.pdf',
     type: 'pdf',
     sizeKB: 2450,
     uploadedAt: '2026-10-14T09:00:00Z',
-    summary: 'Comprehensive 42-page technical blueprint detailing the multi-agent AI system, security architecture, and Capacitor mobile deployment guidelines.',
+    summary: 'Sample document metadata for technical blueprint. Note: Raw binary is not present in local IndexedDB until an authentic file is uploaded.',
     ocrText: 'PRARUSH UNIVERSAL PLATFORM SPECIFICATION. Version 2.0.0. Core modules include AI Model Hub, Kanban Automation, Document OCR, and Cross-Platform PWA packaging.',
-    status: 'analyzed'
+    status: 'sample_metadata',
+    isSample: true,
+    hasRealBinary: false,
+    isPersistedInIndexedDB: false
   },
   {
     id: 'doc-302',
     workspaceId: 'ws-business',
-    name: 'Q4-Financial-Projections-and-Freemium-Model.xlsx',
+    name: '[Sample] Q4-Financial-Projections-and-Freemium-Model.xlsx',
     type: 'sheet',
     sizeKB: 840,
     uploadedAt: '2026-10-15T14:20:00Z',
-    summary: 'Financial model showing expected MRR growth from Free to Pro ($12/mo) and Team ($29/mo) plans, projecting profitability at 15,000 active subscribers.',
+    summary: 'Sample financial projection sheet metadata. Demonstrates file cataloging before authentic user file uploads.',
     ocrText: 'Revenue forecast: Free User baseline: 120,000. Pro Conversion: 4.8%. Team Seats: 1,200. Operating Margin: 72% after LLM inference costs.',
-    status: 'analyzed'
+    status: 'sample_metadata',
+    isSample: true,
+    hasRealBinary: false,
+    isPersistedInIndexedDB: false
   },
   {
     id: 'doc-303',
     workspaceId: 'ws-creator',
-    name: 'Brand-Styleguide-Palette-and-Typography.png',
+    name: '[Sample] Brand-Styleguide-Palette-and-Typography.png',
     type: 'image',
     sizeKB: 1850,
     uploadedAt: '2026-10-16T08:10:00Z',
-    summary: 'Brand visual identity asset package featuring cyber-luxe dark mode palette (#090d16), cyan (#06b6d4), gold (#f59e0b), and violet (#8b5cf6).',
+    summary: 'Sample brand asset metadata. Note: Binary pixels are not stored locally until an authentic file is uploaded.',
     ocrText: 'PRARUSH DESIGN TOKENS. Primary Font: Outfit & Plus Jakarta Sans. Accent Neon Cyan: #06b6d4. Accent Gold: #f59e0b. Border Glass: rgba(255,255,255,0.08).',
-    status: 'analyzed'
+    status: 'sample_metadata',
+    isSample: true,
+    hasRealBinary: false,
+    isPersistedInIndexedDB: false
   }
 ];
 

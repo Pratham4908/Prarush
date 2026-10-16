@@ -33,21 +33,19 @@ export const PRARUSH_PLANS = {
   },
   PRO: {
     id: 'pro',
-    name: 'Prarush Pro',
+    name: 'Prarush Pro (Planned)',
     priceMonthly: 12,
     priceAnnual: 96, // $8/mo, ~33% discount
-    badge: 'PRO ⭐',
+    badge: 'PLANNED ⭐',
     badgeColor: '#06b6d4',
-    description: 'Ultimate power tools for developers, researchers, creators, and power users.',
+    description: 'Planned future upgrade for cloud-synchronized workspaces and managed AI endpoints (Purchases disabled in preview).',
     features: [
-      'Unlimited AI queries across Claude 3.5, GPT-4o, Gemini 1.5 & Neural-4',
-      'Unlimited workspaces (Personal, Study, Work, Creator, Business)',
-      'AI Automation Studio (Visual multi-step workflow runner)',
-      'AI Image Generator & Presentation Deck Creator',
-      'Document OCR text extraction, PDF analysis & file compression',
-      '50 GB secure cloud storage',
-      'Priority GPU compute & sub-50ms latency',
-      'Code Studio with syntax highlighting & run simulation'
+      '[Planned Cloud] Cloud database synchronization (PostgreSQL / Supabase)',
+      '[Planned Cloud] Cross-device state replication for mobile and web',
+      '[Planned Cloud] Managed high-throughput AI endpoints (Claude Sonnet 5.5, GPT-4o, Gemini Flash)',
+      '[Planned Cloud] Cloud OCR text extraction microservice for binary PDFs & images',
+      '[Planned Cloud] 50 GB secure cloud backup storage',
+      '[Planned Cloud] Automated continuous cloud snapshots'
     ],
     limits: {
       aiQueriesPerDay: Infinity,
@@ -61,20 +59,19 @@ export const PRARUSH_PLANS = {
   },
   TEAM: {
     id: 'team',
-    name: 'Prarush Team',
+    name: 'Prarush Team (Planned)',
     priceMonthly: 29,
     priceAnnual: 276, // $23/seat/mo
-    badge: 'ENTERPRISE 🚀',
+    badge: 'BUSINESS 🚀',
     badgeColor: '#f59e0b',
-    description: 'Shared intelligence, organizational audit logs, and collaborative automation for teams.',
+    description: 'Planned business tier for shared team workspaces, RBAC, and collaborative automation (Purchases disabled in preview).',
     features: [
-      'Everything in Prarush Pro',
-      'Shared team workspaces & collaborative task boards',
-      'Role-based access control (Admin, Editor, Viewer)',
-      'Organizational audit logs & security telemetry',
-      'Custom webhook bridges (GitHub, Slack, Jira)',
-      '500 GB pooled team storage',
-      'Dedicated SLA & 99.9% uptime guarantee'
+      '[Planned Cloud] Everything in Prarush Pro',
+      '[Planned Cloud] Shared team workspaces & collaborative real-time Kanban boards',
+      '[Planned Cloud] Role-based access control (Admin, Editor, Viewer)',
+      '[Planned Cloud] Organizational audit logs & security telemetry',
+      '[Planned Cloud] Custom webhook bridges (GitHub, Slack, Jira)',
+      '[Planned Cloud] Pooled team cloud storage & priority support'
     ],
     limits: {
       aiQueriesPerDay: Infinity,
@@ -179,7 +176,7 @@ export function checkQuota(featureKey) {
     return {
       allowed: plan.limits.multiModelAccess,
       upgradeRequired: !plan.limits.multiModelAccess,
-      message: 'Access to Claude 3.5 Sonnet, GPT-4o, and Gemini 1.5 Pro requires Prarush Pro.'
+      message: 'Access to managed Claude Sonnet, GPT-4o, and Gemini Flash cloud endpoints is planned for Prarush Pro. In local preview mode, configure your personal API keys in the Model Hub.'
     };
   }
 
@@ -195,7 +192,7 @@ export function checkQuota(featureKey) {
     return {
       allowed: plan.limits.ocrExtraction,
       upgradeRequired: !plan.limits.ocrExtraction,
-      message: 'OCR document text extraction requires Prarush Pro.'
+      message: 'OCR document text extraction requires a backend service (planned for Prarush Pro).'
     };
   }
 
@@ -252,10 +249,11 @@ export function exportUserDataGDPR(user) {
   const locale = localStorage.getItem('prarush_locale');
 
   const exportPayload = {
-    platform: 'Prarush Universal AI Digital Platform',
-    version: '2.0.0-production',
+    platform: 'Prarush Local-First Workspace for Developers & Creators',
+    version: '2.0.0-prototype',
     exportSpecification: 'GDPR Article 20 / CCPA Data Portability Format (JSON)',
     exportTimestamp: new Date().toISOString(),
+    exportScopeNotice: 'This JSON export contains workspaces, tasks, notes, automations, and document metadata from browser LocalStorage. Binary document files stored in IndexedDB are not embedded in this JSON file.',
     userProfile: user || {
       id: 'usr-guest',
       name: 'Guest User',
@@ -277,13 +275,17 @@ export function exportUserDataGDPR(user) {
     activityAuditLog: activity ? JSON.parse(activity) : []
   };
 
-  const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `prarush-gdpr-data-export-${user?.id || 'guest'}-${Date.now()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  if (typeof document !== 'undefined' && typeof URL !== 'undefined') {
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prarush-metadata-export-${user?.id || 'guest'}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return exportPayload;
 }

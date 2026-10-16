@@ -11,20 +11,21 @@ export function getStoredApiKeys() {
       return JSON.parse(sessionRaw);
     }
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(API_KEYS_STORAGE_KEY) : null;
-    return raw ? JSON.parse(raw) : { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: false };
+    return raw ? JSON.parse(raw) : { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
   } catch {
-    return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: false };
+    return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
   }
 }
 
 export function saveStoredApiKeys(keys) {
   try {
+    const sessionOnly = keys.sessionOnly !== undefined ? Boolean(keys.sessionOnly) : true;
     const payload = {
       openai: (keys.openai || '').trim(),
       gemini: (keys.gemini || '').trim(),
       anthropic: (keys.anthropic || '').trim(),
       openrouter: (keys.openrouter || '').trim(),
-      sessionOnly: Boolean(keys.sessionOnly)
+      sessionOnly
     };
 
     if (payload.sessionOnly && typeof sessionStorage !== 'undefined') {
@@ -32,9 +33,22 @@ export function saveStoredApiKeys(keys) {
       if (typeof localStorage !== 'undefined') localStorage.removeItem(API_KEYS_STORAGE_KEY);
     } else {
       if (typeof localStorage !== 'undefined') localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(payload));
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(API_KEYS_STORAGE_KEY);
     }
   } catch (err) {
     console.warn('Failed to save API keys:', err);
+  }
+}
+
+// Completely remove and purge all stored API keys from both session and local storage
+export function purgeAllApiKeys() {
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(API_KEYS_STORAGE_KEY);
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(API_KEYS_STORAGE_KEY);
+    return true;
+  } catch (err) {
+    console.warn('Failed to purge API keys:', err);
+    return false;
   }
 }
 
@@ -72,12 +86,12 @@ export async function callRealOpenAI(prompt, apiKey, model = 'gpt-4o') {
   return data.choices?.[0]?.message?.content || 'No response generated from OpenAI.';
 }
 
-// Call live Google Gemini API using active Gemini 2.5 series
-export async function callRealGemini(prompt, apiKey, model = 'gemini-2.5-flash') {
+// Call live Google Gemini API using active Gemini 3.8 Flash / Pro series
+export async function callRealGemini(prompt, apiKey, model = 'gemini-3.8-flash') {
   if (!apiKey) throw new Error('Gemini API key is missing.');
 
-  // Target active Gemini 2.5 series (replacing deprecated 1.5)
-  const targetModel = model.includes('pro') ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  // Target active Gemini 3.8 Flash / 3.1 Pro (replacing restricted 2.5 and retired 2.0/1.5)
+  const targetModel = model || 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent`;
 
   const response = await fetch(url, {
@@ -100,11 +114,12 @@ export async function callRealGemini(prompt, apiKey, model = 'gemini-2.5-flash')
   return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated from Gemini.';
 }
 
-// Call live Anthropic Messages API using active Claude 3.7 Sonnet
-export async function callRealAnthropic(prompt, apiKey, model = 'claude-3-7-sonnet-20250219') {
+// Call live Anthropic Messages API using active Claude Sonnet
+export async function callRealAnthropic(prompt, apiKey, model = 'claude-sonnet-4-5') {
   if (!apiKey) throw new Error('Anthropic API key is missing.');
 
-  const targetModel = model || 'claude-3-7-sonnet-20250219';
+  // Use active dateless/stable model ID (replacing retired claude-3-7-sonnet-20250219 and claude-3-5)
+  const targetModel = model || 'claude-sonnet-4-5';
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',

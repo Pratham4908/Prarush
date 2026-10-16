@@ -62,11 +62,17 @@ export default function PrarushDocumentsView({
 
     const docId = `doc-${Date.now()}`;
 
-    // PERSIST AUTHENTIC UPLOADED BYTES TO INDEXEDDB
+    // PERSIST AUTHENTIC UPLOADED BYTES TO INDEXEDDB (Verify success)
+    let isPersisted = false;
     try {
-      await saveFileToIndexedDB(docId, file);
+      isPersisted = await saveFileToIndexedDB(docId, file);
     } catch (dbErr) {
       console.warn('IndexedDB write warning:', dbErr);
+      isPersisted = false;
+    }
+
+    if (!isPersisted) {
+      setUploadError(`Storage Note: Could not write ${file.name} to IndexedDB. File is accessible in temporary session memory only.`);
     }
 
     const reader = new FileReader();
@@ -90,15 +96,19 @@ export default function PrarushDocumentsView({
         type: file.type.includes('pdf') ? 'pdf' : (file.type.includes('image') ? 'image' : 'text'),
         sizeKB: Math.round(file.size / 1024),
         uploadedAt: new Date().toISOString(),
-        summary: isTextual 
-          ? `Text Document parsed: ${wordCount} words, ${rawContent.length} characters. Persisted in IndexedDB.` 
-          : `Binary file (${file.type || 'file'}) preserved in IndexedDB with authentic raw bytes.`,
+        summary: isPersisted 
+          ? (isTextual 
+              ? `Text Document parsed: ${wordCount} words, ${rawContent.length} characters. Persisted in IndexedDB.` 
+              : `Binary file (${file.type || 'file'}) preserved in IndexedDB with authentic raw bytes.`)
+          : `File held in temporary session memory only (IndexedDB save was not completed).`,
         extractedContent: isTextual ? rawContent : '',
         ocrText: isTextual 
           ? rawContent.slice(0, 800) + (rawContent.length > 800 ? '...' : '') 
-          : `[Binary Content: ${file.name}, ${Math.round(file.size / 1024)} KB, persisted in IndexedDB]`,
-        status: 'analyzed',
-        isPersistedInIndexedDB: true
+          : `[Binary Content: ${file.name}, ${Math.round(file.size / 1024)} KB, ${isPersisted ? 'persisted in IndexedDB' : 'session memory only'}]`,
+        status: isPersisted ? 'persisted' : 'memory_only',
+        isPersistedInIndexedDB: isPersisted,
+        hasRealBinary: true,
+        isSample: false
       };
 
       setTimeout(() => {
@@ -144,25 +154,29 @@ export default function PrarushDocumentsView({
 
   const handleCompressFile = async () => {
     if (!selectedDoc) return;
+
+    // Retrieve authentic blob from IndexedDB
+    let blob = await getFileFromIndexedDB(selectedDoc.id);
+
+    // If real text document uploaded by user
+    if (!blob && selectedDoc.extractedContent && !selectedDoc.isSample) {
+      blob = new Blob([selectedDoc.extractedContent], { type: 'text/plain;charset=utf-8' });
+    }
+
+    if (!blob) {
+      audioSystem.playWarningSound();
+      setCompressionResult({
+        success: false,
+        error: 'Compression unavailable for sample metadata records. Upload an authentic file from your device to perform native GZIP stream compression.'
+      });
+      return;
+    }
+
     setIsCompressing(true);
     setCompressionResult(null);
     audioSystem.playTone(650, 'sine', 0.1);
 
     try {
-      // 1. Retrieve authentic blob from IndexedDB
-      let blob = await getFileFromIndexedDB(selectedDoc.id);
-
-      // 2. If not in IndexedDB, fallback to text content
-      if (!blob && selectedDoc.extractedContent) {
-        blob = new Blob([selectedDoc.extractedContent], { type: 'text/plain;charset=utf-8' });
-      }
-
-      if (!blob) {
-        // Fallback placeholder blob for sample docs
-        blob = new Blob([`Prarush Document: ${selectedDoc.name}\n${selectedDoc.summary || ''}`], { type: 'text/plain' });
-      }
-
-      // 3. Perform REAL stream compression
       const compRes = await compressBlob(blob);
 
       setCompressionResult({
@@ -171,7 +185,7 @@ export default function PrarushDocumentsView({
         compressedKB: (compRes.compressedSize / 1024).toFixed(1),
         savingsPercent: compRes.savingsPercent,
         compressedBlob: compRes.compressedBlob,
-        archiveName: `${selectedDoc.name}.gz`
+        archiveName: `${selectedDoc.name.replace(/^\[Sample\]\s*/, '')}.gz`
       });
 
       audioSystem.playSuccessSound();
@@ -209,7 +223,7 @@ export default function PrarushDocumentsView({
         const url = URL.createObjectURL(persistedBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = selectedDoc.name;
+        a.download = selectedDoc.name.replace(/^\[Sample\]\s*/, '');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -221,14 +235,8 @@ export default function PrarushDocumentsView({
       console.warn('IndexedDB fetch error during download:', err);
     }
 
-    // 2. Text documents
-    const isTextDoc = selectedDoc.name.endsWith('.txt') || 
-                      selectedDoc.name.endsWith('.md') || 
-                      selectedDoc.name.endsWith('.json') || 
-                      selectedDoc.name.endsWith('.csv') ||
-                      selectedDoc.type === 'text';
-
-    if (isTextDoc && selectedDoc.extractedContent) {
+    // 2. Real user uploaded text documents
+    if (!selectedDoc.isSample && selectedDoc.extractedContent) {
       const blob = new Blob([selectedDoc.extractedContent], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -242,23 +250,9 @@ export default function PrarushDocumentsView({
       return;
     }
 
-    // 3. For seed documents without raw binary payload, export text summary with .txt extension
-    const exportFileName = selectedDoc.name.includes('.')
-      ? `${selectedDoc.name.replace(/\.[^/.]+$/, '')}_summary.txt`
-      : `${selectedDoc.name}_summary.txt`;
-
-    const summaryContent = `Document: ${selectedDoc.name}\nSize: ${selectedDoc.sizeKB} KB\nStatus: Local Seed Document\n\nContent:\n${selectedDoc.extractedContent || selectedDoc.summary || 'Prarush Platform File Record'}\n\n[Note: This export is formatted as plain text because raw binary bytes for sample files are retained on the client canvas.]`;
-    
-    const blob = new Blob([summaryContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = exportFileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    audioSystem.playSuccessSound();
+    // 3. For sample records without raw binary payload, do not fabricate fake binary download
+    audioSystem.playWarningSound();
+    alert(`Binary Download Unavailable for Sample Record:\n\n"${selectedDoc.name}" is an illustrative sample metadata card without stored binary bytes on this browser.\n\nTo download original files and test persistent storage, upload an authentic file from your computer using the "Upload File" button.`);
   };
 
   const handleDelete = async (docId) => {
@@ -357,14 +351,14 @@ export default function PrarushDocumentsView({
           fontSize: '0.72rem'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ color: '#94a3b8' }}>Local Device Storage:</span>
-            <strong style={{ color: '#fff' }}>{totalStorageMB} MB tracked</strong>
+            <span style={{ color: '#94a3b8' }}>Browser Storage Quota:</span>
+            <strong style={{ color: '#fff' }}>{storageEstimate.usedMB} MB used</strong>
           </div>
           <div style={{ fontSize: '0.66rem', color: '#64748b', marginBottom: 6 }}>
-            Persisted in browser IndexedDB (Client Device Storage)
+            Tracked Documents: {documents.length} files ({totalStorageMB} MB metadata) &bull; Device quota: {storageEstimate.quotaMB !== 'N/A' ? (storageEstimate.quotaMB / 1024).toFixed(1) + ' GB' : 'Dynamic'}
           </div>
           <div style={{ width: '100%', height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 999, overflow: 'hidden' }}>
-            <div style={{ width: `${Math.min(100, Math.max(2, (totalStorageKB / 50000) * 100))}%`, height: '100%', background: 'var(--accent-cyan)' }} />
+            <div style={{ width: `${Math.min(100, Math.max(1, (parseFloat(storageEstimate.usedMB) / (parseFloat(storageEstimate.quotaMB) || 1000)) * 100))}%`, height: '100%', background: 'var(--accent-cyan)' }} />
           </div>
         </div>
 
@@ -457,7 +451,13 @@ export default function PrarushDocumentsView({
                 </h2>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                Uploaded: {new Date(selectedDoc.uploadedAt).toLocaleString()} • Size: {selectedDoc.sizeKB} KB • Persisted in IndexedDB
+                Uploaded: {new Date(selectedDoc.uploadedAt).toLocaleDateString()} &bull; Size: {selectedDoc.sizeKB} KB &bull;{' '}
+                {selectedDoc.isSample 
+                  ? <span style={{ color: '#f59e0b', fontWeight: 600 }}>Sample Metadata Card (Binary Not on Device)</span>
+                  : selectedDoc.isPersistedInIndexedDB 
+                    ? <span style={{ color: '#10b981', fontWeight: 600 }}>Persisted in Browser IndexedDB ✓</span>
+                    : <span style={{ color: '#fb7185', fontWeight: 600 }}>Session Memory Only (IndexedDB Write Failed)</span>
+                }
               </p>
             </div>
 
@@ -484,24 +484,45 @@ export default function PrarushDocumentsView({
               {/* Real Stream Compression */}
               <button
                 onClick={handleCompressFile}
-                disabled={isCompressing}
+                disabled={isCompressing || (selectedDoc?.isSample && !selectedDoc?.hasRealBinary)}
                 className="btn-secondary"
-                style={{ fontSize: '0.78rem', padding: '8px 12px' }}
-                title="Perform authentic GZIP stream compression"
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '8px 12px',
+                  opacity: (selectedDoc?.isSample && !selectedDoc?.hasRealBinary) ? 0.6 : 1,
+                  cursor: (selectedDoc?.isSample && !selectedDoc?.hasRealBinary) ? 'not-allowed' : 'pointer'
+                }}
+                title={(selectedDoc?.isSample && !selectedDoc?.hasRealBinary) ? 'Upload an authentic file to enable native GZIP compression' : 'Perform authentic GZIP stream compression'}
               >
                 <Archive size={14} />
-                <span>{isCompressing ? 'Compressing Stream...' : 'Compress (GZIP)'}</span>
+                <span>
+                  {isCompressing 
+                    ? 'Compressing...' 
+                    : (selectedDoc?.isSample && !selectedDoc?.hasRealBinary) 
+                      ? 'Compress (Upload Required)' 
+                      : 'Compress (GZIP)'}
+                </span>
               </button>
 
               {/* Download authentic bytes */}
               <button
                 onClick={handleDownloadDoc}
+                disabled={selectedDoc?.isSample && !selectedDoc?.hasRealBinary}
                 className="btn-secondary"
-                style={{ fontSize: '0.78rem', padding: '8px 12px' }}
-                title="Download original file bytes from IndexedDB"
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '8px 12px',
+                  opacity: (selectedDoc?.isSample && !selectedDoc?.hasRealBinary) ? 0.6 : 1,
+                  cursor: (selectedDoc?.isSample && !selectedDoc?.hasRealBinary) ? 'not-allowed' : 'pointer'
+                }}
+                title={(selectedDoc?.isSample && !selectedDoc?.hasRealBinary) ? 'Sample metadata card. Upload an authentic file to download binary bytes' : 'Download original file bytes from IndexedDB'}
               >
                 <Download size={14} />
-                <span>Download Original</span>
+                <span>
+                  {(selectedDoc?.isSample && !selectedDoc?.hasRealBinary) 
+                    ? 'Download (Upload Required)' 
+                    : 'Download Original'}
+                </span>
               </button>
             </div>
           </div>

@@ -415,7 +415,7 @@ export default function PrarushDashboardView({
                 Prarush Pro Membership
               </div>
               <div style={{ fontSize: '0.66rem', color: '#cbd5e1' }}>
-                Unlock Claude 3.5 Sonnet, GPT-4o, and unlimited workflows.
+                Unlock Claude Sonnet 5.5, GPT-4o, Gemini 3.8 Flash, and unlimited workflows.
               </div>
             </div>
             <button
