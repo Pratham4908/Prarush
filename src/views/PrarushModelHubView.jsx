@@ -1,56 +1,207 @@
 import React, { useState } from 'react';
 import { 
   Cpu, Zap, DollarSign, Clock, ShieldCheck, Check, Sparkles, 
-  Layers, ExternalLink, Play, CheckCircle2 
+  Layers, ExternalLink, Play, CheckCircle2, Key, Info, AlertCircle 
 } from 'lucide-react';
 import { AI_MODELS } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
+import { getStoredApiKeys, saveStoredApiKeys } from '../utils/apiKeyManager.js';
 
 export default function PrarushModelHubView({ selectedModelId, onSelectModel, onOpenSubscription }) {
   const [testingModelId, setTestingModelId] = useState(null);
   const [latencyResults, setLatencyResults] = useState({});
+  const [showKeyConfig, setShowKeyConfig] = useState(false);
+  const [apiKeys, setApiKeys] = useState(() => getStoredApiKeys());
+  const [saveStatus, setSaveStatus] = useState(false);
 
-  const handleTestLatency = (modelId) => {
+  const handleSaveKeys = (e) => {
+    e.preventDefault();
+    saveStoredApiKeys(apiKeys);
+    audioSystem.playSuccessSound();
+    setSaveStatus(true);
+    setTimeout(() => setSaveStatus(false), 2500);
+  };
+
+  const handleTestLatency = async (modelId) => {
     setTestingModelId(modelId);
     audioSystem.playTone(550, 'sine', 0.1);
-    
-    setTimeout(() => {
-      const simulatedLatency = Math.floor(Math.random() * 45 + 35);
-      setLatencyResults(prev => ({ ...prev, [modelId]: `${simulatedLatency} ms` }));
-      setTestingModelId(null);
-      audioSystem.playSuccessSound();
-    }, 600);
+    const start = performance.now();
+
+    // If real key exists for OpenAI or Gemini, perform real ping
+    if (modelId === 'gpt-4o' && apiKeys.openai) {
+      try {
+        await fetch('https://api.openai.com/v1/models', {
+          headers: { 'Authorization': `Bearer ${apiKeys.openai}` }
+        });
+        const elapsed = Math.round(performance.now() - start);
+        setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Live Network)` }));
+      } catch {
+        const elapsed = Math.round(performance.now() - start);
+        setLatencyResults(prev => ({ ...prev, [modelId]: `${elapsed} ms (Network Error)` }));
+      }
+    } else {
+      // Local benchmark simulation
+      setTimeout(() => {
+        const simulatedLatency = Math.floor(Math.random() * 35 + 40);
+        setLatencyResults(prev => ({ ...prev, [modelId]: `${simulatedLatency} ms (Simulated)` }));
+        setTestingModelId(null);
+        audioSystem.playSuccessSound();
+      }, 500);
+      return;
+    }
+
+    setTestingModelId(null);
+    audioSystem.playSuccessSound();
   };
 
   return (
     <div className="prarush-view-content" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Title */}
+      {/* Title & Honesty Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.14) 0%, rgba(139, 92, 246, 0.1) 100%)',
         border: '1px solid rgba(6, 182, 212, 0.3)',
         borderRadius: 16,
-        padding: '20px 24px'
+        padding: '20px 24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 14
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Cpu size={24} color="#06b6d4" />
-          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-            Universal AI Model Hub
-          </h1>
-          <span style={{
-            fontSize: '0.65rem',
-            fontWeight: 800,
-            background: 'var(--accent-cyan)',
-            color: '#090d16',
-            padding: '2px 8px',
-            borderRadius: 999
-          }}>
-            MULTI-PROVIDER ENGINE
-          </span>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Cpu size={24} color="#06b6d4" />
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+              AI Model Hub & Provider Gateway
+            </h1>
+            <span style={{
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              background: 'var(--accent-cyan)',
+              color: '#090d16',
+              padding: '2px 8px',
+              borderRadius: 999
+            }}>
+              MULTI-MODEL MESH
+            </span>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '6px 0 0 0', maxWidth: 640 }}>
+            Compare specifications, pricing, and context limits. Prarush runs local offline intelligence by default, or connects directly to live cloud providers with your own API key (BYOK).
+          </p>
         </div>
-        <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '6px 0 0 0', maxWidth: 700 }}>
-          Select and compare intelligence engines seamlessly across Anthropic Claude, OpenAI GPT-4o, Google Gemini, Meta Llama 3, and Prarush Neural-4. Zero vendor lock-in.
-        </p>
+
+        <button
+          onClick={() => setShowKeyConfig(prev => !prev)}
+          style={{
+            padding: '9px 16px',
+            borderRadius: 10,
+            background: showKeyConfig ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            color: '#06b6d4',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          <Key size={15} />
+          <span>{showKeyConfig ? 'Close Key Settings' : 'Connect Cloud API Keys (BYOK)'}</span>
+        </button>
       </div>
+
+      {/* Cloud API Key Configuration Drawer */}
+      {showKeyConfig && (
+        <form onSubmit={handleSaveKeys} style={{
+          background: 'rgba(15, 23, 42, 0.85)',
+          border: '1px solid rgba(6, 182, 212, 0.35)',
+          borderRadius: 16,
+          padding: '20px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Key size={18} color="#06b6d4" />
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                Bring-Your-Own-Key (BYOK) Live Providers
+              </h3>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Keys stay on your device and are never shared</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>
+                OpenAI API Key (sk-...)
+              </label>
+              <input
+                type="password"
+                placeholder="sk-proj-..."
+                value={apiKeys.openai}
+                onChange={(e) => setApiKeys({ ...apiKeys, openai: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#f8fafc',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>
+                Google Gemini API Key (AIza...)
+              </label>
+              <input
+                type="password"
+                placeholder="AIzaSy..."
+                value={apiKeys.gemini}
+                onChange={(e) => setApiKeys({ ...apiKeys, gemini: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#f8fafc',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              When saved, the AI Assistant and Code Studio query your live cloud model endpoints directly.
+            </span>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 18px',
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%)',
+                border: 'none',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer'
+              }}
+            >
+              {saveStatus ? 'Keys Saved ✓' : 'Save API Keys'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Model Cards Grid */}
       <div style={{
@@ -60,119 +211,122 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
       }}>
         {AI_MODELS.map(model => {
           const isSelected = selectedModelId === model.id;
-          const isTesting = testingModelId === model.id;
-          const latency = latencyResults[model.id] || model.speed;
+          const latency = latencyResults[model.id];
 
           return (
             <div
               key={model.id}
               style={{
-                background: 'var(--bg-card)',
-                border: isSelected ? `2px solid ${model.badgeColor}` : '1px solid var(--border-glass)',
+                background: isSelected 
+                  ? 'linear-gradient(180deg, rgba(6, 182, 212, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%)' 
+                  : 'rgba(255, 255, 255, 0.02)',
+                border: isSelected ? '1px solid #06b6d4' : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: 16,
-                padding: 18,
+                padding: '20px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 12,
-                boxShadow: isSelected ? `0 0 20px ${model.badgeColor}25` : 'none',
+                justifyContent: 'space-between',
+                gap: 16,
                 position: 'relative'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '1.6rem' }}>{model.icon}</span>
-                  <div>
-                    <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#fff' }}>
-                      {model.name}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                      Provider: <strong>{model.provider}</strong>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.6rem' }}>{model.icon}</span>
+                    <div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                        {model.name}
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{model.provider}</span>
                     </div>
                   </div>
+                  <span style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    background: `${model.badgeColor}22`,
+                    color: model.badgeColor,
+                    border: `1px solid ${model.badgeColor}44`
+                  }}>
+                    {model.badge}
+                  </span>
                 </div>
 
-                <span style={{
-                  fontSize: '0.62rem',
-                  fontWeight: 800,
-                  background: `${model.badgeColor}25`,
-                  color: model.badgeColor,
-                  border: `1px solid ${model.badgeColor}50`,
-                  padding: '2px 7px',
-                  borderRadius: 6
+                <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.4, margin: '0 0 14px 0' }}>
+                  {model.strengths}
+                </p>
+
+                {/* Specs Box */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 8,
+                  padding: '10px',
+                  background: 'rgba(0, 0, 0, 0.25)',
+                  borderRadius: 10,
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  textAlign: 'center'
                 }}>
-                  {model.badge}
-                </span>
-              </div>
-
-              <div style={{ fontSize: '0.74rem', color: '#cbd5e1', lineHeight: 1.4 }}>
-                <strong>Key Strengths:</strong> {model.strengths}
-              </div>
-
-              {/* Specs & Pricing Grid */}
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 8,
-                fontSize: '0.7rem'
-              }}>
-                <div>
-                  <span style={{ color: '#94a3b8' }}>Context: </span>
-                  <strong style={{ color: '#fff' }}>{model.contextWindow}</strong>
-                </div>
-                <div>
-                  <span style={{ color: '#94a3b8' }}>Est. Cost: </span>
-                  <strong style={{ color: '#38bdf8' }}>{model.costPer1k}/1k</strong>
-                </div>
-                <div>
-                  <span style={{ color: '#94a3b8' }}>Live TTFT: </span>
-                  <strong style={{ color: '#10b981' }}>{latency}</strong>
-                </div>
-                <div>
-                  <span style={{ color: '#94a3b8' }}>Privacy: </span>
-                  <strong style={{ color: '#cbd5e1' }}>Zero Data Retention</strong>
+                  <div>
+                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Context</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8' }}>{model.contextWindow}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Est. Cost</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981' }}>{model.costPer1k}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Speed Tier</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b' }}>{model.speed}</div>
+                  </div>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+              {/* Bottom Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <button
-                  onClick={() => {
-                    onSelectModel(model.id);
-                    audioSystem.playSuccessSound();
-                  }}
-                  className="btn-primary"
+                  onClick={() => onSelectModel(model.id)}
                   style={{
                     flex: 1,
-                    fontSize: '0.74rem',
-                    padding: '8px',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    background: isSelected ? '#06b6d4' : 'rgba(255, 255, 255, 0.06)',
+                    border: 'none',
+                    color: isSelected ? '#090d16' : '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
-                    background: isSelected ? 'rgba(16, 185, 129, 0.2)' : undefined,
-                    border: isSelected ? '1px solid #10b981' : undefined,
-                    color: isSelected ? '#10b981' : undefined
+                    gap: 6
                   }}
                 >
-                  {isSelected ? (
-                    <>
-                      <CheckCircle2 size={14} />
-                      <span>Active Default</span>
-                    </>
-                  ) : (
-                    <span>Set Active Model</span>
-                  )}
+                  {isSelected ? <Check size={14} /> : null}
+                  <span>{isSelected ? 'Active Model' : 'Select Model'}</span>
                 </button>
 
                 <button
                   onClick={() => handleTestLatency(model.id)}
-                  className="btn-secondary"
-                  style={{ fontSize: '0.72rem', padding: '8px 12px' }}
-                  disabled={isTesting}
-                  title="Ping API endpoint and measure TTFT latency"
+                  disabled={testingModelId === model.id}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#cbd5e1',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                  title="Measure round-trip inference response time"
                 >
-                  {isTesting ? <Clock size={13} className="spin-slow" /> : <Play size={13} />}
-                  <span>{isTesting ? 'Testing...' : 'Test TTFT'}</span>
+                  <Play size={12} color="#06b6d4" />
+                  <span>{testingModelId === model.id ? 'Testing...' : (latency || 'Test Latency')}</span>
                 </button>
               </div>
             </div>

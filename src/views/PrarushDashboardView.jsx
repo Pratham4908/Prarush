@@ -13,6 +13,7 @@ export default function PrarushDashboardView({
   automations = [],
   onNavigate,
   onAddTask,
+  onSaveNote,
   onOpenAIWithPrompt,
   currentUser,
   onOpenSubscription
@@ -41,13 +42,57 @@ export default function PrarushDashboardView({
     } else if (quickCaptureType === 'ai') {
       onOpenAIWithPrompt(quickInput.trim());
       setQuickInput('');
-    } else {
-      onNavigate('notes');
+    } else if (quickCaptureType === 'note') {
+      if (onSaveNote) {
+        onSaveNote({
+          title: quickInput.trim(),
+          content: `# ${quickInput.trim()}\n\nCaptured from Dashboard Quick Bar on ${new Date().toLocaleDateString()}.`
+        });
+        audioSystem.playSuccessSound();
+        setQuickInput('');
+      } else {
+        onNavigate('notes');
+      }
     }
   };
 
   return (
     <div className="prarush-view-content" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Product Promise & Workflow Clarity Banner */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.7)',
+        border: '1px solid rgba(6, 182, 212, 0.25)',
+        borderRadius: 14,
+        padding: '12px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 10,
+        fontSize: '0.82rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: '1.2rem' }}>🎯</span>
+          <div>
+            <strong style={{ color: '#38bdf8' }}>Product Promise:</strong>
+            <span style={{ color: '#cbd5e1', marginLeft: 6 }}>
+              Local-first workspace for developers and technical creators. 
+              <strong> Capture an idea ➔ Convert to sprint task ➔ Refine with AI Copilot ➔ Track progress to completion.</strong>
+            </span>
+          </div>
+        </div>
+        <span style={{
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: 'rgba(16, 185, 129, 0.15)',
+          color: '#10b981',
+          padding: '2px 8px',
+          borderRadius: 6
+        }}>
+          LOCAL-FIRST VERIFIED
+        </span>
+      </div>
+
       {/* 1. Hero Welcome & Workspace Status Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.16) 0%, rgba(139, 92, 246, 0.12) 100%)',

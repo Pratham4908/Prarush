@@ -56,16 +56,17 @@ export default function PrarushAdminView() {
             <span style={{
               fontSize: '0.62rem',
               fontWeight: 800,
-              background: '#10b981',
-              color: '#090d16',
+              background: 'rgba(244, 63, 94, 0.2)',
+              color: '#f43f5e',
+              border: '1px solid rgba(244, 63, 94, 0.4)',
               padding: '2px 8px',
               borderRadius: 999
             }}>
-              ALL SYSTEMS HEALTHY
+              SIMULATED BASELINE TELEMETRY
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '4px 0 0 0', maxWidth: 660 }}>
-            Real-time inference latency, token consumption, audit trail compliance, and multi-tenant security metrics.
+            Operational architecture demonstration. These baseline metrics represent system design targets; connect Prometheus/Datadog endpoints in production for live telemetry.
           </p>
         </div>
 

@@ -65,11 +65,11 @@ export default function PrarushAutomationsView({
               padding: '2px 8px',
               borderRadius: 999
             }}>
-              VISUAL WORKFLOW ENGINE
+              WORKFLOW RUNNER • BROWSER SIMULATOR
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '4px 0 0 0', maxWidth: 640 }}>
-            Automate multi-step routines: turn GitHub issues into Kanban cards, transcribe audio uploads, and deliver scheduled briefings.
+            Design and test multi-step automations in the browser. Background cron schedules and third-party webhooks run in simulation mode until connected to a production server runner.
           </p>
         </div>
 

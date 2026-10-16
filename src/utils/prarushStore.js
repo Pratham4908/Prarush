@@ -374,3 +374,24 @@ export function logActivity(action, details, workspaceId = 'ws-personal') {
     return null;
   }
 }
+
+// Origin-Safe Data Purge: Only delete Prarush namespace keys, never call localStorage.clear()
+export function clearPrarushStorageOnly() {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('prarush_')) {
+        keysToRemove.push(key);
+      }
+    }
+    for (const key of keysToRemove) {
+      localStorage.removeItem(key);
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to clear Prarush local storage:', err);
+    return false;
+  }
+}
+

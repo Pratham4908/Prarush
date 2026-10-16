@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy - City Life Global Urban Platform</title>
+  <title>Privacy Policy — Prarush Universal AI Platform</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #111827;
+      --bg: #060911;
+      --card-bg: #0d1322;
       --text: #e2e8f0;
       --text-muted: #94a3b8;
       --accent: #06b6d4;
-      --accent-gold: #f59e0b;
       --border: rgba(255, 255, 255, 0.1);
     }
     body {
@@ -28,9 +27,9 @@
       margin: 0 auto;
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      borderRadius: 16px;
       padding: 40px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
     h1 { color: #fff; margin-top: 0; font-size: 2rem; }
     h2 { color: var(--accent); margin-top: 2rem; font-size: 1.3rem; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
@@ -53,48 +52,42 @@
 </head>
 <body>
   <div class="container">
-    <a href="/" class="nav-back">← Back to City Life App</a>
+    <a href="/" class="nav-back">← Back to Prarush Platform</a>
     <br>
-    <span class="badge">GDPR &amp; CCPA COMPLIANT</span>
+    <span class="badge">GDPR ARTICLE 20 &amp; CCPA COMPLIANT</span>
     <h1>Privacy Policy</h1>
-    <p><em>Last Updated: October 2026 | Effective for all global users</em></p>
+    <p><em>Last Updated: October 2026 | Effective for all global users of Prarush</em></p>
 
-    <h2>1. Privacy Principles</h2>
-    <p>
-      At <strong>City Life</strong>, we believe that urban safety and navigation should never come at the expense of your personal privacy. Our architecture is built on a <strong>local-first</strong> model: your GPS positions, search queries, and route preferences are processed locally within your browser or device wherever possible.
-    </p>
+    <h2>1. Executive Commitment</h2>
+    <p>Prarush is engineered with a <strong>local-first, zero-tracking architecture</strong>. We believe your productivity workflows, notes, code snippets, project sprints, and uploaded documents belong exclusively to you. We do not sell user data, train proprietary foundation models on your private documents, or employ third-party advertising trackers.</p>
 
-    <h2>2. Data We Collect &amp; How It Is Used</h2>
+    <h2>2. Data Collection &amp; Storage Architecture</h2>
     <ul>
-      <li><strong>Geolocation Data:</strong> When you tap "Auto-Detect GPS" or enable SafeRoute navigation, your device coordinates (latitude and longitude) are sent to Open-Meteo for live weather and OSRM for walking directions. We do not store or track your continuous movement history on our servers.</li>
-      <li><strong>User Accounts:</strong> Account profiles, saved spots, and scout rank are stored in your device's persistent local storage. When you sign up, your email and pseudonym are used exclusively to identify your session.</li>
-      <li><strong>Crowdsourced Citizen Reports:</strong> Reports you submit (such as hazard alerts or hidden gems) contain coordinates, severity, and description to warn fellow city residents. You may submit reports anonymously.</li>
-      <li><strong>Audio Recordings:</strong> Voice notes recorded for citizen hazard reports are processed locally and encoded as web audio data. We do not use your voice data for model training or biometric recognition.</li>
+      <li><strong>Client-Side Local Storage:</strong> By default, all workspaces, Kanban sprint tasks, markdown notes, calendar events, and document metadata reside locally in your browser's persistent storage.</li>
+      <li><strong>Authentication &amp; Passwords:</strong> Passwords are never stored in plaintext. Accounts use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and cryptographically random session tokens. Guest sessions require zero personal identifiable information.</li>
+      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure cloud API keys (OpenAI, Google Gemini, Anthropic), these keys are stored exclusively in your local device storage. Inference requests route directly from your client to the respective provider's HTTPS endpoint without passing through intermediate proxy logging.</li>
     </ul>
 
-    <h2>3. Third-Party Service Providers</h2>
-    <p>To deliver real-time urban telemetry, City Life communicates directly with the following trusted open-source and scientific APIs:</p>
+    <h2>3. Third-Party AI Providers</h2>
+    <p>When you trigger AI completion features with external provider keys:</p>
     <ul>
-      <li><strong>Open-Meteo:</strong> Non-commercial, privacy-respecting atmospheric telemetry &amp; Air Quality Index (AQI) calculations.</li>
-      <li><strong>OpenStreetMap &amp; Nominatim:</strong> Global cartographic mapping tiles and geocoding services.</li>
-      <li><strong>OSRM (Open Source Routing Machine):</strong> Pedestrian safe routing calculations.</li>
-      <li><strong>Wikipedia / MediaWiki API:</strong> Historical landmark descriptions and cultural heritage summaries.</li>
+      <li><strong>OpenAI:</strong> Subject to <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a>. Per enterprise terms, API data is not used for model training.</li>
+      <li><strong>Google DeepMind:</strong> Subject to <a href="https://policies.google.com/privacy" target="_blank">Google API Services User Data Policy</a>.</li>
     </ul>
 
-    <h2>4. Your Rights Under GDPR &amp; CCPA</h2>
-    <p>Regardless of your geographic location, City Life guarantees you the following rights:</p>
+    <h2>4. GDPR &amp; CCPA User Rights</h2>
+    <p>In full compliance with European General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA):</p>
     <ul>
-      <li><strong>Right to Access &amp; Portability:</strong> You can export all your saved data, reports, and subscription details in machine-readable JSON format directly from your User Profile screen.</li>
-      <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You can permanently delete your account, session, and all associated local caches in one click via the User Profile screen.</li>
-      <li><strong>No Data Brokering:</strong> We never sell, lease, or monetize your personal data or location coordinates to third-party ad brokers.</li>
+      <li><strong>Right to Data Portability (Article 20):</strong> You can export 100% of your user-owned data at any time in machine-readable JSON format via the Profile drawer (including workspaces, tasks, notes, documents, events, and automations).</li>
+      <li><strong>Right to Erasure (Article 17):</strong> 1-click origin-safe data purge allows permanent deletion of all Prarush data records from your device without affecting other site cookies.</li>
+      <li><strong>Right to Rectification:</strong> All notes, task records, and user profiles can be directly edited or deleted in real time.</li>
     </ul>
 
-    <h2>5. Security &amp; Contact</h2>
-    <p>
-      For privacy inquiries, security reports, or data deletion verification, contact our Data Protection Officer at:
-      <br>
-      <strong>Email:</strong> <a href="mailto:privacy@citylife.app">privacy@citylife.app</a>
-    </p>
+    <h2>5. Security Standards</h2>
+    <p>We mandate HTTPS transport layer security (TLS 1.3), Content Security Policy (CSP) headers, and strict origin isolation. Service Workers operate strictly under standard W3C offline cache sandboxing.</p>
+
+    <h2>6. Contact &amp; Data Protection Officer</h2>
+    <p>For inquiries regarding privacy, data rights, or security disclosures, reach our team at: <strong>privacy@prarush.ai</strong></p>
   </div>
 </body>
 </html>

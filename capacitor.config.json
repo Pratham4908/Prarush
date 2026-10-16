@@ -1,6 +1,6 @@
 {
-  "appId": "com.citylife.urbanai",
-  "appName": "City Life",
+  "appId": "com.prarush.app",
+  "appName": "Prarush",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
@@ -9,16 +9,13 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
-      "backgroundColor": "#090d16",
+      "backgroundColor": "#060911",
       "showSpinner": true,
       "spinnerColor": "#06b6d4"
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#090d16"
-    },
-    "Geolocation": {
-      "permissions": ["location", "coarseLocation"]
+      "backgroundColor": "#060911"
     }
   }
 }

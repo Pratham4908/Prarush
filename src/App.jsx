@@ -10,6 +10,7 @@ import PrarushSidebar from './components/PrarushSidebar.jsx';
 import CommandCenterModal from './components/CommandCenterModal.jsx';
 import SubscriptionModal from './components/SubscriptionModal.jsx';
 import PrarushProfileModal from './components/PrarushProfileModal.jsx';
+import PrarushAuthModal from './components/PrarushAuthModal.jsx';
 
 // Prarush 13 Universal Views
 import PrarushDashboardView from './views/PrarushDashboardView.jsx';
@@ -41,6 +42,7 @@ import {
   logActivity 
 } from './utils/prarushStore.js';
 import { audioSystem } from './utils/audioSystem.js';
+import { getCurrentUser, logoutUser, continueAsGuest } from './utils/authManager.js';
 
 export default function App() {
   // 1. Workspaces
@@ -89,15 +91,10 @@ export default function App() {
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // 6. User Profile
-  const [currentUser, setCurrentUser] = useState({
-    id: 'usr-prarush-1',
-    name: 'Pratham Dev',
-    email: 'pratham@prarush.ai',
-    avatar: '⚡',
-    role: 'Lead Architect & AI Systems Specialist'
-  });
+  // 6. User Profile (Dynamic Authenticated Session or Local Guest)
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
 
   // Global Keyboard Listener for Ctrl+K / Cmd+K (Command Center)
   useEffect(() => {
@@ -266,6 +263,7 @@ export default function App() {
             automations={automations}
             onNavigate={(tab) => setActiveTab(tab)}
             onAddTask={handleAddTask}
+            onSaveNote={handleSaveNote}
             onOpenAIWithPrompt={() => setActiveTab('ai_assistant')}
             currentUser={currentUser}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
@@ -353,6 +351,8 @@ export default function App() {
         return (
           <PrarushKnowledgeView
             knowledgeItems={knowledge}
+            notes={notes}
+            documents={documents}
           />
         );
 
@@ -498,6 +498,20 @@ export default function App() {
         onClose={() => setIsProfileModalOpen(false)}
         user={currentUser}
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onLogout={() => {
+          const guest = logoutUser();
+          setCurrentUser(guest);
+        }}
+      />
+
+      {/* 6. Secure Authentication Modal (Sign In / Register / Guest) */}
+      <PrarushAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onUserAuthenticated={(authenticatedUser) => {
+          setCurrentUser(authenticatedUser);
+        }}
       />
     </div>
   );

@@ -5,12 +5,15 @@ import {
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
 import { isProSubscriber, exportUserDataGDPR } from '../utils/prarushFreemium.js';
+import { clearPrarushStorageOnly } from '../utils/prarushStore.js';
 
 export default function PrarushProfileModal({ 
   isOpen, 
   onClose, 
-  user = { name: 'Pratham Dev', email: 'pratham@prarush.ai', avatar: '⚡', role: 'Architect & Lead Builder' },
-  onOpenSubscription
+  user,
+  onOpenSubscription,
+  onOpenAuth,
+  onLogout
 }) {
   const [copiedGDPR, setCopiedGDPR] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -21,15 +24,15 @@ export default function PrarushProfileModal({
 
   const handleExportGDPR = () => {
     audioSystem.playSuccessSound();
-    exportUserDataGDPR();
+    exportUserDataGDPR(user);
     setCopiedGDPR(true);
     setTimeout(() => setCopiedGDPR(false), 3000);
   };
 
   const handleClearCache = () => {
-    if (window.confirm('Clear local offline workspace caches and reset to factory demo state?')) {
+    if (window.confirm('Clear local offline workspace caches and reset to factory demo state? This only removes Prarush application data and preserves your other website storage.')) {
       audioSystem.playWarningSound();
-      localStorage.clear();
+      clearPrarushStorageOnly();
       window.location.reload();
     }
   };
@@ -242,6 +245,54 @@ export default function PrarushProfileModal({
                 <Trash2 size={16} />
                 <span>Reset Local Workspaces & Wipe Cache</span>
               </button>
+            </div>
+          </div>
+
+          {/* Account Authentication & Sessions */}
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.05em' }}>
+              Account & Session Security
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { onClose(); if (onOpenAuth) onOpenAuth(); }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '11px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <Lock size={15} color="#06b6d4" />
+                <span>{user?.isGuest ? 'Sign In / Register' : 'Switch Account'}</span>
+              </button>
+
+              {!user?.isGuest && onLogout && (
+                <button
+                  onClick={() => { onClose(); onLogout(); }}
+                  style={{
+                    padding: '11px 16px',
+                    borderRadius: 12,
+                    background: 'rgba(244,63,94,0.1)',
+                    border: '1px solid rgba(244,63,94,0.25)',
+                    color: '#f43f5e',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Sign Out
+                </button>
+              )}
             </div>
           </div>
         </div>

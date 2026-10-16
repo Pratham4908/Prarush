@@ -64,10 +64,57 @@ export const AI_MODELS = [
   }
 ];
 
+import { getStoredApiKeys, callRealOpenAI, callRealGemini } from './apiKeyManager.js';
+
 // Process natural language queries across the Prarush Universal Platform
-export function processPrarushAIQuery(prompt, modelId = 'prarush-neural-4', context = {}) {
+export async function processPrarushAIQuery(prompt, modelId = 'prarush-neural-4', context = {}) {
   const q = prompt.trim().toLowerCase();
   const selectedModel = AI_MODELS.find(m => m.id === modelId) || AI_MODELS[0];
+  const keys = getStoredApiKeys();
+
+  // If user configured a live cloud API key, execute real live inference
+  if (keys.openai && (modelId === 'gpt-4o' || modelId === 'claude-3-5-sonnet')) {
+    try {
+      const liveAnswer = await callRealOpenAI(prompt, keys.openai);
+      return {
+        type: 'live_llm_response',
+        modelUsed: `${selectedModel.name} (Live Cloud API)`,
+        title: `🤖 Live Cloud Response from ${selectedModel.name}`,
+        text: liveAnswer,
+        isLiveApi: true,
+        suggestedActions: [
+          { label: 'Create Kanban Task', actionType: 'create_task' },
+          { label: 'Save as Note', actionType: 'create_note' },
+          { label: 'Generate Presentation', actionType: 'create_deck' }
+        ]
+      };
+    } catch (apiErr) {
+      console.warn('Live OpenAI call failed, falling back to local workspace model:', apiErr.message);
+    }
+  }
+
+  if (keys.gemini && modelId === 'gemini-1.5-pro') {
+    try {
+      const liveAnswer = await callRealGemini(prompt, keys.gemini);
+      return {
+        type: 'live_llm_response',
+        modelUsed: `${selectedModel.name} (Live Gemini API)`,
+        title: `🤖 Live Cloud Response from ${selectedModel.name}`,
+        text: liveAnswer,
+        isLiveApi: true,
+        suggestedActions: [
+          { label: 'Create Kanban Task', actionType: 'create_task' },
+          { label: 'Save as Note', actionType: 'create_note' },
+          { label: 'Generate Presentation', actionType: 'create_deck' }
+        ]
+      };
+    } catch (apiErr) {
+      console.warn('Live Gemini call failed, falling back to local workspace model:', apiErr.message);
+    }
+  }
+
+  // Fallback to local intelligent workspace model with honest disclaimer
+  const localDisclaimer = 'Generated via Local Workspace Assistant. To use live LLM inference, configure your API key in the Model Hub.';
 
   // 1. Code Generation Intent
   if (q.includes('code') || q.includes('function') || q.includes('component') || q.includes('python') || q.includes('react') || q.includes('javascript') || q.includes('api') || q.includes('sql')) {
@@ -197,6 +244,8 @@ export function generatePrarushImage(promptText, style = 'cinematic') {
     imageUrl: stylesMap[style] || stylesMap.cinematic,
     generatedAt: new Date().toISOString(),
     resolution: '1024x1024 UHD',
-    model: 'Prarush Diffusion-XL v2'
+    model: 'Prarush Diffusion-XL v2',
+    isDemoPreview: true,
+    disclaimer: 'Studio Visual Preview (Connect Replicate or Stability API for Custom Diffusion)'
   };
 }

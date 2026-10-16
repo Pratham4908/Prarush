@@ -239,25 +239,41 @@ export function cancelSubscription() {
 // GDPR Article 20: Machine-readable JSON Data Portability Export
 export function exportUserDataGDPR(user) {
   const sub = getSubscription();
+  const workspaces = localStorage.getItem('prarush_workspaces');
   const tasks = localStorage.getItem('prarush_tasks');
   const notes = localStorage.getItem('prarush_notes');
   const docs = localStorage.getItem('prarush_documents');
+  const events = localStorage.getItem('prarush_events');
   const automations = localStorage.getItem('prarush_automations');
   const kb = localStorage.getItem('prarush_knowledge');
+  const activity = localStorage.getItem('prarush_activity_log');
+  const theme = localStorage.getItem('prarush_theme_mode');
+  const locale = localStorage.getItem('prarush_locale');
 
   const exportPayload = {
     platform: 'Prarush Universal AI Digital Platform',
     version: '2.0.0-production',
+    exportSpecification: 'GDPR Article 20 / CCPA Data Portability Format (JSON)',
     exportTimestamp: new Date().toISOString(),
-    userProfile: user || { role: 'Guest Scout' },
+    userProfile: user || {
+      id: 'usr-guest',
+      name: 'Guest User',
+      email: 'guest@prarush.local',
+      role: 'Guest Scout'
+    },
     subscription: sub,
-    workspacesData: {
-      tasks: tasks ? JSON.parse(tasks) : [],
-      notes: notes ? JSON.parse(notes) : [],
-      documents: docs ? JSON.parse(docs) : [],
-      automations: automations ? JSON.parse(automations) : [],
-      knowledgeBase: kb ? JSON.parse(kb) : []
-    }
+    systemPreferences: {
+      theme: theme ? JSON.parse(theme) : 'dark',
+      locale: locale ? JSON.parse(locale) : 'en'
+    },
+    workspaces: workspaces ? JSON.parse(workspaces) : [],
+    tasks: tasks ? JSON.parse(tasks) : [],
+    notes: notes ? JSON.parse(notes) : [],
+    documents: docs ? JSON.parse(docs) : [],
+    calendarEvents: events ? JSON.parse(events) : [],
+    automations: automations ? JSON.parse(automations) : [],
+    knowledgeBase: kb ? JSON.parse(kb) : [],
+    activityAuditLog: activity ? JSON.parse(activity) : []
   };
 
   const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });

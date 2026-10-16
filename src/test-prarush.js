@@ -1,5 +1,18 @@
 // Automated Verification Suite for Prarush Universal AI Platform
 import assert from 'assert';
+
+// Node.js environment storage polyfill
+if (typeof localStorage === 'undefined') {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, val) => store.set(key, String(val)),
+    removeItem: (key) => store.delete(key),
+    clear: () => store.clear(),
+    get length() { return store.size; },
+    key: (i) => Array.from(store.keys())[i] || null
+  };
+}
 import { 
   DEFAULT_WORKSPACES, 
   INITIAL_TASKS, 
@@ -11,7 +24,8 @@ import {
   COMMUNITY_TEMPLATES, 
   getStoredData, 
   saveStoredData, 
-  logActivity 
+  logActivity,
+  clearPrarushStorageOnly 
 } from './utils/prarushStore.js';
 
 import { 
@@ -27,13 +41,27 @@ import {
   checkQuota, 
   recordUsage, 
   upgradeSubscription, 
-  cancelSubscription 
+  cancelSubscription,
+  exportUserDataGDPR 
 } from './utils/prarushFreemium.js';
 
 import { 
   PRARUSH_LOCALES, 
   tPrarush 
 } from './utils/prarushI18n.js';
+
+import { 
+  registerUser, 
+  loginUser, 
+  continueAsGuest, 
+  getCurrentUser, 
+  DEFAULT_GUEST_USER 
+} from './utils/authManager.js';
+
+import { 
+  getStoredApiKeys, 
+  saveStoredApiKeys 
+} from './utils/apiKeyManager.js';
 
 console.log('🚀 Starting Prarush Comprehensive Engine Tests...\n');
 
@@ -116,10 +144,11 @@ async function runAllTests() {
     assert(result.citations.length >= 1, 'Should have at least one citation');
   });
 
-  await runTest('generatePrarushImage returns image metadata and asset URL', () => {
+  await runTest('generatePrarushImage returns image metadata and honest preview disclaimer', () => {
     const imgData = generatePrarushImage('Cyberpunk AI Metropolis', 'cinematic');
     assert(imgData && imgData.imageUrl && typeof imgData.imageUrl === 'string', 'Should return valid image object with URL');
-    assert(imgData.model && imgData.resolution, 'Should specify diffusion model and resolution');
+    assert(imgData.isDemoPreview === true, 'Should be flagged as preview');
+    assert(imgData.disclaimer, 'Should have clear preview disclaimer');
   });
 
   // 3. Freemium & Entitlements Engine Tests
@@ -157,6 +186,50 @@ async function runAllTests() {
     assert.strictEqual(esDash, 'Panel Principal');
     assert.strictEqual(jaDash, 'ダッシュボード');
     assert.strictEqual(hiDash, 'डैशबोर्ड');
+  });
+
+  // 5. Secure Auth & Session Engine Tests
+  await runTest('AuthManager register and login with cryptographic SHA-256 verification', async () => {
+    const testEmail = `test_${Date.now()}@example.com`;
+    const registered = await registerUser({
+      name: 'Test Engineer',
+      email: testEmail,
+      password: 'SecurePassword123!'
+    });
+    assert(registered.id, 'Registered user must have an id');
+    assert.strictEqual(registered.email, testEmail);
+    assert.strictEqual(registered.password, undefined, 'Plaintext password must NEVER be exposed');
+
+    const loggedIn = await loginUser({
+      email: testEmail,
+      password: 'SecurePassword123!'
+    });
+    assert.strictEqual(loggedIn.id, registered.id);
+  });
+
+  await runTest('AuthManager supports Guest mode seamlessly', () => {
+    const guest = continueAsGuest();
+    assert(guest.isGuest, 'Guest user should have isGuest=true');
+    assert(guest.id, 'Guest user should have an id');
+  });
+
+  // 6. BYOK API Key Manager Tests
+  await runTest('API Key Manager saves and retrieves cloud credentials safely', () => {
+    const keys = { openai: 'sk-test-mock', gemini: 'AIza-test-mock', anthropic: '', openrouter: '' };
+    saveStoredApiKeys(keys);
+    const retrieved = getStoredApiKeys();
+    assert.strictEqual(retrieved.openai, 'sk-test-mock');
+    assert.strictEqual(retrieved.gemini, 'AIza-test-mock');
+  });
+
+  // 7. Origin-Safe Purge & Data Portability
+  await runTest('Origin-Safe Purge only targets prarush_ namespace keys', () => {
+    localStorage.setItem('other_app_key', 'preserved_value');
+    localStorage.setItem('prarush_temp_test', 'to_delete');
+    clearPrarushStorageOnly();
+    assert.strictEqual(localStorage.getItem('other_app_key'), 'preserved_value', 'Non-Prarush keys must be preserved');
+    assert.strictEqual(localStorage.getItem('prarush_temp_test'), null, 'Prarush keys must be removed');
+    localStorage.removeItem('other_app_key');
   });
 
   // Print Final Summary
