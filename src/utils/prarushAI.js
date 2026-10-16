@@ -1,5 +1,5 @@
 // Prarush Universal AI Multi-Model Intelligence Engine
-// Supports Prarush Local Engine, Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, and Llama 3
+// Supports Prarush Local Engine, Claude 3.7 Sonnet, GPT-4o, Gemini 2.5 Pro, and Llama 3.3
 // Transparently distinguishes live external cloud inference from deterministic offline rule-based fallbacks.
 
 export const AI_MODELS = [
@@ -17,16 +17,17 @@ export const AI_MODELS = [
     strengths: 'Offline task templates, deterministic code/markdown generation without external API keys or cloud dependencies'
   },
   {
-    id: 'claude-3-5-sonnet',
-    name: 'Claude 3.5 Sonnet',
+    id: 'claude-3-7-sonnet',
+    aliasId: 'claude-3-5-sonnet',
+    name: 'Claude 3.7 Sonnet',
     provider: 'Anthropic',
     icon: '🧠',
     badge: 'LIVE BYOK',
     badgeColor: '#f59e0b',
     contextWindow: '200K Tokens',
-    speed: 'Est. 500-1500 ms (Cloud)',
+    speed: 'Est. 600-1400 ms (Cloud)',
     costPer1k: '~$0.0030 (Provider Est.)',
-    strengths: 'Nuanced prose, high-level system architecture, complex document and logic analysis'
+    strengths: 'Hybrid reasoning, nuanced prose, full-stack architectural design, and complex code debugging'
   },
   {
     id: 'gpt-4o',
@@ -38,28 +39,30 @@ export const AI_MODELS = [
     contextWindow: '128K Tokens',
     speed: 'Est. 500-1200 ms (Cloud)',
     costPer1k: '~$0.0025 (Provider Est.)',
-    strengths: 'Multimodal vision, cross-domain logic, mathematical problem solving'
+    strengths: 'Multimodal vision, cross-domain logic, mathematical problem solving, rapid structured completions'
   },
   {
-    id: 'gemini-1-5-pro',
-    name: 'Gemini 1.5 Pro',
+    id: 'gemini-2-5-pro',
+    aliasId: 'gemini-1-5-pro',
+    name: 'Gemini 2.5 Pro',
     provider: 'Google DeepMind',
     icon: '✨',
     badge: 'LIVE BYOK',
     badgeColor: '#8b5cf6',
-    contextWindow: '1M+ Tokens',
-    speed: 'Est. 600-1500 ms (Cloud)',
-    costPer1k: '~$0.0035 (Provider Est.)',
-    strengths: 'Ultra-long document retrieval, video comprehension, academic literature grounding'
+    contextWindow: '2M+ Tokens',
+    speed: 'Est. 500-1200 ms (Cloud)',
+    costPer1k: '~$0.0025 (Provider Est.)',
+    strengths: 'Deep reasoning, massive multimodal context windows, code repository ingestion'
   },
   {
-    id: 'llama-3-70b',
-    name: 'Llama 3 70B Open',
+    id: 'llama-3-3-70b',
+    aliasId: 'llama-3-70b',
+    name: 'Llama 3.3 70B Open',
     provider: 'Meta / OpenRouter',
     icon: '🦙',
     badge: 'OPEN BYOK',
     badgeColor: '#38bdf8',
-    contextWindow: '8K Tokens',
+    contextWindow: '128K Tokens',
     speed: 'Est. 400-1000 ms (Cloud)',
     costPer1k: '~$0.0008 (Provider Est.)',
     strengths: 'Open-weights foundation model, accessible via OpenRouter BYOK key'
@@ -81,12 +84,13 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
   // Resolve model, honoring both current and legacy alias IDs
   const selectedModel = AI_MODELS.find(m => m.id === modelId || m.aliasId === modelId) || AI_MODELS[0];
   const keys = getStoredApiKeys();
+  let liveCallError = null;
 
-  // 1. Direct Live Routing: Anthropic (Claude 3.5 Sonnet)
-  if (selectedModel.id === 'claude-3-5-sonnet') {
+  // 1. Direct Live Routing: Anthropic (Claude 3.7 Sonnet)
+  if (selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
     if (keys.anthropic) {
       try {
-        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-3-5-sonnet-20241022');
+        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-3-7-sonnet-20250219');
         return {
           type: 'live_llm_response',
           modelUsed: `${selectedModel.name} (Live Anthropic API)`,
@@ -101,11 +105,12 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
           ]
         };
       } catch (err) {
-        console.warn('Live Anthropic call failed, falling back to local engine:', err.message);
+        liveCallError = `Anthropic API error: ${err.message}`;
+        console.warn(liveCallError);
       }
     } else if (keys.openrouter) {
       try {
-        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'anthropic/claude-3.5-sonnet');
+        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'anthropic/claude-3.7-sonnet');
         return {
           type: 'live_llm_response',
           modelUsed: `${selectedModel.name} (Live via OpenRouter)`,
@@ -120,11 +125,10 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
           ]
         };
       } catch (err) {
-        console.warn('Live OpenRouter call failed:', err.message);
+        liveCallError = `OpenRouter call failed: ${err.message}`;
+        console.warn(liveCallError);
       }
     }
-    // Anthropic key is NOT configured. Never disguise another provider as Claude.
-    // Proceed to return explicit fallback.
   }
 
   // 2. Direct Live Routing: OpenAI (GPT-4o)
@@ -145,14 +149,15 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
         ]
       };
     } catch (apiErr) {
-      console.warn('Live OpenAI call failed, falling back to local engine:', apiErr.message);
+      liveCallError = `OpenAI API error: ${apiErr.message}`;
+      console.warn(liveCallError);
     }
   }
 
-  // 3. Direct Live Routing: Google Gemini 1.5 Pro
-  if (selectedModel.id === 'gemini-1-5-pro' && keys.gemini) {
+  // 3. Direct Live Routing: Google Gemini 2.5 Pro
+  if ((selectedModel.id === 'gemini-2-5-pro' || selectedModel.id === 'gemini-1-5-pro') && keys.gemini) {
     try {
-      const liveAnswer = await callRealGemini(prompt, keys.gemini, 'gemini-1.5-pro');
+      const liveAnswer = await callRealGemini(prompt, keys.gemini, 'gemini-2.5-pro');
       return {
         type: 'live_llm_response',
         modelUsed: `${selectedModel.name} (Live Google Gemini API)`,
@@ -167,14 +172,15 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
         ]
       };
     } catch (apiErr) {
-      console.warn('Live Gemini call failed, falling back to local engine:', apiErr.message);
+      liveCallError = `Gemini API error: ${apiErr.message}`;
+      console.warn(liveCallError);
     }
   }
 
-  // 4. Direct Live Routing: Llama 3 via OpenRouter
-  if (selectedModel.id === 'llama-3-70b' && keys.openrouter) {
+  // 4. Direct Live Routing: Llama 3.3 via OpenRouter
+  if ((selectedModel.id === 'llama-3-3-70b' || selectedModel.id === 'llama-3-70b') && keys.openrouter) {
     try {
-      const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'meta-llama/llama-3-70b-instruct');
+      const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'meta-llama/llama-3.3-70b-instruct');
       return {
         type: 'live_llm_response',
         modelUsed: `${selectedModel.name} (Live OpenRouter API)`,
@@ -188,19 +194,26 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
         ]
       };
     } catch (err) {
-      console.warn('Live Llama 3 call failed:', err.message);
+      liveCallError = `OpenRouter Llama 3.3 error: ${err.message}`;
+      console.warn(liveCallError);
     }
   }
 
-  // Determine fallback label honestly
-  const isFallback = selectedModel.id !== 'prarush-local-engine' && selectedModel.id !== 'prarush-neural-4';
-  const fallbackNotice = isFallback 
-    ? `Notice: ${selectedModel.name} API key is not configured in Model Hub. Generated using Prarush Local Offline Rules.`
-    : 'Generated locally via Prarush deterministic offline engine.';
+  // Distinguish genuine missing key vs live provider request error
+  const isLocalEngine = selectedModel.id === 'prarush-local-engine' || selectedModel.id === 'prarush-neural-4';
+  
+  let fallbackNotice = 'Generated locally via Prarush deterministic offline engine.';
+  let displayModelName = 'Prarush Local Engine (Offline Rules)';
 
-  const displayModelName = isFallback
-    ? `Local Fallback (${selectedModel.name} Key Not Configured)`
-    : 'Prarush Local Engine (Offline Rules)';
+  if (!isLocalEngine) {
+    if (liveCallError) {
+      fallbackNotice = `⚠️ Live request to ${selectedModel.name} failed (${liveCallError}). Falling back to local offline rules.`;
+      displayModelName = `Local Fallback (${selectedModel.name} Error: ${liveCallError.slice(0, 40)}...)`;
+    } else {
+      fallbackNotice = `Notice: ${selectedModel.name} API key is not configured in Model Hub. Generated using Prarush Local Offline Rules.`;
+      displayModelName = `Local Fallback (${selectedModel.name} Key Not Configured)`;
+    }
+  }
 
   // 1. Code Generation Intent
   if (q.includes('code') || q.includes('function') || q.includes('component') || q.includes('python') || q.includes('react') || q.includes('javascript') || q.includes('api') || q.includes('sql')) {
@@ -259,7 +272,7 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
           ]
         }
       ],
-      explanation: 'Generated 3 executive slides ready for export to markdown or HTML5 presentation.'
+      explanation: 'Generated 3 executive slides ready for export to markdown or presentation format.'
     };
   }
 
@@ -280,12 +293,12 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
         'Connect an API key in Model Hub for deep semantic synthesis.',
         'Export workspace snapshot as JSON for offline backup.'
       ],
-      readabilityScore: 'Estimated High Clarity',
+      readabilityScore: 'Local structural summary',
       wordCountReduced: 'Local structural summary'
     };
   }
 
-  // 4. Research & Fact-Checking
+  // 4. Research & Specifications
   if (q.includes('research') || q.includes('verify') || q.includes('fact') || q.includes('citation') || q.includes('compare models')) {
     return {
       type: 'research',
@@ -294,14 +307,14 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       isLiveApi: false,
       disclaimer: fallbackNotice,
       verifiedFacts: [
-        'Context Windows (Provider Specs): Claude 3.5 Sonnet supports 200k tokens; Gemini 1.5 Pro scales up to 1M+ tokens.',
-        'Privacy Protocol: Prarush stores tasks and notes locally in the browser; BYOK keys connect directly via HTTPS.',
-        'Data Portability: Full workspace data can be exported in standard JSON format.'
+        'Active Models: Claude 3.7 Sonnet (Anthropic), Gemini 2.5 Pro (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
+        'Direct Client Protocol: Browser BYOK requests route directly via HTTPS headers (x-api-key, Authorization, x-goog-api-key).',
+        'Data Isolation: Workspaces and tasks persist locally per user profile without shared browser leakage.'
       ],
       citations: [
-        'Anthropic Model Documentation (claude-3-5-sonnet)',
-        'Google Cloud Generative AI Documentation (gemini-1.5-pro)',
-        'OpenAI API Reference (gpt-4o)'
+        'Anthropic Model Documentation (Claude 3.7 Sonnet)',
+        'Google Cloud Generative AI Documentation (Gemini 2.5 Pro)',
+        'OpenAI API Reference (GPT-4o)'
       ]
     };
   }
@@ -313,7 +326,7 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
     title: `⚡ Local Assistant Response`,
     isLiveApi: false,
     disclaimer: fallbackNotice,
-    text: `Request: "${prompt}".\n\nPrarush gives you a unified local-first workspace for software engineering and technical projects.\n\n* Note: To receive live answers from Claude, GPT-4o, or Gemini, connect your API key in the Model Hub. In local mode, you can turn this item into a **Kanban Task**, create a **Markdown Note**, or structure a **Code Snippet**.\n\nWhat would you like to execute?`,
+    text: `Request: "${prompt}".\n\nPrarush provides a local-first workspace for software engineers and technical creators.\n\n* Note: To receive live answers from Claude 3.7 Sonnet, GPT-4o, or Gemini 2.5 Pro, configure your API key in the Model Hub. In local mode, you can turn this item into a **Kanban Task**, create a **Markdown Note**, or structure a **Code Snippet**.\n\nWhat would you like to execute?`,
     suggestedActions: [
       { label: 'Create Kanban Task', actionType: 'create_task' },
       { label: 'Save as Note', actionType: 'create_note' },
@@ -341,6 +354,6 @@ export function generatePrarushImage(promptText, style = 'cinematic') {
     resolution: '1024x1024 Preview',
     model: 'Prarush Visual Canvas (Sample Preview)',
     isDemoPreview: true,
-    disclaimer: 'Curated visual style demo. Connect Replicate, Stability AI, or DALL-E API for live generative rendering.'
+    disclaimer: 'Curated visual style demo. Connect Replicate, Stability AI, or DALL-E in Model Hub for live generative diffusion.'
   };
 }

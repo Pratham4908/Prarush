@@ -47,36 +47,40 @@ import { audioSystem } from './utils/audioSystem.js';
 import { getCurrentUser, logoutUser, continueAsGuest } from './utils/authManager.js';
 
 export default function App() {
-  // 1. Workspaces
+  // 0. User Profile (Dynamic Authenticated Session or Local Guest)
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
+  const initialUserId = currentUser?.id || 'usr-guest';
+
+  // 1. Workspaces (Per-User Isolated)
   const [workspaces, setWorkspaces] = useState(() => 
-    getStoredData(STORAGE_KEYS.WORKSPACES, DEFAULT_WORKSPACES)
+    getUserStoredData(STORAGE_KEYS.WORKSPACES, initialUserId, DEFAULT_WORKSPACES)
   );
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(() => 
-    getStoredData(STORAGE_KEYS.ACTIVE_WORKSPACE, DEFAULT_WORKSPACES[0].id)
+    getUserStoredData(STORAGE_KEYS.ACTIVE_WORKSPACE, initialUserId, DEFAULT_WORKSPACES[0].id)
   );
   const currentWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
 
   // 2. Active View Tab
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // 3. Productivity Datasets
+  // 3. Productivity Datasets (Per-User Isolated)
   const [tasks, setTasks] = useState(() => 
-    getStoredData(STORAGE_KEYS.TASKS, INITIAL_TASKS)
+    getUserStoredData(STORAGE_KEYS.TASKS, initialUserId, INITIAL_TASKS)
   );
   const [notes, setNotes] = useState(() => 
-    getStoredData(STORAGE_KEYS.NOTES, INITIAL_NOTES)
+    getUserStoredData(STORAGE_KEYS.NOTES, initialUserId, INITIAL_NOTES)
   );
   const [documents, setDocuments] = useState(() => 
-    getStoredData(STORAGE_KEYS.DOCUMENTS, INITIAL_DOCUMENTS)
+    getUserStoredData(STORAGE_KEYS.DOCUMENTS, initialUserId, INITIAL_DOCUMENTS)
   );
   const [automations, setAutomations] = useState(() => 
-    getStoredData(STORAGE_KEYS.AUTOMATIONS, INITIAL_AUTOMATIONS)
+    getUserStoredData(STORAGE_KEYS.AUTOMATIONS, initialUserId, INITIAL_AUTOMATIONS)
   );
   const [knowledge, setKnowledge] = useState(() => 
-    getStoredData(STORAGE_KEYS.KNOWLEDGE, INITIAL_KNOWLEDGE)
+    getUserStoredData(STORAGE_KEYS.KNOWLEDGE, initialUserId, INITIAL_KNOWLEDGE)
   );
   const [events, setEvents] = useState(() => 
-    getStoredData(STORAGE_KEYS.EVENTS, INITIAL_CALENDAR_EVENTS)
+    getUserStoredData(STORAGE_KEYS.EVENTS, initialUserId, INITIAL_CALENDAR_EVENTS)
   );
 
   // 4. Global Settings & Controls
@@ -95,22 +99,19 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // 6. User Profile (Dynamic Authenticated Session or Local Guest)
-  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
-
   // Per-User Data Access Synchronization: reload user-isolated data when profile switches
   useEffect(() => {
-    if (!currentUser?.id) return;
-    const userWorkspaces = getUserStoredData(STORAGE_KEYS.WORKSPACES, currentUser.id, DEFAULT_WORKSPACES);
+    const uid = currentUser?.id || 'usr-guest';
+    const userWorkspaces = getUserStoredData(STORAGE_KEYS.WORKSPACES, uid, DEFAULT_WORKSPACES);
     setWorkspaces(userWorkspaces);
     setActiveWorkspaceId(userWorkspaces[0]?.id || DEFAULT_WORKSPACES[0].id);
 
-    setTasks(getUserStoredData(STORAGE_KEYS.TASKS, currentUser.id, INITIAL_TASKS));
-    setNotes(getUserStoredData(STORAGE_KEYS.NOTES, currentUser.id, INITIAL_NOTES));
-    setDocuments(getUserStoredData(STORAGE_KEYS.DOCUMENTS, currentUser.id, INITIAL_DOCUMENTS));
-    setEvents(getUserStoredData(STORAGE_KEYS.EVENTS, currentUser.id, INITIAL_CALENDAR_EVENTS));
-    setAutomations(getUserStoredData(STORAGE_KEYS.AUTOMATIONS, currentUser.id, INITIAL_AUTOMATIONS));
-    setKnowledge(getUserStoredData(STORAGE_KEYS.KNOWLEDGE, currentUser.id, INITIAL_KNOWLEDGE));
+    setTasks(getUserStoredData(STORAGE_KEYS.TASKS, uid, INITIAL_TASKS));
+    setNotes(getUserStoredData(STORAGE_KEYS.NOTES, uid, INITIAL_NOTES));
+    setDocuments(getUserStoredData(STORAGE_KEYS.DOCUMENTS, uid, INITIAL_DOCUMENTS));
+    setEvents(getUserStoredData(STORAGE_KEYS.EVENTS, uid, INITIAL_CALENDAR_EVENTS));
+    setAutomations(getUserStoredData(STORAGE_KEYS.AUTOMATIONS, uid, INITIAL_AUTOMATIONS));
+    setKnowledge(getUserStoredData(STORAGE_KEYS.KNOWLEDGE, uid, INITIAL_KNOWLEDGE));
   }, [currentUser?.id]);
 
   // Global Keyboard Listener for Ctrl+K / Cmd+K (Command Center)
@@ -140,12 +141,10 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Helper to persist data for both active session and user-isolated storage key
+  // Helper to persist data strictly for the active user's isolated storage key
   const persistUserData = (key, data) => {
-    saveStoredData(key, data);
-    if (currentUser?.id) {
-      saveUserStoredData(key, currentUser.id, data);
-    }
+    const uid = currentUser?.id || 'usr-guest';
+    saveUserStoredData(key, uid, data);
   };
 
   // Actions

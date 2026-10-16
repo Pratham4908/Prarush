@@ -70,8 +70,8 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
       setTimeout(() => {
         setIsRecording(false);
         setAudioTranscript({
-          text: 'Voice Memo Transcribed: We finalized the Prarush Universal System Architecture. All tasks from the sprint review are now synced across mobile, PWA, and desktop.',
-          confidence: '99.2%',
+          text: 'Voice Memo Note: Sprint review complete. All project tasks, markdown notes, and local files are saved persistently on this device.',
+          type: 'Sample Voice Note Preview',
           duration: '00:14'
         });
         audioSystem.playSuccessSound();
@@ -220,7 +220,7 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
             </button>
           </div>
 
-          {/* Image Render Preview */}
+            {/* Image Render Preview */}
           <div style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-glass)',
@@ -261,6 +261,20 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#cbd5e1', textAlign: 'center', fontStyle: 'italic' }}>
                   "{generatedImage.prompt}"
+                </div>
+                {/* Honest Demo Disclaimer Notice */}
+                <div style={{
+                  width: '100%',
+                  background: 'rgba(6, 182, 212, 0.08)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
+                  borderRadius: 8,
+                  padding: '8px 10px',
+                  fontSize: '0.7rem',
+                  color: '#94a3b8',
+                  lineHeight: 1.4
+                }}>
+                  <strong style={{ color: '#38bdf8' }}>Curated Style Preview: </strong>
+                  {generatedImage.disclaimer || 'Sample visual style demonstration. Connect Stability AI or Replicate in Model Hub for live diffusion models.'}
                 </div>
               </>
             )}
@@ -389,8 +403,8 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
                 fontSize: '0.74rem',
                 color: '#94a3b8'
               }}>
-                <span style={{ color: '#06b6d4', fontWeight: 700 }}>{generatedCode.language.toUpperCase()} • Generated with {generatedCode.modelUsed}</span>
-                <span>Type Checked ✓</span>
+                <span style={{ color: '#06b6d4', fontWeight: 700 }}>{generatedCode.language.toUpperCase()} &bull; {generatedCode.modelUsed}</span>
+                <span style={{ color: '#94a3b8' }}>Template Code (Syntax Highlighted Preview)</span>
               </div>
               <pre style={{
                 padding: 18,
@@ -402,6 +416,17 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
               }}>
                 <code>{generatedCode.code}</code>
               </pre>
+              {generatedCode.disclaimer && (
+                <div style={{
+                  padding: '8px 14px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                  fontSize: '0.7rem',
+                  color: '#94a3b8'
+                }}>
+                  {generatedCode.disclaimer}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -440,10 +465,10 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
 
           <div>
             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-              {isRecording ? 'Listening & Transcribing Voice...' : 'Click Microphone to Record & Transcribe Audio'}
+              {isRecording ? 'Simulating Audio Capture...' : 'Record Voice Note (Audio Demo Preview)'}
             </h3>
             <p style={{ fontSize: '0.76rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-              Web Audio capture with real-time waveform equalization and NLP speech-to-text.
+              Web Audio synthesis demo. Whisper or browser speech engine required for live automatic transcription.
             </p>
           </div>
 
@@ -457,7 +482,7 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
               textAlign: 'left'
             }}>
               <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, marginBottom: 4 }}>
-                TRANSCRIPTION COMPLETED (Confidence: {audioTranscript.confidence})
+                VOICE NOTE DEMO (Offline Sample NLP)
               </div>
               <p style={{ fontSize: '0.82rem', color: '#f8fafc', margin: 0, lineHeight: 1.5 }}>
                 {audioTranscript.text}

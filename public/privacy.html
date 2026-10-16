@@ -59,12 +59,12 @@
     <p><em>Last Updated: October 2026 | Current Status: Local-First Developer Prototype</em></p>
 
     <h2>1. Architecture &amp; Data Ownership</h2>
-    <p>Prarush is currently engineered as a <strong>local-first browser application</strong>. Workspaces, Kanban sprint tasks, markdown notes, calendar events, and document records are stored locally in your browser's persistent storage (LocalStorage and client memory). We do not collect, monetize, or train foundation models on your private notes or project records.</p>
+    <p>Prarush is currently engineered as a <strong>local-first browser application</strong>. Workspaces, Kanban sprint tasks, markdown notes, calendar events, and document records are stored locally on your device in persistent browser storage (LocalStorage for metadata and <strong>IndexedDB for binary document files</strong>). We do not collect, monetize, or train foundation models on your private notes or project records.</p>
 
     <h2>2. Authentication &amp; API Keys</h2>
     <ul>
-      <li><strong>Client-Side Accounts:</strong> Account registration and passwords use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and random session tokens. Sessions expire after 30 days of inactivity. Cross-device cloud sync is not currently active.</li>
-      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (OpenAI, Google Gemini, Anthropic, OpenRouter), these keys are stored exclusively in your browser (with optional session-only storage). Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server.</li>
+      <li><strong>Client-Side Accounts:</strong> Account registration and passwords use client-side salted SHA-256 cryptographic hashing (Web Crypto API) and random session tokens. User data is strictly isolated per local profile ID. Sessions expire after 30 days of inactivity, with the expiration window refreshed upon active platform usage. Cross-device cloud sync is not currently active.</li>
+      <li><strong>Bring-Your-Own-Key (BYOK):</strong> When you configure API keys (Anthropic Claude 3.7 Sonnet, Google Gemini 2.5 Pro, OpenAI GPT-4o, OpenRouter Llama 3.3), these keys are stored exclusively in your browser (with optional session-only storage). Inference requests connect directly from your browser to the chosen provider's HTTPS endpoint without routing through an intermediate proxy or server.</li>
     </ul>
 
     <h2>3. Third-Party AI Providers</h2>

@@ -141,7 +141,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Anthropic */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
-                Anthropic API Key (Claude 3.5 Sonnet)
+                Anthropic API Key (Claude 3.7 Sonnet)
               </label>
               <input
                 type="password"
@@ -189,7 +189,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Google Gemini */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#8b5cf6', marginBottom: 4 }}>
-                Google Gemini Key (Gemini 1.5 Pro via x-goog-api-key)
+                Google Gemini Key (Gemini 2.5 Pro via x-goog-api-key)
               </label>
               <input
                 type="password"
@@ -213,7 +213,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* OpenRouter */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#38bdf8', marginBottom: 4 }}>
-                OpenRouter Key (Llama 3 & Multi-Model Gateway)
+                OpenRouter Key (Llama 3.3 & Multi-Model Gateway)
               </label>
               <input
                 type="password"

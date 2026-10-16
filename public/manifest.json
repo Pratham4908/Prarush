@@ -1,14 +1,14 @@
 {
-  "name": "Prarush — Universal AI-Powered Digital Platform",
+  "name": "Prarush — Local-First Workspace for Developers & Creators",
   "short_name": "Prarush",
-  "description": "Universal workspaces, multi-model AI copilot (Claude 3.5, GPT-4o, Neural-4), Kanban sprints, document OCR, visual automations & knowledge hub.",
+  "description": "Local-first developer workspace with persistent browser storage, BYOK multi-model AI (Claude 3.7 Sonnet, Gemini 2.5 Pro, GPT-4o), Kanban sprints, and developer notes.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#060911",
   "theme_color": "#060911",
-  "categories": ["productivity", "utilities", "business", "education"],
+  "categories": ["productivity", "utilities", "developer", "business"],
   "icons": [
     {
       "src": "/favicon.svg",
@@ -20,23 +20,23 @@
   "shortcuts": [
     {
       "name": "AI Assistant",
-      "short_name": "AI Copilot",
-      "description": "Open multi-model conversational copilot",
+      "short_name": "AI Assistant",
+      "description": "Local rules engine & BYOK multi-model copilot",
       "url": "/#ai",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     },
     {
       "name": "Kanban Sprints",
       "short_name": "Kanban",
-      "description": "Task boards and project sprints",
+      "description": "Sprint boards and developer tasks",
       "url": "/#kanban",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     },
     {
-      "name": "Command Center",
-      "short_name": "Command",
-      "description": "Global natural language command palette",
-      "url": "/#command",
+      "name": "Knowledge Notes",
+      "short_name": "Knowledge",
+      "description": "Developer documentation and keyword search",
+      "url": "/#knowledge",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     }
   ]

@@ -24,7 +24,7 @@ export default function PrarushSidebar({
     {
       heading: 'AI SUITE',
       items: [
-        { id: 'ai_assistant', label: tPrarush('navAIAssistant', currentLocale), icon: Bot, badge: 'LIVE' },
+        { id: 'ai_assistant', label: tPrarush('navAIAssistant', currentLocale), icon: Bot },
         { id: 'model_hub', label: tPrarush('navModelHub', currentLocale), icon: Cpu },
         { id: 'content_studio', label: tPrarush('navCreativeStudio', currentLocale), icon: Sparkles }
       ]

@@ -6,7 +6,6 @@ const API_KEYS_STORAGE_KEY = 'prarush_cloud_api_keys';
 
 export function getStoredApiKeys() {
   try {
-    // Check sessionStorage first (safer memory-like session), then fallback to localStorage
     const sessionRaw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(API_KEYS_STORAGE_KEY) : null;
     if (sessionRaw) {
       return JSON.parse(sessionRaw);
@@ -44,7 +43,7 @@ export function hasActiveApiKey() {
   return Boolean(keys.openai || keys.gemini || keys.anthropic || keys.openrouter);
 }
 
-// Call live OpenAI API if key is present
+// Call live OpenAI API
 export async function callRealOpenAI(prompt, apiKey, model = 'gpt-4o') {
   if (!apiKey) throw new Error('OpenAI API key is missing.');
 
@@ -57,7 +56,7 @@ export async function callRealOpenAI(prompt, apiKey, model = 'gpt-4o') {
     body: JSON.stringify({
       model: model || 'gpt-4o',
       messages: [
-        { role: 'system', content: 'You are Prarush, an expert AI productivity assistant for software engineering, academic research, and creative workflows.' },
+        { role: 'system', content: 'You are Prarush, an expert AI productivity assistant for software engineering and technical workflows.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7
@@ -73,19 +72,18 @@ export async function callRealOpenAI(prompt, apiKey, model = 'gpt-4o') {
   return data.choices?.[0]?.message?.content || 'No response generated from OpenAI.';
 }
 
-// Call live Google Gemini API using header-based authentication (never query string key)
-export async function callRealGemini(prompt, apiKey, model = 'gemini-1.5-flash') {
+// Call live Google Gemini API using active Gemini 2.5 series
+export async function callRealGemini(prompt, apiKey, model = 'gemini-2.5-flash') {
   if (!apiKey) throw new Error('Gemini API key is missing.');
 
-  // Normalize model identifier
-  const targetModel = model.includes('pro') ? 'gemini-1.5-pro' : 'gemini-1.5-flash';
+  // Target active Gemini 2.5 series (replacing deprecated 1.5)
+  const targetModel = model.includes('pro') ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      // Pass API key via standard Google REST header, keeping URL clean of secrets
       'x-goog-api-key': apiKey
     },
     body: JSON.stringify({
@@ -102,9 +100,11 @@ export async function callRealGemini(prompt, apiKey, model = 'gemini-1.5-flash')
   return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated from Gemini.';
 }
 
-// Call live Anthropic Messages API (Claude 3.5 Sonnet)
-export async function callRealAnthropic(prompt, apiKey, model = 'claude-3-5-sonnet-20241022') {
+// Call live Anthropic Messages API using active Claude 3.7 Sonnet
+export async function callRealAnthropic(prompt, apiKey, model = 'claude-3-7-sonnet-20250219') {
   if (!apiKey) throw new Error('Anthropic API key is missing.');
+
+  const targetModel = model || 'claude-3-7-sonnet-20250219';
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -112,11 +112,10 @@ export async function callRealAnthropic(prompt, apiKey, model = 'claude-3-5-sonn
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      // Required for direct browser-to-Anthropic inference without proxy
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: model || 'claude-3-5-sonnet-20241022',
+      model: targetModel,
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -132,8 +131,8 @@ export async function callRealAnthropic(prompt, apiKey, model = 'claude-3-5-sonn
   return textBlock?.text || 'No response generated from Claude.';
 }
 
-// Call live OpenRouter API for open-source or commercial models
-export async function callRealOpenRouter(prompt, apiKey, model = 'anthropic/claude-3.5-sonnet') {
+// Call live OpenRouter API for open-weights models (Llama 3.3 70B)
+export async function callRealOpenRouter(prompt, apiKey, model = 'meta-llama/llama-3.3-70b-instruct') {
   if (!apiKey) throw new Error('OpenRouter API key is missing.');
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://prarush.local';
@@ -146,7 +145,7 @@ export async function callRealOpenRouter(prompt, apiKey, model = 'anthropic/clau
       'X-Title': 'Prarush Platform'
     },
     body: JSON.stringify({
-      model: model || 'anthropic/claude-3.5-sonnet',
+      model: model || 'meta-llama/llama-3.3-70b-instruct',
       messages: [
         { role: 'user', content: prompt }
       ]

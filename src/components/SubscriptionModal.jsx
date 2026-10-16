@@ -28,11 +28,22 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
     e.preventDefault();
     if (!waitlistEmail || !waitlistEmail.includes('@')) return;
 
+    try {
+      localStorage.setItem('prarush_local_waitlist_demo', JSON.stringify({
+        email: waitlistEmail,
+        tier: selectedTier,
+        billingCycle,
+        joinedAt: new Date().toISOString()
+      }));
+    } catch {
+      // Ignore storage quota errors
+    }
+
     setWaitlistJoined(true);
     audioSystem.playSuccessSound();
 
     confetti({
-      particleCount: 70,
+      particleCount: 50,
       spread: 60,
       origin: { y: 0.6 }
     });
@@ -254,24 +265,74 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
           {/* Waitlist Form */}
           {waitlistJoined ? (
             <div style={{
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
               borderRadius: 12,
-              padding: '16px',
-              textAlign: 'center',
-              color: '#10b981',
-              fontSize: '0.85rem',
-              fontWeight: 700
+              padding: '14px 16px',
+              color: '#f8fafc',
+              fontSize: '0.8rem',
+              lineHeight: 1.5
             }}>
-              🎉 You are on the Cloud Launch Waitlist! We will notify you at {waitlistEmail} when paid tiers and multi-device sync go live.
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 800, marginBottom: 6 }}>
+                <Check size={16} />
+                <span>Local Interest Recorded (Demo Preview)</span>
+              </div>
+              <p style={{ margin: '0 0 10px 0', color: '#cbd5e1' }}>
+                Your email <strong style={{ color: '#fff' }}>{waitlistEmail}</strong> has been stored locally on this device.
+              </p>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 8,
+                padding: '8px 10px',
+                fontSize: '0.72rem',
+                color: '#94a3b8'
+              }}>
+                <strong style={{ color: '#e2e8f0' }}>Notice:</strong> Because Prarush is currently an offline local-first prototype without a cloud backend, no automated remote email was dispatched. For live release announcements and backend availability, monitor the official repository.
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <a
+                  href="https://github.com/Pratham4908/Prarush"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.75rem',
+                    padding: '8px 14px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <span>Follow GitHub Releases</span>
+                  <ArrowRight size={13} />
+                </a>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '8px 14px' }}
+                  onClick={() => setWaitlistJoined(false)}
+                >
+                  Edit Email
+                </button>
+              </div>
             </div>
           ) : (
-            <form onSubmit={handleJoinWaitlist} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <form onSubmit={handleJoinWaitlist} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ fontSize: '0.74rem', color: '#cbd5e1', fontWeight: 600 }}>
+                  Demo Waitlist &bull; Local Interest Tracker
+                </label>
+                <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                  Offline Preview
+                </span>
+              </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   type="email"
                   required
-                  placeholder="Enter your email to join waitlist..."
+                  placeholder="Enter email to record interest..."
                   value={waitlistEmail}
                   onChange={(e) => setWaitlistEmail(e.target.value)}
                   style={{
@@ -299,11 +360,11 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
                   }}
                 >
                   <BellRing size={14} />
-                  <span>Join Waitlist</span>
+                  <span>Join Waitlist (Preview)</span>
                 </button>
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#64748b', textAlign: 'center' }}>
-                Zero spam. Only launch notifications and early access invites.
+              <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: 1.4 }}>
+                Saves email to local browser settings. No cloud transmission occurs until a backend service is connected.
               </div>
             </form>
           )}

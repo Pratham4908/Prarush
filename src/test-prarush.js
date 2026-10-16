@@ -113,7 +113,7 @@ async function runAllTests() {
     assert(INITIAL_CALENDAR_EVENTS.length >= 3, 'Should have initial calendar events');
   });
 
-  await runTest('Per-user data access isolation functions properly', () => {
+  await runTest('Per-user data access isolation functions properly without leakage or fallback', () => {
     const key = getUserStorageKey('tasks', 'user-alpha');
     assert.strictEqual(key, 'prarush_usr_user-alpha_tasks');
 
@@ -125,6 +125,11 @@ async function runAllTests() {
 
     assert.strictEqual(alphaTasks[0].title, 'Alpha Sprint Task');
     assert.strictEqual(betaTasks[0].title, 'Beta Sprint Task');
+
+    // Verify an uninitialized user profile gets fallback default, with zero leakage from other profiles
+    const gammaTasks = getUserStoredData('tasks', 'user-gamma', [{ id: 't-default', title: 'Default Task' }]);
+    assert.strictEqual(gammaTasks[0].title, 'Default Task');
+    assert.strictEqual(gammaTasks.some(t => t.id === 't-1' || t.id === 't-2'), false, 'Gamma must not inherit Alpha or Beta tasks');
   });
 
   await runTest('Community Templates catalog validation', () => {
@@ -136,14 +141,14 @@ async function runAllTests() {
   });
 
   // 2. AI Multi-Model Hub Tests
-  await runTest('AI Multi-Model Catalog contains top-tier providers with Prarush Local Engine', () => {
+  await runTest('AI Multi-Model Catalog contains top-tier active models with Prarush Local Engine', () => {
     assert(AI_MODELS.length >= 5, 'Should support at least 5 distinct AI models');
     const modelIds = AI_MODELS.map(m => m.id);
     assert(modelIds.includes('prarush-local-engine'), 'Should include Prarush Local Engine');
-    assert(modelIds.includes('claude-3-5-sonnet'), 'Should include Claude 3.5 Sonnet');
+    assert(modelIds.includes('claude-3-7-sonnet'), 'Should include Claude 3.7 Sonnet');
     assert(modelIds.includes('gpt-4o'), 'Should include OpenAI GPT-4o');
-    assert(modelIds.includes('gemini-1-5-pro'), 'Should include Google Gemini 1.5 Pro');
-    assert(modelIds.includes('llama-3-70b'), 'Should include Meta Llama 3 70B');
+    assert(modelIds.includes('gemini-2-5-pro'), 'Should include Google Gemini 2.5 Pro');
+    assert(modelIds.includes('llama-3-3-70b'), 'Should include Meta Llama 3.3 70B');
   });
 
   await runTest('processPrarushAIQuery handles general reasoning queries via Local Engine', async () => {
@@ -156,7 +161,7 @@ async function runAllTests() {
   await runTest('processPrarushAIQuery honestly labels unconfigured Claude requests as fallback (never OpenAI)', async () => {
     // Clear keys to ensure fallback test
     saveStoredApiKeys({ openai: '', gemini: '', anthropic: '', openrouter: '' });
-    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-3-5-sonnet');
+    const result = await processPrarushAIQuery('Design an authentication middleware', 'claude-3-7-sonnet');
     assert.strictEqual(result.isLiveApi, false, 'Unconfigured Claude must not claim live API');
     assert(result.modelUsed.includes('Key Not Configured') || result.modelUsed.includes('Fallback'), 'Must explicitly declare fallback');
     assert(!result.modelUsed.includes('OpenAI'), 'Claude fallback must NEVER pretend to be OpenAI');
@@ -175,7 +180,7 @@ async function runAllTests() {
   });
 
   await runTest('processPrarushAIQuery generates reference specifications without unverified scores', async () => {
-    const result = await processPrarushAIQuery('Research and verify model specs', 'gemini-1-5-pro');
+    const result = await processPrarushAIQuery('Research and verify model specs', 'gemini-2-5-pro');
     assert(Array.isArray(result.citations), 'Should include citations array');
     assert(result.citations.length >= 1, 'Should have at least one citation');
   });
@@ -254,6 +259,24 @@ async function runAllTests() {
     const currentUser = getCurrentUser();
     assert.strictEqual(currentUser.isGuest, true, 'Expired session must return DEFAULT_GUEST_USER');
     assert.strictEqual(localStorage.getItem('prarush_active_session'), null, 'Expired session must be purged from storage');
+  });
+
+  await runTest('AuthManager refreshes session expiresAt (sliding inactivity window)', () => {
+    const originalExpiry = new Date(Date.now() + 1000 * 60).toISOString(); // 1 minute in future
+    const activeSession = {
+      token: 'active-token-456',
+      user: { id: 'usr-active', name: 'Active User', email: 'active@example.com' },
+      expiresAt: originalExpiry
+    };
+    localStorage.setItem('prarush_active_session', JSON.stringify(activeSession));
+
+    const currentUser = getCurrentUser();
+    assert.strictEqual(currentUser.id, 'usr-active');
+
+    const updatedSession = JSON.parse(localStorage.getItem('prarush_active_session'));
+    const refreshedTime = new Date(updatedSession.expiresAt).getTime();
+    const originalTime = new Date(originalExpiry).getTime();
+    assert(refreshedTime > originalTime, 'Session expiry should be refreshed on active access');
   });
 
   await runTest('AuthManager supports Guest mode seamlessly', () => {

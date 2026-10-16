@@ -1,12 +1,12 @@
 # ⚡ PRARUSH — Local-First Workspace for Developers & Creators
 
 [![Production Build](https://img.shields.io/badge/Build-Passing%20(Vite%208.3)-06b6d4.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
-[![Automated Tests](https://img.shields.io/badge/Tests-18%2F18%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
+[![Automated Tests](https://img.shields.io/badge/Tests-21%2F21%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable%20Offline%20Cache-8b5cf6.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Architecture](https://img.shields.io/badge/Architecture-Local--First%20%2B%20BYOK-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Status](https://img.shields.io/badge/Status-Local--First%20Developer%20Prototype-f59e0b.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 
-> **Prarush is a local-first workspace for software engineers and technical creators. It unifies fast idea capture, Kanban sprint boards, markdown notes, document parsing, visual automations, and direct multi-model AI inference into one fluid, private canvas.**
+> **Prarush is a local-first workspace for software engineers and technical creators. It unifies fast idea capture, Kanban sprint boards, markdown notes, persistent document storage, real GZIP stream compression, visual automations, and direct multi-model AI inference into one fluid, private canvas.**
 
 ---
 
@@ -20,9 +20,9 @@
        ⬇
 2. Convert to Kanban Sprint Task (Priority, Deadline, Tags)
        ⬇
-3. Implement with AI Copilot (BYOK Claude 3.5, GPT-4o, Gemini 1.5, or Offline Rules)
+3. Implement with AI Copilot (BYOK Claude 3.7 Sonnet, GPT-4o, Gemini 2.5 Pro, Llama 3.3, or Offline Rules)
        ⬇
-4. Save Artifacts & Markdown Notes locally in private browser storage
+4. Save Artifacts & Markdown Notes locally in private IndexedDB & LocalStorage
 ```
 
 The default workspace opens directly to **Software Engineering & Dev** with engineering tasks, code templates, and developer notes.
@@ -34,16 +34,18 @@ The default workspace opens directly to **Software Engineering & Dev** with engi
 Prarush is transparent about what currently runs locally in the browser versus what is planned for backend cloud deployment:
 
 ### ✅ Currently Shipped & Working (Local-First Prototype)
-- **Local-First Storage:** Workspaces, Kanban tasks, markdown notes, calendar events, documents, and automations persist in client-side storage (`prarushStore.js`) with per-user data isolation.
-- **Client-Side Auth & Session Expiry:** Salted SHA-256 cryptographic password hashing (Web Crypto API) with zero plaintext password storage (`authManager.js`). Sessions verify expiration timestamps on every session read.
+- **Local-First Storage & Strict Profile Isolation:** Workspaces, Kanban tasks, markdown notes, calendar events, documents, and automations persist in client-side storage (`prarushStore.js`) strictly scoped per user ID, with zero fallback to shared keys or data leakage.
+- **Client-Side Auth & Sliding Session Expiry:** Salted SHA-256 cryptographic password hashing (Web Crypto API) with zero plaintext password storage (`authManager.js`). Sessions implement a sliding 30-day inactivity expiration window refreshed upon active platform usage.
 - **Direct Multi-Model AI Routing (BYOK):**
-  - **Anthropic Claude 3.5 Sonnet:** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`).
+  - **Anthropic Claude 3.7 Sonnet (`claude-3-7-sonnet-20250219`):** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`).
   - **OpenAI GPT-4o:** Direct inference via Chat Completions API (`Authorization: Bearer`).
-  - **Google Gemini 1.5 Pro:** Direct inference via REST API using standard `x-goog-api-key` header (never exposing API keys in URL query strings).
-  - **OpenRouter (Llama 3):** Direct gateway access for open-weights models.
+  - **Google Gemini 2.5 Pro & Flash:** Direct inference via REST API using standard `x-goog-api-key` header (never exposing API keys in URL query strings).
+  - **OpenRouter (Meta Llama 3.3 70B):** Direct gateway access for open-weights models.
   - **Prarush Local Engine:** Deterministic offline rule generator for code structures, presentations, and task templates when no API key is configured.
+  - **Real Error Reporting:** Live provider failures report actual error messages and explicitly announce fallback to local offline rules.
   - **Session-Only Key Storage:** Option to store provider keys in `sessionStorage` (cleared automatically on tab close).
-- **Authentic File Byte Preservation:** Uploaded files (`.pdf`, images, `.txt`, `.md`, `.json`, `.csv`) preserve original binary bytes in client memory. Downloads return authentic files with correct MIME types rather than broken text files.
+- **Persistent Binary Storage (IndexedDB):** Uploaded files (`.pdf`, images, `.txt`, `.md`, `.json`, `.csv`) persist in browser IndexedDB (`prarush_files_db`) across reloads and sessions. Real byte sizes are tracked against browser storage quotas.
+- **Authentic GZIP Stream Compression:** Files are compressed using the browser's native `CompressionStream('gzip')`, calculating actual byte reduction and providing downloadable `.gz` binary archives.
 - **Keyword & Passage Retrieval:** Keyword-matched lexical search across stored notes, documents, and references. Accurately extracts matching passages and returns an explicit no-match response when no terms match, without artificial confidence scores.
 - **Data Portability & Erasure:** Machine-readable JSON data export and 1-click origin-safe storage purge affecting only `prarush_*` keys.
 - **Smart Command Center:** Global `Ctrl+K` / `Cmd+K` natural language fuzzy search palette.
@@ -53,7 +55,7 @@ Prarush is transparent about what currently runs locally in the browser versus w
 ### ⏳ Planned Production Backend Services (Roadmap)
 - **Cloud Database Synchronization:** Multi-device synchronization via PostgreSQL / Supabase with Row-Level Security (RLS).
 - **Verified Server Billing:** Stripe checkout, webhook entitlement verification, and subscription management before activating paid tiers.
-- **Server-Side OCR Microservice:** Optical character recognition microservice for complex scanned binary PDFs.
+- **Server-Side OCR Microservice:** Optical character recognition microservice for complex scanned binary PDFs and images.
 - **Native Store Releases:** Compiling native Android and iOS store binaries with device testing.
 
 ---
@@ -73,7 +75,9 @@ graph TD
 
     subgraph LocalEngines ["Local-First Core Engines"]
         Store["Per-User Local Store (prarushStore.js)"]
-        Auth["Salted SHA-256 + Session Expiry (authManager.js)"]
+        IndexedDBStore["Persistent IndexedDB File Store (indexedDbStore.js)"]
+        Compression["Native GZIP Stream Engine (compressionEngine.js)"]
+        Auth["Salted SHA-256 + Sliding Session (authManager.js)"]
         BYOK["Secure BYOK Gateway (apiKeyManager.js)"]
         AIHub["Multi-Model AI Router (prarushAI.js)"]
         Freemium["Pricing Preview & Quotas (prarushFreemium.js)"]
@@ -81,10 +85,10 @@ graph TD
     end
 
     subgraph Providers ["Direct Client-to-Provider Inference"]
-        Anthropic["Anthropic (Claude 3.5 Sonnet)"]
+        Anthropic["Anthropic (Claude 3.7 Sonnet)"]
         OpenAI["OpenAI (GPT-4o)"]
-        Gemini["Google Gemini (x-goog-api-key Header)"]
-        OpenRouter["OpenRouter (Llama 3 70B)"]
+        Gemini["Google Gemini (2.5 Pro / Flash via Header)"]
+        OpenRouter["OpenRouter (Llama 3.3 70B)"]
         LocalEngine["Prarush Local Engine (Offline Rules)"]
     end
 
@@ -96,6 +100,8 @@ graph TD
     CommandPalette --> Canvas
 
     Canvas --> Store
+    Canvas --> IndexedDBStore
+    Canvas --> Compression
     Canvas --> Auth
     Canvas --> BYOK
     Canvas --> AIHub

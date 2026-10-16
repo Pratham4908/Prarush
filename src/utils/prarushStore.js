@@ -240,26 +240,26 @@ export const INITIAL_AUTOMATIONS = [
 export const INITIAL_KNOWLEDGE_ITEMS = [
   {
     id: 'kb-501',
-    title: 'Vector Embeddings & Semantic Search Pipelines',
-    source: 'Prarush AI Research Archive',
-    snippet: 'Cosine similarity across dense 1536-dimensional vectors allows instant retrieval of semantically related notes and documents even without exact keyword matches.',
-    tags: ['AI', 'Embeddings', 'Search'],
+    title: '[Sample] Git Rebase vs. Merge Workflows for Teams',
+    source: 'Sample Engineering Reference',
+    snippet: 'Git rebase rewrites branch history by applying local commits sequentially onto the target branch tip, ensuring a clean linear git log. Git merge creates a dedicated merge commit, preserving exact historical branch topology.',
+    tags: ['Git', 'DevOps', 'Sample'],
     date: '2026-10-12'
   },
   {
     id: 'kb-502',
-    title: 'Progressive Web App (PWA) Offline Service Worker Best Practices',
-    source: 'W3C Web Standards & MDN',
-    snippet: 'Stale-while-revalidate caching delivers sub-millisecond perceived page load times while background network requests refresh cached assets automatically.',
-    tags: ['PWA', 'Performance', 'Web'],
+    title: '[Sample] IndexedDB Asynchronous Storage vs. LocalStorage',
+    source: 'Sample Web Architecture Note',
+    snippet: 'LocalStorage is synchronous and limited to approximately 5MB of UTF-16 string data, which can block browser rendering on heavy reads. IndexedDB is asynchronous, transactional, and safely stores binary Blobs and Files for local-first applications.',
+    tags: ['Storage', 'IndexedDB', 'Sample'],
     date: '2026-10-14'
   },
   {
     id: 'kb-503',
-    title: 'GDPR Data Subject Rights & Client-Side Encryption Guidelines',
-    source: 'EU Digital Privacy Framework 2026',
-    snippet: 'Under GDPR Article 17 (Right to Erasure) and Article 20 (Data Portability), platforms must provide machine-readable JSON data export and permanent 1-click deletion.',
-    tags: ['GDPR', 'Privacy', 'Compliance'],
+    title: '[Sample] REST API Client Error Handling & Status Codes',
+    source: 'Sample API Integration Guide',
+    snippet: 'REST APIs communicate outcomes using standardized HTTP status codes: 400 for bad payloads, 401 for missing authentication, 403 for unauthorized access, 404 for missing resources, and 429 for rate limit throttling.',
+    tags: ['API', 'Backend', 'Sample'],
     date: '2026-10-15'
   }
 ];
@@ -356,14 +356,15 @@ export function saveStoredData(key, data) {
 
 // User-scoped storage isolation: isolates records per user account
 export function getUserStorageKey(baseKey, userId) {
-  if (!userId || userId === 'usr-guest') return baseKey;
+  const uid = userId ? String(userId).trim() : 'usr-guest';
   const cleanBase = baseKey.replace(/^prarush_/, '');
-  return `prarush_usr_${userId}_${cleanBase}`;
+  return `prarush_usr_${uid}_${cleanBase}`;
 }
 
 export function getUserStoredData(baseKey, userId, fallback) {
   const scopedKey = getUserStorageKey(baseKey, userId);
-  return getStoredData(scopedKey, getStoredData(baseKey, fallback));
+  // Strictly isolated: read ONLY from scopedKey and NEVER fall back to shared unscoped keys
+  return getStoredData(scopedKey, fallback);
 }
 
 export function saveUserStoredData(baseKey, userId, data) {

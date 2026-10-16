@@ -59,10 +59,20 @@ export function getCurrentUser() {
     if (!session || !session.user) return DEFAULT_GUEST_USER;
 
     // Enforce session expiry verification
-    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
-      console.warn('Prarush session expired. Terminating session.');
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      return DEFAULT_GUEST_USER;
+    if (session.expiresAt) {
+      const expiry = new Date(session.expiresAt);
+      if (expiry < new Date()) {
+        console.warn('Prarush session expired. Terminating session.');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        return DEFAULT_GUEST_USER;
+      }
+      // Sliding window: refresh expiration on active user access (30 days of inactivity)
+      session.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      try {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      } catch {
+        // Ignore storage write errors on quota
+      }
     }
 
     return session.user;
