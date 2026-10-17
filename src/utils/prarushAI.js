@@ -13,11 +13,31 @@ export const AI_MODELS = [
     badgeColor: '#06b6d4',
     contextWindow: 'Local Workspace Context',
     speed: 'Instant (<10 ms local)',
+    pricingTier: '100% Free (On-device)',
     costPer1k: 'Free ($0.00)',
-    inputCostPer1k: '$0.00 / 1k input',
-    outputCostPer1k: '$0.00 / 1k output',
-    pricingDate: 'On-device offline rules',
+    inputCostPer1k: '$0.00 / 1M input',
+    outputCostPer1k: '$0.00 / 1M output',
+    pricingDate: 'Verified Oct 2026',
+    pricingUrl: 'https://github.com/Pratham4908/Prarush',
     strengths: 'Offline task templates, deterministic code/markdown generation without external API keys or cloud dependencies'
+  },
+  {
+    id: 'claude-sonnet-5-5',
+    aliasId: 'claude-5-5-sonnet',
+    name: 'Claude Sonnet 5.5',
+    provider: 'Anthropic',
+    icon: '🧠',
+    badge: 'LIVE BYOK',
+    badgeColor: '#f59e0b',
+    contextWindow: '200K Tokens',
+    speed: 'Est. 400-900 ms (Cloud)',
+    pricingTier: 'Paid BYOK',
+    costPer1k: '$2.00 in / $10.00 out (per 1M)',
+    inputCostPer1k: '$2.00 / 1M tokens ($0.0020/1k)',
+    outputCostPer1k: '$10.00 / 1M tokens ($0.0100/1k)',
+    pricingDate: 'Anthropic official rates (Oct 2026)',
+    pricingUrl: 'https://platform.claude.com/docs/en/about-claude/pricing',
+    strengths: 'Anthropic frontier model for software engineering, multi-step agentic workflows, and nuanced analytical reasoning'
   },
   {
     id: 'claude-sonnet-5',
@@ -26,14 +46,16 @@ export const AI_MODELS = [
     provider: 'Anthropic',
     icon: '🧠',
     badge: 'LIVE BYOK',
-    badgeColor: '#f59e0b',
+    badgeColor: '#d97706',
     contextWindow: '200K Tokens',
     speed: 'Est. 450-950 ms (Cloud)',
-    costPer1k: '$0.003 in / $0.015 out',
-    inputCostPer1k: '$0.0030 / 1k input ($3/M)',
-    outputCostPer1k: '$0.0150 / 1k output ($15/M)',
-    pricingDate: 'Anthropic official rates (est. Oct 2026)',
-    strengths: 'Anthropic current-generation frontier model for advanced architectural analysis, complex reasoning, and code synthesis'
+    pricingTier: 'Paid BYOK',
+    costPer1k: '$2.00 in / $10.00 out (per 1M)',
+    inputCostPer1k: '$2.00 / 1M tokens ($0.0020/1k)',
+    outputCostPer1k: '$10.00 / 1M tokens ($0.0100/1k)',
+    pricingDate: 'Anthropic official rates (Oct 2026)',
+    pricingUrl: 'https://platform.claude.com/docs/en/about-claude/pricing',
+    strengths: 'Anthropic current-generation model with exceptional coding ability and cost-efficient frontier reasoning'
   },
   {
     id: 'claude-sonnet-4-5',
@@ -43,14 +65,16 @@ export const AI_MODELS = [
     provider: 'Anthropic',
     icon: '🧠',
     badge: 'LIVE BYOK',
-    badgeColor: '#d97706',
+    badgeColor: '#b45309',
     contextWindow: '200K Tokens',
     speed: 'Est. 500-1100 ms (Cloud)',
-    costPer1k: '$0.003 in / $0.015 out',
-    inputCostPer1k: '$0.0030 / 1k input ($3/M)',
-    outputCostPer1k: '$0.0150 / 1k output ($15/M)',
-    pricingDate: 'Anthropic official rates (est. Oct 2026)',
-    strengths: 'Balanced reasoning, nuanced prose, full-stack architectural design, and complex code debugging'
+    pricingTier: 'Paid BYOK (Legacy Alias)',
+    costPer1k: '$3.00 in / $15.00 out (per 1M)',
+    inputCostPer1k: '$3.00 / 1M tokens ($0.0030/1k)',
+    outputCostPer1k: '$15.00 / 1M tokens ($0.0150/1k)',
+    pricingDate: 'Anthropic official rates (Oct 2026)',
+    pricingUrl: 'https://platform.claude.com/docs/en/about-claude/pricing',
+    strengths: 'Hybrid reasoning, nuanced prose, full-stack architectural design, and complex code debugging'
   },
   {
     id: 'gpt-4o',
@@ -61,10 +85,12 @@ export const AI_MODELS = [
     badgeColor: '#10b981',
     contextWindow: '128K Tokens',
     speed: 'Est. 500-1200 ms (Cloud)',
-    costPer1k: '$0.0025 in / $0.010 out',
-    inputCostPer1k: '$0.0025 / 1k input ($2.50/M)',
-    outputCostPer1k: '$0.0100 / 1k output ($10/M)',
-    pricingDate: 'OpenAI official rates (est. Oct 2026)',
+    pricingTier: 'Paid BYOK',
+    costPer1k: '$2.50 in / $10.00 out (per 1M)',
+    inputCostPer1k: '$2.50 / 1M tokens ($0.0025/1k)',
+    outputCostPer1k: '$10.00 / 1M tokens ($0.0100/1k)',
+    pricingDate: 'OpenAI official rates (Oct 2026)',
+    pricingUrl: 'https://openai.com/api/pricing/',
     strengths: 'Multimodal vision, cross-domain logic, mathematical problem solving, rapid structured completions'
   },
   {
@@ -78,10 +104,12 @@ export const AI_MODELS = [
     badgeColor: '#8b5cf6',
     contextWindow: '1M+ Tokens',
     speed: 'Est. 300-800 ms (Cloud)',
-    costPer1k: '$0.0001 in / $0.0004 out',
-    inputCostPer1k: '$0.0001 / 1k input ($0.10/M)',
-    outputCostPer1k: '$0.0004 / 1k output ($0.40/M)',
-    pricingDate: 'Google DeepMind rates (est. Oct 2026)',
+    pricingTier: 'Free tier (15 RPM) / Paid intro ($0.75 in / $3.75 out per 1M)',
+    costPer1k: '$0.75 in / $3.75 out (per 1M)',
+    inputCostPer1k: '$0.75 / 1M tokens ($0.00075/1k)',
+    outputCostPer1k: '$3.75 / 1M tokens ($0.00375/1k)',
+    pricingDate: 'Google rates through Dec 31, 2026',
+    pricingUrl: 'https://ai.google.dev/gemini-api/docs/pricing',
     strengths: 'High-speed reasoning, large multimodal context, and instant codebase ingestion via header auth'
   },
   {
@@ -94,11 +122,13 @@ export const AI_MODELS = [
     badgeColor: '#38bdf8',
     contextWindow: '128K Tokens',
     speed: 'Est. 400-1000 ms (Cloud)',
-    costPer1k: '$0.0008 in / $0.0008 out',
-    inputCostPer1k: '$0.0008 / 1k input ($0.80/M)',
-    outputCostPer1k: '$0.0008 / 1k output ($0.80/M)',
-    pricingDate: 'OpenRouter router rates (est. Oct 2026)',
-    strengths: 'Open-weights foundation model, accessible via OpenRouter BYOK key'
+    pricingTier: 'Paid BYOK (OpenRouter router rates)',
+    costPer1k: '$0.10 in / $0.32 out (per 1M)',
+    inputCostPer1k: '$0.10 / 1M tokens ($0.00010/1k)',
+    outputCostPer1k: '$0.32 / 1M tokens ($0.00032/1k)',
+    pricingDate: 'OpenRouter router rates (Oct 2026)',
+    pricingUrl: 'https://openrouter.ai/meta-llama/llama-3.3-70b-instruct',
+    strengths: 'Open-weights foundation model; actual charge depends on OpenRouter provider routing'
   }
 ];
 
@@ -119,11 +149,17 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
   const keys = getStoredApiKeys();
   let liveCallError = null;
 
-  // 1. Direct Live Routing: Anthropic (Claude Sonnet 5 & Sonnet 4.5)
-  if (selectedModel.id === 'claude-sonnet-5' || selectedModel.id === 'claude-5-sonnet' || selectedModel.id === 'claude-sonnet-4-5' || selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
-    const targetAnthropicId = (selectedModel.id === 'claude-sonnet-5' || selectedModel.id === 'claude-5-sonnet')
-      ? 'claude-sonnet-5'
-      : 'claude-sonnet-4-5';
+  // 1. Direct Live Routing: Anthropic (Claude Sonnet 5.5, Sonnet 5 & Sonnet 4.5)
+  if (selectedModel.id === 'claude-sonnet-5-5' || selectedModel.id === 'claude-5-5-sonnet' ||
+      selectedModel.id === 'claude-sonnet-5' || selectedModel.id === 'claude-5-sonnet' || 
+      selectedModel.id === 'claude-sonnet-4-5' || selectedModel.id === 'claude-sonnet' || 
+      selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
+    let targetAnthropicId = 'claude-sonnet-5-5';
+    if (selectedModel.id === 'claude-sonnet-5' || selectedModel.id === 'claude-5-sonnet') {
+      targetAnthropicId = 'claude-sonnet-5';
+    } else if (selectedModel.id === 'claude-sonnet-4-5' || selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
+      targetAnthropicId = 'claude-sonnet-4-5';
+    }
 
     if (keys.anthropic) {
       try {
@@ -147,7 +183,9 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       }
     } else if (keys.openrouter) {
       try {
-        const targetOpenRouterModel = targetAnthropicId === 'claude-sonnet-5' ? 'anthropic/claude-sonnet-5' : 'anthropic/claude-sonnet-4.5';
+        let targetOpenRouterModel = 'anthropic/claude-sonnet-5.5';
+        if (targetAnthropicId === 'claude-sonnet-5') targetOpenRouterModel = 'anthropic/claude-sonnet-5';
+        else if (targetAnthropicId === 'claude-sonnet-4-5') targetOpenRouterModel = 'anthropic/claude-sonnet-4.5';
         const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, targetOpenRouterModel);
         return {
           type: 'live_llm_response',
@@ -345,12 +383,12 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       isLiveApi: false,
       disclaimer: fallbackNotice,
       verifiedFacts: [
-        'Active Models: Claude Sonnet 5 & Sonnet 4.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
+        'Active Models: Claude Sonnet 5.5, Sonnet 5 & Sonnet 4.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
         'Direct Client Protocol: Browser BYOK requests route directly via HTTPS headers (x-api-key, Authorization, x-goog-api-key).',
         'Data Isolation: Workspaces and tasks persist locally per user profile without shared browser leakage.'
       ],
       citations: [
-        'Anthropic Model Documentation (Claude Sonnet 5 & Sonnet 4.5)',
+        'Anthropic Model Documentation (Claude Sonnet 5.5, Sonnet 5 & Sonnet 4.5)',
         'Google Cloud Generative AI Documentation (Gemini 3.8 Flash)',
         'OpenAI API Reference (GPT-4o)'
       ]

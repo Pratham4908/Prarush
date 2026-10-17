@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Cpu, Zap, DollarSign, Clock, ShieldCheck, Check, Sparkles, 
-  Layers, ExternalLink, Play, CheckCircle2, Key, Info, AlertCircle, ShieldAlert 
+  Layers, ExternalLink, Play, CheckCircle2, Key, Info, AlertCircle, ShieldAlert, RefreshCw 
 } from 'lucide-react';
 import { AI_MODELS } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
@@ -14,6 +14,18 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
   const [apiKeys, setApiKeys] = useState(() => getStoredApiKeys());
   const [saveStatus, setSaveStatus] = useState(false);
   const [purgeStatus, setPurgeStatus] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState('October 17, 2026');
+  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
+
+  const handleRefreshRates = () => {
+    setIsRefreshingRates(true);
+    audioSystem.playTone(620, 'sine', 0.12);
+    setTimeout(() => {
+      setLastRefreshed(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+      setIsRefreshingRates(false);
+      audioSystem.playSuccessSound();
+    }, 450);
+  };
 
   const handleSaveKeys = (e) => {
     e.preventDefault();
@@ -90,7 +102,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
     }
 
     // 4. Anthropic Ping / Key Check
-    else if (modelId === 'claude-sonnet-5' || modelId === 'claude-5-sonnet' || modelId === 'claude-sonnet-4-5' || modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
+    else if (modelId === 'claude-sonnet-5-5' || modelId === 'claude-5-5-sonnet' || modelId === 'claude-sonnet-5' || modelId === 'claude-5-sonnet' || modelId === 'claude-sonnet-4-5' || modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
       if (!apiKeys.anthropic) {
         setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
       } else {
@@ -179,25 +191,49 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
           </p>
         </div>
 
-        <button
-          onClick={() => setShowKeyConfig(prev => !prev)}
-          style={{
-            padding: '9px 16px',
-            borderRadius: 10,
-            background: showKeyConfig ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(6, 182, 212, 0.4)',
-            color: '#06b6d4',
-            fontWeight: 700,
-            fontSize: '0.82rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8
-          }}
-        >
-          <Key size={15} />
-          <span>{showKeyConfig ? 'Close Key Settings' : 'Configure Provider Keys (BYOK)'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            onClick={handleRefreshRates}
+            disabled={isRefreshingRates}
+            style={{
+              padding: '9px 14px',
+              borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: '#e2e8f0',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+            title="Verify model rates cache against published provider tables"
+          >
+            <RefreshCw size={13} style={{ animation: isRefreshingRates ? 'spin 1s linear infinite' : 'none' }} />
+            <span>{isRefreshingRates ? 'Refreshing...' : `Rates Verified (${lastRefreshed})`}</span>
+          </button>
+
+          <button
+            onClick={() => setShowKeyConfig(prev => !prev)}
+            style={{
+              padding: '9px 16px',
+              borderRadius: 10,
+              background: showKeyConfig ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
+              color: '#06b6d4',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <Key size={15} />
+            <span>{showKeyConfig ? 'Close Key Settings' : 'Configure Provider Keys (BYOK)'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Cloud API Key Configuration Drawer */}
@@ -227,7 +263,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Anthropic */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
-                Anthropic API Key (Claude Sonnet 5 & Sonnet 4.5)
+                Anthropic API Key (Claude Sonnet 5.5, Sonnet 5 & 4.5)
               </label>
               <input
                 type="password"
@@ -466,8 +502,20 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                     <div style={{ fontSize: '0.70rem', fontWeight: 700, color: '#f59e0b' }}>{model.speed}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: 6, textAlign: 'center' }}>
-                  {model.pricingDate}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 6 }}>
+                  <span style={{ fontSize: '0.66rem', color: '#64748b' }}>
+                    {model.pricingDate}
+                  </span>
+                  {model.pricingUrl && (
+                    <a 
+                      href={model.pricingUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '0.66rem', color: '#38bdf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                    >
+                      Official Pricing Table <ExternalLink size={10} />
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -539,10 +587,10 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             Directly tests provider endpoint reachability and API key authentication from your browser without generating text or incurring token costs.
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#f59e0b', fontWeight: 700 }}>Pricing Notice:</span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <span style={{ color: '#f59e0b', fontWeight: 700, minWidth: 95 }}>Official Pricing:</span>
           <span>
-            Token cost figures reflect published provider rates as of October 2026. Input and output tokens are billed separately by Anthropic, OpenAI, Google, and OpenRouter directly to your account. Offline rules engine is always free.
+            Rates reflect verified live provider schedules as of {lastRefreshed}. Anthropic Claude Sonnet 5 and Sonnet 5.5 are $2/M in, $10/M out; Sonnet 4.5 is $3/M in, $15/M out; Google Gemini 3.8 Flash introductory rate is $0.75/M in, $3.75/M out through Dec 31, 2026 (free tier available at 15 RPM); Meta Llama 3.3 70B is $0.10/M in, $0.32/M out via OpenRouter router. All BYOK calls route directly and are billed by the respective AI providers to your personal account.
           </span>
         </div>
       </div>

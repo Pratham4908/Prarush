@@ -25,16 +25,21 @@ function openDatabase() {
   });
 }
 
-// Persist a binary File or Blob to IndexedDB scoped by userId
+// Persist a binary File or Blob to IndexedDB strictly scoped by userId
 export async function saveFileToIndexedDB(id, file, userId = 'usr-guest') {
   try {
     const db = await openDatabase();
     return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
+      const owner = userId || 'usr-guest';
+      // Owner-plus-unique record key prevents cross-user overwrites
+      const scopedId = id.startsWith(`doc-${owner}-`) ? id : `doc-${owner}-${id}`;
+
       const record = {
-        id,
-        userId: userId || 'usr-guest',
+        id: scopedId,
+        rawId: id,
+        userId: owner,
         name: file.name,
         type: file.type,
         size: file.size,
@@ -54,27 +59,43 @@ export async function saveFileToIndexedDB(id, file, userId = 'usr-guest') {
   }
 }
 
-// Retrieve a persisted File or Blob by docId (with optional user scoping)
+// Retrieve a persisted File or Blob by docId (with strict user scoping)
+// Unowned legacy records (missing userId) or mismatched records are strictly denied access.
 export async function getFileFromIndexedDB(id, userId = null) {
   try {
     const db = await openDatabase();
     return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
-      const req = store.get(id);
+      const owner = userId || null;
+      const scopedId = owner && !id.startsWith(`doc-${owner}-`) ? `doc-${owner}-${id}` : id;
+
+      const req = store.get(scopedId);
       req.onsuccess = () => {
         const result = req.result;
-        if (result && result.blob) {
-          // If userId requested, ensure ownership match
-          if (userId && result.userId && result.userId !== userId) {
+        if (!result && scopedId !== id) {
+          const fallbackReq = store.get(id);
+          fallbackReq.onsuccess = () => handleRecord(fallbackReq.result);
+          fallbackReq.onerror = () => resolve(null);
+          return;
+        }
+        handleRecord(result);
+      };
+
+      function handleRecord(record) {
+        if (record && record.blob) {
+          // Strict ownership check:
+          // Unowned legacy files (missing userId) or mismatched ownership are strictly denied
+          if (owner && (!record.userId || record.userId !== owner)) {
             resolve(null);
             return;
           }
-          resolve(result.blob);
+          resolve(record.blob);
         } else {
           resolve(null);
         }
-      };
+      }
+
       req.onerror = () => resolve(null);
     });
   } catch (err) {
@@ -83,32 +104,51 @@ export async function getFileFromIndexedDB(id, userId = null) {
   }
 }
 
-// Delete a persisted File from IndexedDB
+// Delete a persisted File from IndexedDB (Strictly requires matching userId)
 export async function deleteFileFromIndexedDB(id, userId = null) {
+  if (!userId) {
+    // Deny unauthenticated deletion
+    return false;
+  }
   try {
     const db = await openDatabase();
     return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
+      const scopedId = !id.startsWith(`doc-${userId}-`) ? `doc-${userId}-${id}` : id;
 
-      if (userId) {
-        const checkReq = store.get(id);
-        checkReq.onsuccess = () => {
-          if (checkReq.result && checkReq.result.userId && checkReq.result.userId !== userId) {
-            // Mismatch, do not delete other user's file
-            resolve(false);
-            return;
-          }
-          const delReq = store.delete(id);
-          delReq.onsuccess = () => resolve(true);
-          delReq.onerror = () => resolve(false);
-        };
-        checkReq.onerror = () => resolve(false);
-      } else {
-        const req = store.delete(id);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
+      const checkReq = store.get(scopedId);
+      checkReq.onsuccess = () => {
+        const record = checkReq.result;
+        if (!record && scopedId !== id) {
+          const fallbackReq = store.get(id);
+          fallbackReq.onsuccess = () => {
+            const fbRecord = fallbackReq.result;
+            if (!fbRecord || !fbRecord.userId || fbRecord.userId !== userId) {
+              resolve(false);
+              return;
+            }
+            executeDelete(id);
+          };
+          fallbackReq.onerror = () => resolve(false);
+          return;
+        }
+
+        if (!record || !record.userId || record.userId !== userId) {
+          // Reject deletion for unowned legacy files or other users' files
+          resolve(false);
+          return;
+        }
+        executeDelete(scopedId);
+      };
+
+      function executeDelete(key) {
+        const delReq = store.delete(key);
+        delReq.onsuccess = () => resolve(true);
+        delReq.onerror = () => resolve(false);
       }
+
+      checkReq.onerror = () => resolve(false);
     });
   } catch (err) {
     console.warn('IndexedDB deleteFile error:', err);

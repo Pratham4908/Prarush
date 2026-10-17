@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
 import { 
   User, Shield, Download, Trash2, CheckCircle2, X, Sparkles, 
-  Settings, Bell, Lock, Mail, ExternalLink, HardDrive, Archive, RefreshCw 
+  Settings, Bell, Lock, Mail, ExternalLink, HardDrive, Archive, RefreshCw,
+  UploadCloud, AlertCircle, FileCheck
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
-import { isProSubscriber, exportUserDataGDPR, exportCompleteBackupZip } from '../utils/prarushFreemium.js';
+import { 
+  isProSubscriber, 
+  exportUserDataGDPR, 
+  exportCompleteBackupZip, 
+  validateBackupZip, 
+  restoreCompleteBackupZip 
+} from '../utils/prarushFreemium.js';
 import { clearPrarushStorageOnly } from '../utils/prarushStore.js';
 import { clearAllFilesFromIndexedDB } from '../utils/indexedDbStore.js';
 
@@ -21,9 +27,81 @@ export default function PrarushProfileModal({
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [telemetryConsent, setTelemetryConsent] = useState(true);
+  
+  // Backup Restore State
+  const [restoreFile, setRestoreFile] = useState(null);
+  const [restorePreview, setRestorePreview] = useState(null);
+  const [isInspectingRestore, setIsInspectingRestore] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [conflictStrategy, setConflictStrategy] = useState('merge'); // 'merge' | 'overwrite'
+  const [restoreError, setRestoreError] = useState('');
+  const [restoreSuccess, setRestoreSuccess] = useState('');
+
   const isPro = isProSubscriber();
 
   if (!isOpen) return null;
+
+  const handleSelectRestoreFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setRestoreFile(file);
+    setRestoreError('');
+    setRestoreSuccess('');
+    setIsInspectingRestore(true);
+    audioSystem.playTone(550, 'sine', 0.1);
+
+    try {
+      const validation = await validateBackupZip(file);
+      if (validation.valid) {
+        setRestorePreview(validation);
+        audioSystem.playSuccessSound();
+      } else {
+        setRestorePreview(null);
+        setRestoreError(validation.error || 'Invalid backup archive.');
+        audioSystem.playWarningSound();
+      }
+    } catch (err) {
+      setRestorePreview(null);
+      setRestoreError(err.message || 'Failed to inspect backup file.');
+      audioSystem.playWarningSound();
+    } finally {
+      setIsInspectingRestore(false);
+    }
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!restoreFile || !restorePreview) return;
+    setIsRestoring(true);
+    setRestoreError('');
+    audioSystem.playTone(650, 'sine', 0.15);
+
+    try {
+      const result = await restoreCompleteBackupZip(restoreFile, user, { conflictStrategy });
+      if (result.success) {
+        audioSystem.playSuccessSound();
+        setRestoreSuccess(`Restore complete! Successfully imported ${result.restoredWorkspaces} workspaces, ${result.restoredTasks} tasks, and ${result.restoredFiles} documents into your profile.`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setRestoreError(result.error || 'Restore failed.');
+        audioSystem.playWarningSound();
+      }
+    } catch (err) {
+      setRestoreError(err.message || 'Failed to execute restore.');
+      audioSystem.playWarningSound();
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleCancelRestore = () => {
+    setRestoreFile(null);
+    setRestorePreview(null);
+    setRestoreError('');
+    setRestoreSuccess('');
+  };
 
   const handleExportZip = async () => {
     setIsExportingZip(true);
@@ -276,6 +354,214 @@ export default function PrarushProfileModal({
                 </div>
                 {copiedZip ? <CheckCircle2 size={16} color="#10b981" /> : <Download size={16} />}
               </button>
+
+              {/* 2. Restore Backup Archive (.ZIP) */}
+              <div>
+                <input
+                  type="file"
+                  id="backup-restore-input"
+                  accept=".zip"
+                  style={{ display: 'none' }}
+                  onChange={handleSelectRestoreFile}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('backup-restore-input')?.click()}
+                  disabled={isInspectingRestore || isRestoring}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    background: 'rgba(56, 189, 248, 0.10)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    color: '#38bdf8',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: (isInspectingRestore || isRestoring) ? 'wait' : 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                    {isInspectingRestore ? <RefreshCw size={16} className="spin-slow" /> : <UploadCloud size={16} />}
+                    <div>
+                      <div style={{ fontWeight: 700 }}>Restore from Backup Archive (.ZIP)</div>
+                      <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 400 }}>
+                        Validate archive, preview workspace contents &amp; restore to this profile
+                      </div>
+                    </div>
+                  </div>
+                  <FileCheck size={16} />
+                </button>
+              </div>
+
+              {/* Restore Error Banner */}
+              {restoreError && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(244, 63, 94, 0.12)',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  color: '#f43f5e',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <AlertCircle size={16} />
+                  <span>{restoreError}</span>
+                </div>
+              )}
+
+              {/* Restore Success Banner */}
+              {restoreSuccess && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: '#10b981',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <CheckCircle2 size={16} />
+                  <span>{restoreSuccess}</span>
+                </div>
+              )}
+
+              {/* Restore Interactive Preview Card */}
+              {restorePreview && (
+                <div style={{
+                  padding: '14px',
+                  borderRadius: 14,
+                  background: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontWeight: 700, fontSize: '0.85rem' }}>
+                      <FileCheck size={16} />
+                      <span>Archive Verified Valid</span>
+                    </div>
+                    <span style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                      {restorePreview.exportTimestamp ? new Date(restorePreview.exportTimestamp).toLocaleDateString() : 'Recent'}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+                    <strong>Origin User:</strong> {restorePreview.sourceUser?.name || 'Local User'} ({restorePreview.sourceUser?.email || 'local'})
+                  </div>
+
+                  {/* Metric Chips */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    <div style={{ padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', fontSize: '0.72rem', textAlign: 'center' }}>
+                      <div style={{ color: '#94a3b8' }}>Workspaces</div>
+                      <div style={{ color: '#f8fafc', fontWeight: 700 }}>{restorePreview.workspaceCount}</div>
+                    </div>
+                    <div style={{ padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', fontSize: '0.72rem', textAlign: 'center' }}>
+                      <div style={{ color: '#94a3b8' }}>Tasks</div>
+                      <div style={{ color: '#f8fafc', fontWeight: 700 }}>{restorePreview.taskCount}</div>
+                    </div>
+                    <div style={{ padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', fontSize: '0.72rem', textAlign: 'center' }}>
+                      <div style={{ color: '#94a3b8' }}>Files (IDB)</div>
+                      <div style={{ color: '#10b981', fontWeight: 700 }}>{restorePreview.binaryFiles.length}</div>
+                    </div>
+                  </div>
+
+                  {/* Conflict Handling Strategy */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#94a3b8', marginBottom: 6 }}>
+                      Conflict Handling:
+                    </label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => setConflictStrategy('merge')}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          borderRadius: 8,
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: conflictStrategy === 'merge' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.04)',
+                          border: conflictStrategy === 'merge' ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                          color: conflictStrategy === 'merge' ? '#38bdf8' : '#94a3b8'
+                        }}
+                      >
+                        Merge (Safe)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConflictStrategy('overwrite')}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          borderRadius: 8,
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: conflictStrategy === 'overwrite' ? 'rgba(244, 63, 94, 0.2)' : 'rgba(255,255,255,0.04)',
+                          border: conflictStrategy === 'overwrite' ? '1px solid #f43f5e' : '1px solid rgba(255,255,255,0.1)',
+                          color: conflictStrategy === 'overwrite' ? '#f43f5e' : '#94a3b8'
+                        }}
+                      >
+                        Replace All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={handleCancelRestore}
+                      disabled={isRestoring}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#94a3b8',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmRestore}
+                      disabled={isRestoring}
+                      style={{
+                        flex: 2,
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: isRestoring ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                    >
+                      {isRestoring ? <RefreshCw size={13} className="spin-slow" /> : <FileCheck size={14} />}
+                      <span>{isRestoring ? 'Restoring Profile...' : 'Confirm & Restore'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* 2. Metadata-only JSON */}
               <button

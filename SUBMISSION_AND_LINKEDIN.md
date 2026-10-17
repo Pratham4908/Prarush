@@ -16,7 +16,7 @@ Workspaces, Kanban sprint tasks, markdown documentation, and calendar events per
 
 2. ⚡ **Direct BYOK Multi-Model AI Routing:** 
 Connect your personal API keys directly from your browser to:
-• Anthropic Messages API (Claude Sonnet 4.5)
+• Anthropic Messages API (Claude Sonnet 5.5, Sonnet 5 & Sonnet 4.5)
 • OpenAI Chat Completions (GPT-4o Omni)
 • Google Generative Language API (Gemini 3.8 Flash via secure header auth)
 • Meta OpenRouter Gateway (Llama 3.3 70B)

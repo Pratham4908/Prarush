@@ -1,7 +1,7 @@
 {
   "name": "Prarush — Local-First Workspace for Developers & Creators",
   "short_name": "Prarush",
-  "description": "Local-first developer workspace with persistent browser storage, BYOK multi-model AI (Claude Sonnet 4.5, Gemini 3.8 Flash, GPT-4o), Kanban sprints, and developer notes.",
+  "description": "Local-first developer workspace with persistent browser storage, BYOK multi-model AI (Claude Sonnet 5.5, Sonnet 5, Gemini 3.8 Flash, GPT-4o), Kanban sprints, and developer notes.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

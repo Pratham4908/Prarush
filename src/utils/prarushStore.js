@@ -381,25 +381,35 @@ export function saveUserStoredData(baseKey, userId, data) {
   saveStoredData(scopedKey, data);
 }
 
-// Log an activity entry
-export function logActivity(action, details, workspaceId = 'ws-personal') {
+// Log an activity entry scoped to a user profile
+export function logActivity(action, details, workspaceId = 'ws-personal', userId = null) {
   try {
-    const activities = getStoredData(STORAGE_KEYS.ACTIVITY, []);
+    const targetUserId = userId ? String(userId).trim() : 'usr-guest';
+    const scopedKey = getUserStorageKey(STORAGE_KEYS.ACTIVITY, targetUserId);
+    const activities = getStoredData(scopedKey, []);
     const newEntry = {
       id: `act-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       action,
       details,
       workspaceId,
+      userId: targetUserId,
       timestamp: new Date().toISOString()
     };
     activities.unshift(newEntry);
     // Keep max 50 recent activities
     const trimmed = activities.slice(0, 50);
-    saveStoredData(STORAGE_KEYS.ACTIVITY, trimmed);
+    saveStoredData(scopedKey, trimmed);
     return newEntry;
   } catch {
     return null;
   }
+}
+
+// Retrieve activities scoped to a specific user profile
+export function getUserActivities(userId = null) {
+  const targetUserId = userId ? String(userId).trim() : 'usr-guest';
+  const scopedKey = getUserStorageKey(STORAGE_KEYS.ACTIVITY, targetUserId);
+  return getStoredData(scopedKey, []);
 }
 
 // Origin-Safe Data Purge: Only delete Prarush namespace keys, never call localStorage.clear()

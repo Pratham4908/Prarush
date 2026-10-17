@@ -161,18 +161,18 @@ export default function PrarushAuthModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Local-First Notice */}
+          {/* Local-First Preview Notice */}
           <div style={{
-            padding: '8px 12px',
+            padding: '10px 14px',
             background: 'rgba(6, 182, 212, 0.08)',
             border: '1px solid rgba(6, 182, 212, 0.25)',
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: '0.73rem',
             color: '#94a3b8',
-            lineHeight: 1.4
+            lineHeight: 1.45
           }}>
-            <strong style={{ color: '#38bdf8' }}>Local-First Preview: </strong>
-            Profiles and credentials (salted SHA-256) are stored locally in your browser. Cross-device cloud synchronization is a planned feature.
+            <strong style={{ color: '#38bdf8' }}>Local Profile Preview (Device Only): </strong>
+            Profiles and passwords are stored strictly in your browser using OWASP-recommended PBKDF2 key derivation (100,000 iterations, HMAC-SHA256). Sign-in operates as an on-device preview; public accounts and recovery remain planned.
           </div>
 
           {errorMessage && (

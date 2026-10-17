@@ -61,7 +61,8 @@ export default function PrarushDocumentsView({
                       file.name.endsWith('.json') || 
                       file.name.endsWith('.csv');
 
-    const docId = `doc-${Date.now()}`;
+    const randomEntropy = Math.random().toString(36).substring(2, 9);
+    const docId = `doc-${userId || 'guest'}-${Date.now()}-${randomEntropy}`;
 
     // PERSIST AUTHENTIC UPLOADED BYTES TO INDEXEDDB (Scoped to local user profile)
     let isPersisted = false;

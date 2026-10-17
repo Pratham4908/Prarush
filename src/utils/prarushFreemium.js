@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
-import { getAllFilesForUserFromIndexedDB } from './indexedDbStore.js';
+import { getAllFilesForUserFromIndexedDB, saveFileToIndexedDB } from './indexedDbStore.js';
+import { logActivity } from './prarushStore.js';
 
 // Prarush Universal Platform: Freemium & Subscription Entitlement Engine
 // Handles Free vs Prarush Pro vs Prarush Team tiers, usage quotas, sandbox checkout, and GDPR data export
@@ -92,9 +93,16 @@ PRARUSH_PLANS.free = PRARUSH_PLANS.FREE;
 PRARUSH_PLANS.pro = PRARUSH_PLANS.PRO;
 PRARUSH_PLANS.team = PRARUSH_PLANS.TEAM;
 
-export function getSubscription() {
+export function getSubscription(userId = null) {
   try {
-    const raw = localStorage.getItem(SUB_STORAGE_KEY);
+    const targetUserId = userId ? String(userId).trim() : null;
+    let raw = null;
+    if (targetUserId) {
+      raw = localStorage.getItem(`prarush_usr_${targetUserId}_subscription`);
+    }
+    if (!raw) {
+      raw = localStorage.getItem(SUB_STORAGE_KEY);
+    }
     if (!raw) {
       return {
         planId: 'free',
@@ -110,13 +118,13 @@ export function getSubscription() {
   }
 }
 
-export function isProSubscriber() {
-  const sub = getSubscription();
+export function isProSubscriber(userId = null) {
+  const sub = getSubscription(userId);
   return (sub.planId === 'pro' || sub.planId === 'team') && sub.status === 'active';
 }
 
-export function isTeamSubscriber() {
-  const sub = getSubscription();
+export function isTeamSubscriber(userId = null) {
+  const sub = getSubscription(userId);
   return sub.planId === 'team' && sub.status === 'active';
 }
 
@@ -202,7 +210,7 @@ export function checkQuota(featureKey) {
   return { allowed: true, upgradeRequired: false };
 }
 
-export function upgradeSubscription(planId = 'pro', billingCycle = 'annual', email = 'user@prarush.ai') {
+export function upgradeSubscription(planId = 'pro', billingCycle = 'annual', email = 'user@prarush.ai', userId = null) {
   const renews = new Date();
   if (billingCycle === 'annual') {
     renews.setFullYear(renews.getFullYear() + 1);
@@ -220,11 +228,15 @@ export function upgradeSubscription(planId = 'pro', billingCycle = 'annual', ema
     transactionId: `PRARUSH-TXN-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 8999 + 1000)}`
   };
 
+  const targetUserId = userId ? String(userId).trim() : null;
+  if (targetUserId) {
+    localStorage.setItem(`prarush_usr_${targetUserId}_subscription`, JSON.stringify(sub));
+  }
   localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(sub));
   return sub;
 }
 
-export function cancelSubscription() {
+export function cancelSubscription(userId = null) {
   const sub = {
     planId: 'free',
     status: 'cancelled',
@@ -232,14 +244,18 @@ export function cancelSubscription() {
     startedAt: null,
     renewsAt: null
   };
+  const targetUserId = userId ? String(userId).trim() : null;
+  if (targetUserId) {
+    localStorage.setItem(`prarush_usr_${targetUserId}_subscription`, JSON.stringify(sub));
+  }
   localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(sub));
   return sub;
 }
 
 // Build Machine-readable JSON Data Portability Payload without triggering browser download
 export function buildUserDataGDPRPayload(user) {
-  const sub = getSubscription();
   const userId = user?.id || 'usr-guest';
+  const sub = getSubscription(userId);
   
   // Strict Profile Scoping: Only retrieve keys strictly scoped to this user profile.
   // Never fall back to unpartitioned legacy keys which could leak another profile's data.
@@ -251,7 +267,7 @@ export function buildUserDataGDPRPayload(user) {
   const events = localStorage.getItem(`${userPrefix}events`);
   const automations = localStorage.getItem(`${userPrefix}automations`);
   const kb = localStorage.getItem(`${userPrefix}knowledge`);
-  const activity = localStorage.getItem('prarush_activity_log');
+  const activity = localStorage.getItem(`${userPrefix}activity_log`);
   const theme = localStorage.getItem('prarush_theme_mode');
   const locale = localStorage.getItem('prarush_locale');
 
@@ -260,7 +276,7 @@ export function buildUserDataGDPRPayload(user) {
     version: '2.0.0-prototype',
     exportSpecification: 'GDPR Article 20 / CCPA Data Portability Format (JSON)',
     exportTimestamp: new Date().toISOString(),
-    exportScopeNotice: 'This JSON export contains workspaces, tasks, notes, automations, and document metadata strictly scoped to this local profile. Binary document files stored in IndexedDB are not embedded in this JSON file.',
+    exportScopeNotice: 'This JSON export contains workspaces, tasks, notes, automations, activity logs, and document metadata strictly scoped to this local profile. Binary document files stored in IndexedDB are not embedded in this JSON file.',
     userProfile: user || {
       id: 'usr-guest',
       name: 'Guest User',
@@ -303,7 +319,7 @@ export function exportUserDataGDPR(user) {
 }
 
 // Complete Backup Archive: Bundles full metadata JSON AND all binary files from IndexedDB into a single downloadable .zip
-// Does NOT trigger separate JSON file download; avoids filename collisions; fails if files cannot be read.
+// Uses a collision-proof Set while-loop for deduplicating final archive paths.
 export async function exportCompleteBackupZip(user) {
   const userId = user?.id || 'usr-guest';
   const zip = new JSZip();
@@ -324,7 +340,7 @@ export async function exportCompleteBackupZip(user) {
   const files = result.files || [];
   if (files.length > 0) {
     const docsFolder = zip.folder('documents');
-    const seenNames = new Map();
+    const finalArchivePaths = new Set();
 
     for (const f of files) {
       if (!f.blob) {
@@ -334,28 +350,32 @@ export async function exportCompleteBackupZip(user) {
         };
       }
 
-      let entryName = f.name || `file_${f.id}`;
-      // Deduplicate names to prevent archive collisions
-      if (seenNames.has(entryName)) {
-        const count = seenNames.get(entryName) + 1;
-        seenNames.set(entryName, count);
-        const dotIdx = entryName.lastIndexOf('.');
-        if (dotIdx > 0) {
-          entryName = `${entryName.slice(0, dotIdx)}_${count}${entryName.slice(dotIdx)}`;
-        } else {
-          entryName = `${entryName}_${count}`;
-        }
-      } else {
-        seenNames.set(entryName, 1);
+      const rawName = (f.name || `file_${f.id}`).trim();
+      const dotIdx = rawName.lastIndexOf('.');
+      const baseName = dotIdx > 0 ? rawName.slice(0, dotIdx) : rawName;
+      const ext = dotIdx > 0 ? rawName.slice(dotIdx) : '';
+
+      let candidateName = rawName;
+      let counter = 2;
+      // Collision-proof loop: checks final candidate against set of all paths already added
+      while (finalArchivePaths.has(candidateName.toLowerCase())) {
+        candidateName = `${baseName}_${counter}${ext}`;
+        counter++;
       }
 
-      docsFolder.file(entryName, f.blob);
+      finalArchivePaths.add(candidateName.toLowerCase());
+      docsFolder.file(candidateName, f.blob);
     }
   }
 
-  // 3. Generate .zip Blob and trigger single browser download
-  if (typeof document !== 'undefined' && typeof URL !== 'undefined') {
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
+  // 3. Generate .zip Blob
+  let zipBlob = null;
+  if (typeof zip.generateAsync === 'function') {
+    zipBlob = await zip.generateAsync({ type: 'blob' });
+  }
+
+  // Trigger single browser download if document & URL are available
+  if (typeof document !== 'undefined' && typeof URL !== 'undefined' && zipBlob) {
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement('a');
     a.href = url;
@@ -366,5 +386,162 @@ export async function exportCompleteBackupZip(user) {
     URL.revokeObjectURL(url);
   }
 
-  return { success: true, fileCount: files.length };
+  return { success: true, fileCount: files.length, zipBlob, zip };
+}
+
+// Validate a backup zip file before restoring
+export async function validateBackupZip(zipBlobOrFile) {
+  try {
+    if (!zipBlobOrFile) {
+      return { valid: false, error: 'No backup file provided.' };
+    }
+
+    const zip = await JSZip.loadAsync(zipBlobOrFile);
+    const metadataFile = zip.file('metadata.json');
+    if (!metadataFile) {
+      return { 
+        valid: false, 
+        error: 'Invalid archive: Missing required "metadata.json" root manifest.' 
+      };
+    }
+
+    const metadataText = await metadataFile.async('text');
+    let metadata;
+    try {
+      metadata = JSON.parse(metadataText);
+    } catch {
+      return { valid: false, error: 'Invalid archive: Corrupted "metadata.json" format.' };
+    }
+
+    if (!metadata.platform || !metadata.platform.includes('Prarush')) {
+      return {
+        valid: false,
+        error: 'Incompatible archive: The archive was not created by Prarush.'
+      };
+    }
+
+    // Inspect documents folder
+    const binaryFiles = [];
+    for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+      if (relativePath.startsWith('documents/') && !zipEntry.dir) {
+        const fileName = relativePath.replace(/^documents\//, '');
+        if (fileName) {
+          const blob = await zipEntry.async('blob');
+          binaryFiles.push({
+            name: fileName,
+            path: relativePath,
+            size: blob.size,
+            blob
+          });
+        }
+      }
+    }
+
+    return {
+      valid: true,
+      metadata,
+      sourceUser: metadata.userProfile || { name: 'Unknown User' },
+      exportTimestamp: metadata.exportTimestamp,
+      workspaceCount: metadata.workspaces?.length || 0,
+      taskCount: metadata.tasks?.length || 0,
+      noteCount: metadata.notes?.length || 0,
+      documentCount: metadata.documents?.length || 0,
+      eventCount: metadata.calendarEvents?.length || 0,
+      automationCount: metadata.automations?.length || 0,
+      binaryFiles
+    };
+  } catch (err) {
+    return {
+      valid: false,
+      error: `Failed to inspect backup archive: ${err.message || 'Corrupted ZIP file'}`
+    };
+  }
+}
+
+// Restore validated backup into target user profile with conflict handling
+export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conflictStrategy = 'merge' } = {}) {
+  const validation = await validateBackupZip(zipBlobOrFile);
+  if (!validation.valid) {
+    return { success: false, error: validation.error };
+  }
+
+  const userId = targetUser?.id || 'usr-guest';
+  const userPrefix = `prarush_usr_${userId}_`;
+  const meta = validation.metadata;
+
+  try {
+    // 1. Process Scoped Datasets
+    const datasets = [
+      { key: 'workspaces', data: meta.workspaces || [] },
+      { key: 'tasks', data: meta.tasks || [] },
+      { key: 'notes', data: meta.notes || [] },
+      { key: 'documents', data: meta.documents || [] },
+      { key: 'events', data: meta.calendarEvents || [] },
+      { key: 'automations', data: meta.automations || [] },
+      { key: 'knowledge', data: meta.knowledgeBase || [] }
+    ];
+
+    for (const { key, data } of datasets) {
+      const storageKey = `${userPrefix}${key}`;
+      if (conflictStrategy === 'overwrite') {
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      } else {
+        // Merge: keep existing items, append or update with backup items
+        let existing = [];
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (raw) existing = JSON.parse(raw);
+        } catch {}
+        
+        const existingMap = new Map(existing.map(item => [item.id, item]));
+        for (const item of data) {
+          existingMap.set(item.id, item);
+        }
+        localStorage.setItem(storageKey, JSON.stringify(Array.from(existingMap.values())));
+      }
+    }
+
+    // Restore subscription if present
+    if (meta.subscription) {
+      localStorage.setItem(`${userPrefix}subscription`, JSON.stringify(meta.subscription));
+    }
+
+    // 2. Restore Binary Files to IndexedDB
+    let restoredFilesCount = 0;
+
+    if (validation.binaryFiles && validation.binaryFiles.length > 0) {
+      const docsMeta = meta.documents || [];
+      for (const bFile of validation.binaryFiles) {
+        const docRecord = docsMeta.find(d => d.name === bFile.name || d.name === bFile.name.replace(/_\d+(\.[^.]+)?$/, '$1'));
+        const docId = docRecord ? docRecord.id : `restored-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        
+        const saved = await saveFileToIndexedDB(docId, bFile.blob, userId);
+        if (saved) restoredFilesCount++;
+      }
+    }
+
+    // Log the restore activity
+    try {
+      logActivity(
+        'Restore Complete Backup',
+        `Restored ${validation.workspaceCount} workspaces, ${validation.taskCount} tasks, and ${restoredFilesCount} files via ${conflictStrategy} mode.`,
+        'ws-work',
+        userId
+      );
+    } catch {}
+
+    return {
+      success: true,
+      restoredWorkspaces: validation.workspaceCount,
+      restoredTasks: validation.taskCount,
+      restoredNotes: validation.noteCount,
+      restoredFiles: restoredFilesCount,
+      strategyUsed: conflictStrategy
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: `Restore operation failed: ${err.message || 'Storage write error'}`
+    };
+  }
 }

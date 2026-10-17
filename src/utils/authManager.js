@@ -5,13 +5,57 @@
 const AUTH_STORAGE_KEY = 'prarush_active_session';
 const USERS_STORAGE_KEY = 'prarush_registered_users';
 
-// Cryptographic hash using Web Crypto API (SHA-256)
-async function hashPassword(password, salt) {
+// Cryptographic hash using OWASP-recommended PBKDF2 (100,000 iterations, HMAC-SHA-256)
+export const PBKDF2_ITERATIONS = 100000;
+
+export async function hashPassword(password, salt, iterations = PBKDF2_ITERATIONS) {
+  const enc = new TextEncoder();
+  const passwordKey = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  const saltBuffer = enc.encode(`${salt}:prarush_owasp_pbkdf2`);
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltBuffer,
+      iterations,
+      hash: 'SHA-256'
+    },
+    passwordKey,
+    256 // 32 bytes
+  );
+  const hashArray = Array.from(new Uint8Array(derivedBits));
+  const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return `pbkdf2$${iterations}$${hexHash}`;
+}
+
+// Legacy SHA-256 fallback calculation for seamless upgrade
+export async function hashPasswordLegacy(password, salt) {
   const enc = new TextEncoder();
   const data = enc.encode(`${salt}:${password}:prarush_secure_v2`);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Verify password against stored hash (supports PBKDF2 and legacy SHA-256)
+export async function verifyPassword(password, userRecord) {
+  if (!userRecord || !userRecord.passwordHash) return false;
+  
+  if (userRecord.passwordHash.startsWith('pbkdf2$')) {
+    const parts = userRecord.passwordHash.split('$');
+    const iterations = parseInt(parts[1], 10) || PBKDF2_ITERATIONS;
+    const computed = await hashPassword(password, userRecord.salt, iterations);
+    return computed === userRecord.passwordHash;
+  }
+  
+  // Legacy fast SHA-256 verification
+  const legacyHash = await hashPasswordLegacy(password, userRecord.salt);
+  return legacyHash === userRecord.passwordHash;
 }
 
 // Generate random cryptographic salt or token
@@ -152,9 +196,19 @@ export async function loginUser({ email, password }) {
     throw new Error('No account found with this email. Please register or continue as guest.');
   }
 
-  const computedHash = await hashPassword(password, userRecord.salt);
-  if (computedHash !== userRecord.passwordHash) {
+  const isValid = await verifyPassword(password, userRecord);
+  if (!isValid) {
     throw new Error('Incorrect password. Please try again or reset your password.');
+  }
+
+  // Seamlessly upgrade legacy SHA-256 hashes to OWASP PBKDF2 upon successful login
+  if (!userRecord.passwordHash.startsWith('pbkdf2$')) {
+    userRecord.passwordHash = await hashPassword(password, userRecord.salt);
+    const idx = users.findIndex(u => u.id === userRecord.id);
+    if (idx >= 0) {
+      users[idx] = userRecord;
+      saveRegisteredUsers(users);
+    }
   }
 
   const sanitizedUser = {
