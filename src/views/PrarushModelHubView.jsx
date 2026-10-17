@@ -90,7 +90,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
     }
 
     // 4. Anthropic Ping / Key Check
-    else if (modelId === 'claude-sonnet-4-5' || modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
+    else if (modelId === 'claude-sonnet-5' || modelId === 'claude-5-sonnet' || modelId === 'claude-sonnet-4-5' || modelId === 'claude-sonnet' || modelId === 'claude-3-7-sonnet' || modelId === 'claude-3-5-sonnet') {
       if (!apiKeys.anthropic) {
         setLatencyResults(prev => ({ ...prev, [modelId]: 'Key Required' }));
       } else {
@@ -227,7 +227,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
             {/* Anthropic */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
-                Anthropic API Key (Claude Sonnet 4.5)
+                Anthropic API Key (Claude Sonnet 5 & Sonnet 4.5)
               </label>
               <input
                 type="password"
@@ -441,26 +441,33 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
                 {/* Specs Box */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 8,
-                  padding: '10px',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 6,
+                  padding: '10px 8px',
                   background: 'rgba(0, 0, 0, 0.25)',
                   borderRadius: 10,
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   textAlign: 'center'
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Context</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>{model.contextWindow}</div>
+                    <div style={{ fontSize: '0.60rem', color: '#94a3b8', textTransform: 'uppercase' }}>Context</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8' }}>{model.contextWindow}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Est. Cost</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>{model.costPer1k}</div>
+                    <div style={{ fontSize: '0.60rem', color: '#94a3b8', textTransform: 'uppercase' }}>Input Rate</div>
+                    <div style={{ fontSize: '0.70rem', fontWeight: 700, color: '#10b981' }}>{model.inputCostPer1k || model.costPer1k}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase' }}>Speed Tier</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f59e0b' }}>{model.speed}</div>
+                    <div style={{ fontSize: '0.60rem', color: '#94a3b8', textTransform: 'uppercase' }}>Output Rate</div>
+                    <div style={{ fontSize: '0.70rem', fontWeight: 700, color: '#06b6d4' }}>{model.outputCostPer1k || model.costPer1k}</div>
                   </div>
+                  <div>
+                    <div style={{ fontSize: '0.60rem', color: '#94a3b8', textTransform: 'uppercase' }}>Speed Tier</div>
+                    <div style={{ fontSize: '0.70rem', fontWeight: 700, color: '#f59e0b' }}>{model.speed}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: 6, textAlign: 'center' }}>
+                  {model.pricingDate}
                 </div>
               </div>
 
@@ -514,7 +521,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         })}
       </div>
 
-      {/* Connectivity Check Note */}
+      {/* Connectivity Check & Pricing Disclaimer Note */}
       <div style={{
         padding: '12px 16px',
         background: 'rgba(15, 23, 42, 0.6)',
@@ -523,13 +530,21 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         fontSize: '0.74rem',
         color: '#94a3b8',
         display: 'flex',
-        alignItems: 'center',
-        gap: 8
+        flexDirection: 'column',
+        gap: 6
       }}>
-        <span style={{ color: '#06b6d4', fontWeight: 700 }}>Note:</span>
-        <span>
-          "Ping Auth" tests endpoint reachability and API key authentication directly from your browser. It does not measure generative model completion latency or incur token generation costs.
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#06b6d4', fontWeight: 700 }}>Ping Auth:</span>
+          <span>
+            Directly tests provider endpoint reachability and API key authentication from your browser without generating text or incurring token costs.
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#f59e0b', fontWeight: 700 }}>Pricing Notice:</span>
+          <span>
+            Token cost figures reflect published provider rates as of October 2026. Input and output tokens are billed separately by Anthropic, OpenAI, Google, and OpenRouter directly to your account. Offline rules engine is always free.
+          </span>
+        </div>
       </div>
     </div>
   );

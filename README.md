@@ -20,7 +20,7 @@
        ⬇
 2. Convert to Kanban Sprint Task (Priority, Deadline, Tags)
        ⬇
-3. Implement with AI Copilot (BYOK Claude Sonnet 4.5, GPT-4o, Gemini 3.8 Flash, Llama 3.3, or Offline Rules)
+3. Implement with AI Copilot (BYOK Claude Sonnet 5 & 4.5, GPT-4o, Gemini 3.8 Flash, Llama 3.3, or Offline Rules)
        ⬇
 4. Save Artifacts & Markdown Notes locally in private IndexedDB & LocalStorage
 ```
@@ -37,7 +37,7 @@ Prarush is transparent about what currently runs locally in the browser versus w
 - **Local-First Storage & Strict Profile Isolation:** Workspaces, Kanban tasks, markdown notes, calendar events, documents, and automations persist in client-side storage (`prarushStore.js`) strictly scoped per user ID, with zero fallback to shared keys or data leakage.
 - **Client-Side Auth & Sliding Session Expiry:** Salted SHA-256 cryptographic password hashing (Web Crypto API) with zero plaintext password storage (`authManager.js`). Sessions implement a sliding 30-day inactivity expiration window refreshed upon active platform usage.
 - **Direct Multi-Model AI Routing (BYOK):**
-  - **Anthropic Claude Sonnet 4.5 (`claude-sonnet-4-5`):** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`).
+  - **Anthropic Claude Sonnet 5 (`claude-sonnet-5`) & Sonnet 4.5 (`claude-sonnet-4-5`):** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`).
   - **OpenAI GPT-4o:** Direct inference via Chat Completions API (`Authorization: Bearer`).
   - **Google Gemini 3.8 Flash (`gemini-3.8-flash`):** Direct inference via REST API using standard `x-goog-api-key` header (never exposing API keys in URL query strings).
   - **OpenRouter (Meta Llama 3.3 70B):** Direct gateway access for open-weights models.
@@ -85,7 +85,7 @@ graph TD
     end
 
     subgraph Providers ["Direct Client-to-Provider Inference"]
-        Anthropic["Anthropic (Claude Sonnet 4.5)"]
+        Anthropic["Anthropic (Claude Sonnet 5 & 4.5)"]
         OpenAI["OpenAI (GPT-4o)"]
         Gemini["Google Gemini (3.8 Flash via Header)"]
         OpenRouter["OpenRouter (Llama 3.3 70B)"]

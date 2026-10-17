@@ -29,12 +29,18 @@ export default function PrarushProfileModal({
     setIsExportingZip(true);
     audioSystem.playTone(600, 'sine', 0.1);
     try {
-      await exportCompleteBackupZip(user);
-      audioSystem.playSuccessSound();
-      setCopiedZip(true);
-      setTimeout(() => setCopiedZip(false), 3000);
+      const res = await exportCompleteBackupZip(user);
+      if (res && res.success) {
+        audioSystem.playSuccessSound();
+        setCopiedZip(true);
+        setTimeout(() => setCopiedZip(false), 3000);
+      } else {
+        audioSystem.playWarningSound();
+        window.alert(`Backup Error: ${res?.error || 'Could not compile complete archive.'}`);
+      }
     } catch (err) {
       console.warn('Backup error:', err);
+      window.alert(`Backup Error: ${err.message || 'Export failed.'}`);
     } finally {
       setIsExportingZip(false);
     }
@@ -52,12 +58,22 @@ export default function PrarushProfileModal({
       audioSystem.playWarningSound();
       try {
         const idbCleared = await clearAllFilesFromIndexedDB();
-        if (!idbCleared) {
-          window.alert('Error: Could not clear IndexedDB file storage. Please verify browser storage permissions and try again.');
+        const storageCleared = clearPrarushStorageOnly();
+
+        if (!idbCleared && !storageCleared) {
+          window.alert('Reset Failure: Neither IndexedDB nor LocalStorage could be cleared. Please check storage permissions.');
           return;
         }
-        clearPrarushStorageOnly();
-        window.alert('Reset Complete: All Prarush local storage and IndexedDB binary files have been purged.');
+        if (!idbCleared) {
+          window.alert('Partial Reset Error: LocalStorage was cleared, but IndexedDB files could not be purged. Please check browser permissions.');
+          return;
+        }
+        if (!storageCleared) {
+          window.alert('Partial Reset Error: IndexedDB files were purged, but LocalStorage keys could not be cleared.');
+          return;
+        }
+
+        window.alert('Reset Complete: Both Prarush local storage and IndexedDB binary files have been verified purged.');
         window.location.reload();
       } catch (err) {
         window.alert(`Reset error: ${err.message || 'Storage wipe failed.'}`);

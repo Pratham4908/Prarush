@@ -130,7 +130,10 @@ export async function getAllFilesForUserFromIndexedDB(userId = null) {
         const cursor = e.target.result;
         if (cursor) {
           const val = cursor.value;
-          if (!userId || !val.userId || val.userId === userId) {
+          // Strictly isolate: If userId is provided, only include files with exact matching userId.
+          // Never include unscoped legacy records (!val.userId) in a profile query.
+          const matches = userId ? val.userId === userId : !val.userId;
+          if (matches) {
             files.push({
               id: val.id,
               name: val.name,
@@ -143,15 +146,25 @@ export async function getAllFilesForUserFromIndexedDB(userId = null) {
           }
           cursor.continue();
         } else {
-          resolve(files);
+          resolve({ success: true, files });
         }
       };
-      req.onerror = () => resolve([]);
+      req.onerror = (e) => {
+        resolve({ success: false, error: e.target?.error?.message || 'Cursor read error', files: [] });
+      };
+      tx.onerror = (e) => {
+        resolve({ success: false, error: e.target?.error?.message || 'Transaction read error', files: [] });
+      };
     });
   } catch (err) {
     console.warn('IndexedDB getAllFilesForUser error:', err);
-    return [];
+    return { success: false, error: err.message || 'Database connection error', files: [] };
   }
+}
+
+// Retrieve quarantined legacy files that lack a user ID
+export async function getQuarantinedLegacyFilesFromIndexedDB() {
+  return getAllFilesForUserFromIndexedDB(null);
 }
 
 // Clear all files for a specific local user profile

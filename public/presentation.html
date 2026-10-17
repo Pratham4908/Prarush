@@ -220,7 +220,7 @@
         </div>
         <div class="card">
           <div class="card-title">⚡ BYOK Multi-Model AI</div>
-          <div class="card-desc">Direct browser-to-provider inference using Claude Sonnet 4.5, GPT-4o, Gemini 3.8 Flash, and Llama 3.3. Offline deterministic rules engine built in.</div>
+          <div class="card-desc">Direct browser-to-provider inference using Claude Sonnet 5, Claude Sonnet 4.5, GPT-4o, Gemini 3.8 Flash, and Llama 3.3. Offline deterministic rules engine built in.</div>
         </div>
         <div class="card">
           <div class="card-title">📦 Authentic Binary Storage</div>
@@ -284,8 +284,8 @@
       <div class="grid-4">
         <div class="card">
           <div class="card-title">Anthropic</div>
-          <div class="metric" style="font-size: 1.15rem; color: var(--accent-amber);">Claude Sonnet 4.5</div>
-          <div class="card-desc">Official Messages API via `x-api-key` header with browser access flag. 200K token context.</div>
+          <div class="metric" style="font-size: 1.15rem; color: var(--accent-amber);">Claude Sonnet 5 &amp; 4.5</div>
+          <div class="card-desc">Official Messages API (`claude-sonnet-5` &amp; `claude-sonnet-4-5`) via `x-api-key` header. 200K token context.</div>
         </div>
         <div class="card">
           <div class="card-title">OpenAI</div>
@@ -398,27 +398,27 @@
       </div>
     </div>
 
-    <!-- Slide 9: Tech Stack & Benchmarks -->
+    <!-- Slide 9: Tech Stack & Automated CI Verification -->
     <div class="slide">
-      <span class="slide-tag">Engineering Quality &bull; 09</span>
-      <h1 class="slide-title">Production Performance &amp; Automated Verification</h1>
-      <p class="slide-subtitle">High-throughput client bundle tested across 23 automated engine checks.</p>
+      <span class="slide-tag">Code Health &bull; 09</span>
+      <h1 class="slide-title">Automated Web CI &amp; Code Quality Checks</h1>
+      <p class="slide-subtitle">Automated GitHub Actions workflow validates web build compilation, Oxlint code rules, and unit test suites on every commit.</p>
       <div class="grid-4">
         <div class="card">
-          <div class="metric" style="color: var(--accent-cyan);">423 ms</div>
-          <div class="card-desc">Vite production compilation time</div>
+          <div class="metric" style="color: var(--accent-cyan);">&sim;480 ms</div>
+          <div class="card-desc">Vite client web build compilation</div>
         </div>
         <div class="card">
-          <div class="metric" style="color: var(--accent-emerald);">128 KB</div>
-          <div class="card-desc">Optimized gzipped application bundle</div>
+          <div class="metric" style="color: var(--accent-emerald);">158 KB</div>
+          <div class="card-desc">Gzipped client production bundle</div>
         </div>
         <div class="card">
-          <div class="metric" style="color: var(--accent-purple);">23 / 23</div>
-          <div class="card-desc">Automated engine test suites passing</div>
+          <div class="metric" style="color: var(--accent-purple);">25 / 25</div>
+          <div class="card-desc">Automated engine tests passing</div>
         </div>
         <div class="card">
-          <div class="metric" style="color: var(--accent-amber);">PWA</div>
-          <div class="card-desc">Offline Service Worker cache active</div>
+          <div class="metric" style="color: var(--accent-amber);">0 Errors</div>
+          <div class="card-desc">Oxlint codebase verification</div>
         </div>
       </div>
     </div>

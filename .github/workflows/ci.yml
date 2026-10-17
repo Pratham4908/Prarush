@@ -32,3 +32,7 @@ jobs:
 
       - name: Run Production Vite Build
         run: npm run build
+
+      - name: Verify Mobile Scaffolding Integrity
+        run: |
+          node -e "const fs = require('fs'); const assert = require('assert'); assert(fs.existsSync('android/build.gradle') && fs.existsSync('ios/App/Podfile'), 'Native Android/iOS project files missing'); console.log('✅ Mobile scaffolding verified.');"

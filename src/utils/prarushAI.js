@@ -14,7 +14,26 @@ export const AI_MODELS = [
     contextWindow: 'Local Workspace Context',
     speed: 'Instant (<10 ms local)',
     costPer1k: 'Free ($0.00)',
+    inputCostPer1k: '$0.00 / 1k input',
+    outputCostPer1k: '$0.00 / 1k output',
+    pricingDate: 'On-device offline rules',
     strengths: 'Offline task templates, deterministic code/markdown generation without external API keys or cloud dependencies'
+  },
+  {
+    id: 'claude-sonnet-5',
+    aliasId: 'claude-5-sonnet',
+    name: 'Claude Sonnet 5',
+    provider: 'Anthropic',
+    icon: '🧠',
+    badge: 'LIVE BYOK',
+    badgeColor: '#f59e0b',
+    contextWindow: '200K Tokens',
+    speed: 'Est. 450-950 ms (Cloud)',
+    costPer1k: '$0.003 in / $0.015 out',
+    inputCostPer1k: '$0.0030 / 1k input ($3/M)',
+    outputCostPer1k: '$0.0150 / 1k output ($15/M)',
+    pricingDate: 'Anthropic official rates (est. Oct 2026)',
+    strengths: 'Anthropic current-generation frontier model for advanced architectural analysis, complex reasoning, and code synthesis'
   },
   {
     id: 'claude-sonnet-4-5',
@@ -24,11 +43,14 @@ export const AI_MODELS = [
     provider: 'Anthropic',
     icon: '🧠',
     badge: 'LIVE BYOK',
-    badgeColor: '#f59e0b',
+    badgeColor: '#d97706',
     contextWindow: '200K Tokens',
     speed: 'Est. 500-1100 ms (Cloud)',
-    costPer1k: '~$0.0020 (Provider Est.)',
-    strengths: 'Hybrid reasoning, nuanced prose, full-stack architectural design, and complex code debugging'
+    costPer1k: '$0.003 in / $0.015 out',
+    inputCostPer1k: '$0.0030 / 1k input ($3/M)',
+    outputCostPer1k: '$0.0150 / 1k output ($15/M)',
+    pricingDate: 'Anthropic official rates (est. Oct 2026)',
+    strengths: 'Balanced reasoning, nuanced prose, full-stack architectural design, and complex code debugging'
   },
   {
     id: 'gpt-4o',
@@ -39,7 +61,10 @@ export const AI_MODELS = [
     badgeColor: '#10b981',
     contextWindow: '128K Tokens',
     speed: 'Est. 500-1200 ms (Cloud)',
-    costPer1k: '~$0.0025 (Provider Est.)',
+    costPer1k: '$0.0025 in / $0.010 out',
+    inputCostPer1k: '$0.0025 / 1k input ($2.50/M)',
+    outputCostPer1k: '$0.0100 / 1k output ($10/M)',
+    pricingDate: 'OpenAI official rates (est. Oct 2026)',
     strengths: 'Multimodal vision, cross-domain logic, mathematical problem solving, rapid structured completions'
   },
   {
@@ -53,8 +78,11 @@ export const AI_MODELS = [
     badgeColor: '#8b5cf6',
     contextWindow: '1M+ Tokens',
     speed: 'Est. 300-800 ms (Cloud)',
-    costPer1k: '~$0.0005 (Provider Est.)',
-    strengths: 'High-speed reasoning, large multimodal context, and instant codebase ingestion'
+    costPer1k: '$0.0001 in / $0.0004 out',
+    inputCostPer1k: '$0.0001 / 1k input ($0.10/M)',
+    outputCostPer1k: '$0.0004 / 1k output ($0.40/M)',
+    pricingDate: 'Google DeepMind rates (est. Oct 2026)',
+    strengths: 'High-speed reasoning, large multimodal context, and instant codebase ingestion via header auth'
   },
   {
     id: 'llama-3-3-70b',
@@ -66,7 +94,10 @@ export const AI_MODELS = [
     badgeColor: '#38bdf8',
     contextWindow: '128K Tokens',
     speed: 'Est. 400-1000 ms (Cloud)',
-    costPer1k: '~$0.0008 (Provider Est.)',
+    costPer1k: '$0.0008 in / $0.0008 out',
+    inputCostPer1k: '$0.0008 / 1k input ($0.80/M)',
+    outputCostPer1k: '$0.0008 / 1k output ($0.80/M)',
+    pricingDate: 'OpenRouter router rates (est. Oct 2026)',
     strengths: 'Open-weights foundation model, accessible via OpenRouter BYOK key'
   }
 ];
@@ -88,11 +119,15 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
   const keys = getStoredApiKeys();
   let liveCallError = null;
 
-  // 1. Direct Live Routing: Anthropic (Claude Sonnet)
-  if (selectedModel.id === 'claude-sonnet-4-5' || selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
+  // 1. Direct Live Routing: Anthropic (Claude Sonnet 5 & Sonnet 4.5)
+  if (selectedModel.id === 'claude-sonnet-5' || selectedModel.id === 'claude-5-sonnet' || selectedModel.id === 'claude-sonnet-4-5' || selectedModel.id === 'claude-sonnet' || selectedModel.id === 'claude-3-7-sonnet' || selectedModel.id === 'claude-3-5-sonnet') {
+    const targetAnthropicId = (selectedModel.id === 'claude-sonnet-5' || selectedModel.id === 'claude-5-sonnet')
+      ? 'claude-sonnet-5'
+      : 'claude-sonnet-4-5';
+
     if (keys.anthropic) {
       try {
-        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, 'claude-sonnet-4-5');
+        const liveAnswer = await callRealAnthropic(prompt, keys.anthropic, targetAnthropicId);
         return {
           type: 'live_llm_response',
           modelUsed: `${selectedModel.name} (Live Anthropic API)`,
@@ -112,7 +147,8 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       }
     } else if (keys.openrouter) {
       try {
-        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, 'anthropic/claude-sonnet-4.5');
+        const targetOpenRouterModel = targetAnthropicId === 'claude-sonnet-5' ? 'anthropic/claude-sonnet-5' : 'anthropic/claude-sonnet-4.5';
+        const liveAnswer = await callRealOpenRouter(prompt, keys.openrouter, targetOpenRouterModel);
         return {
           type: 'live_llm_response',
           modelUsed: `${selectedModel.name} (Live via OpenRouter)`,
@@ -309,12 +345,12 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
       isLiveApi: false,
       disclaimer: fallbackNotice,
       verifiedFacts: [
-        'Active Models: Claude Sonnet 4.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
+        'Active Models: Claude Sonnet 5 & Sonnet 4.5 (Anthropic), Gemini 3.8 Flash (Google DeepMind), GPT-4o (OpenAI), Llama 3.3 70B (Meta).',
         'Direct Client Protocol: Browser BYOK requests route directly via HTTPS headers (x-api-key, Authorization, x-goog-api-key).',
         'Data Isolation: Workspaces and tasks persist locally per user profile without shared browser leakage.'
       ],
       citations: [
-        'Anthropic Model Documentation (Claude Sonnet 4.5)',
+        'Anthropic Model Documentation (Claude Sonnet 5 & Sonnet 4.5)',
         'Google Cloud Generative AI Documentation (Gemini 3.8 Flash)',
         'OpenAI API Reference (GPT-4o)'
       ]

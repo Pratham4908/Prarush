@@ -236,27 +236,31 @@ export function cancelSubscription() {
   return sub;
 }
 
-// GDPR Article 20: Machine-readable JSON Data Portability Export
-export function exportUserDataGDPR(user) {
+// Build Machine-readable JSON Data Portability Payload without triggering browser download
+export function buildUserDataGDPRPayload(user) {
   const sub = getSubscription();
-  const userId = user?.id;
-  const workspaces = (userId && localStorage.getItem(`prarush_usr_${userId}_workspaces`)) || localStorage.getItem('prarush_workspaces');
-  const tasks = (userId && localStorage.getItem(`prarush_usr_${userId}_tasks`)) || localStorage.getItem('prarush_tasks');
-  const notes = (userId && localStorage.getItem(`prarush_usr_${userId}_notes`)) || localStorage.getItem('prarush_notes');
-  const docs = (userId && localStorage.getItem(`prarush_usr_${userId}_documents`)) || localStorage.getItem('prarush_documents');
-  const events = (userId && localStorage.getItem(`prarush_usr_${userId}_events`)) || localStorage.getItem('prarush_events');
-  const automations = (userId && localStorage.getItem(`prarush_usr_${userId}_automations`)) || localStorage.getItem('prarush_automations');
-  const kb = (userId && localStorage.getItem(`prarush_usr_${userId}_knowledge`)) || localStorage.getItem('prarush_knowledge');
+  const userId = user?.id || 'usr-guest';
+  
+  // Strict Profile Scoping: Only retrieve keys strictly scoped to this user profile.
+  // Never fall back to unpartitioned legacy keys which could leak another profile's data.
+  const userPrefix = `prarush_usr_${userId}_`;
+  const workspaces = localStorage.getItem(`${userPrefix}workspaces`);
+  const tasks = localStorage.getItem(`${userPrefix}tasks`);
+  const notes = localStorage.getItem(`${userPrefix}notes`);
+  const docs = localStorage.getItem(`${userPrefix}documents`);
+  const events = localStorage.getItem(`${userPrefix}events`);
+  const automations = localStorage.getItem(`${userPrefix}automations`);
+  const kb = localStorage.getItem(`${userPrefix}knowledge`);
   const activity = localStorage.getItem('prarush_activity_log');
   const theme = localStorage.getItem('prarush_theme_mode');
   const locale = localStorage.getItem('prarush_locale');
 
-  const exportPayload = {
+  return {
     platform: 'Prarush Local-First Workspace for Developers & Creators',
     version: '2.0.0-prototype',
     exportSpecification: 'GDPR Article 20 / CCPA Data Portability Format (JSON)',
     exportTimestamp: new Date().toISOString(),
-    exportScopeNotice: 'This JSON export contains workspaces, tasks, notes, automations, and document metadata from browser LocalStorage. Binary document files stored in IndexedDB are not embedded in this JSON file.',
+    exportScopeNotice: 'This JSON export contains workspaces, tasks, notes, automations, and document metadata strictly scoped to this local profile. Binary document files stored in IndexedDB are not embedded in this JSON file.',
     userProfile: user || {
       id: 'usr-guest',
       name: 'Guest User',
@@ -277,6 +281,11 @@ export function exportUserDataGDPR(user) {
     knowledgeBase: kb ? JSON.parse(kb) : [],
     activityAuditLog: activity ? JSON.parse(activity) : []
   };
+}
+
+// GDPR Article 20: Machine-readable JSON Data Portability Export (triggers download)
+export function exportUserDataGDPR(user) {
+  const exportPayload = buildUserDataGDPRPayload(user);
 
   if (typeof document !== 'undefined' && typeof URL !== 'undefined') {
     const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
@@ -293,29 +302,58 @@ export function exportUserDataGDPR(user) {
   return exportPayload;
 }
 
-// Complete Backup Archive: Bundles full metadata JSON AND all binary files from IndexedDB into a downloadable .zip
+// Complete Backup Archive: Bundles full metadata JSON AND all binary files from IndexedDB into a single downloadable .zip
+// Does NOT trigger separate JSON file download; avoids filename collisions; fails if files cannot be read.
 export async function exportCompleteBackupZip(user) {
   const userId = user?.id || 'usr-guest';
   const zip = new JSZip();
 
-  // 1. Generate Metadata payload
-  const metadata = exportUserDataGDPR(user);
-  metadata.exportScopeNotice = 'Full system backup archive containing complete workspace metadata and all uploaded binary files retrieved from IndexedDB.';
+  // 1. Generate Metadata payload strictly for this user (without downloading JSON)
+  const metadata = buildUserDataGDPRPayload(user);
+  metadata.exportScopeNotice = 'Full system backup archive containing complete workspace metadata and all uploaded binary files retrieved from IndexedDB for this user profile.';
   zip.file('metadata.json', JSON.stringify(metadata, null, 2));
 
   // 2. Retrieve all binary files for this user from IndexedDB
-  const files = await getAllFilesForUserFromIndexedDB(userId);
-  if (files && files.length > 0) {
-    const docsFolder = zip.folder('documents');
-    files.forEach((f, idx) => {
-      const fileName = f.name || `file_${idx + 1}`;
-      if (f.blob) {
-        docsFolder.file(fileName, f.blob);
-      }
-    });
+  const result = await getAllFilesForUserFromIndexedDB(userId);
+  if (!result || !result.success) {
+    const errMsg = result?.error || 'Failed to read files from IndexedDB.';
+    console.error('Backup aborted:', errMsg);
+    return { success: false, error: errMsg };
   }
 
-  // 3. Generate .zip Blob and trigger browser download
+  const files = result.files || [];
+  if (files.length > 0) {
+    const docsFolder = zip.folder('documents');
+    const seenNames = new Map();
+
+    for (const f of files) {
+      if (!f.blob) {
+        return {
+          success: false,
+          error: `Document "${f.name || f.id}" could not be read from storage. Backup aborted to prevent incomplete backup.`
+        };
+      }
+
+      let entryName = f.name || `file_${f.id}`;
+      // Deduplicate names to prevent archive collisions
+      if (seenNames.has(entryName)) {
+        const count = seenNames.get(entryName) + 1;
+        seenNames.set(entryName, count);
+        const dotIdx = entryName.lastIndexOf('.');
+        if (dotIdx > 0) {
+          entryName = `${entryName.slice(0, dotIdx)}_${count}${entryName.slice(dotIdx)}`;
+        } else {
+          entryName = `${entryName}_${count}`;
+        }
+      } else {
+        seenNames.set(entryName, 1);
+      }
+
+      docsFolder.file(entryName, f.blob);
+    }
+  }
+
+  // 3. Generate .zip Blob and trigger single browser download
   if (typeof document !== 'undefined' && typeof URL !== 'undefined') {
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(zipBlob);
