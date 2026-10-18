@@ -45,6 +45,7 @@ import {
 } from './utils/prarushStore.js';
 import { audioSystem } from './utils/audioSystem.js';
 import { getCurrentUser, logoutUser, continueAsGuest } from './utils/authManager.js';
+import { checkQuota } from './utils/prarushFreemium.js';
 
 export default function App() {
   // 0. User Profile (Dynamic Authenticated Session or Local Guest)
@@ -83,13 +84,13 @@ export default function App() {
     getUserStoredData(STORAGE_KEYS.EVENTS, initialUserId, INITIAL_CALENDAR_EVENTS)
   );
 
-  // 4. Global Settings & Controls
+  // 4. User-Scoped Settings & Controls
   const [selectedModelId, setSelectedModelId] = useState('prarush-local-engine');
   const [currentLocale, setCurrentLocale] = useState(() => 
-    getStoredData('prarush_locale', 'en')
+    getUserStoredData('prarush_locale', initialUserId, 'en')
   );
   const [isDarkMode, setIsDarkMode] = useState(() => 
-    getStoredData(STORAGE_KEYS.THEME, true)
+    getUserStoredData(STORAGE_KEYS.THEME, initialUserId, true)
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -112,6 +113,8 @@ export default function App() {
     setEvents(getUserStoredData(STORAGE_KEYS.EVENTS, uid, INITIAL_CALENDAR_EVENTS));
     setAutomations(getUserStoredData(STORAGE_KEYS.AUTOMATIONS, uid, INITIAL_AUTOMATIONS));
     setKnowledge(getUserStoredData(STORAGE_KEYS.KNOWLEDGE, uid, INITIAL_KNOWLEDGE));
+    setIsDarkMode(getUserStoredData(STORAGE_KEYS.THEME, uid, true));
+    setCurrentLocale(getUserStoredData('prarush_locale', uid, 'en'));
   }, [currentUser?.id]);
 
   // Global Keyboard Listener for Ctrl+K / Cmd+K (Command Center)
@@ -144,24 +147,34 @@ export default function App() {
   // Helper to persist data strictly for the active user's isolated storage key
   const persistUserData = (key, data) => {
     const uid = currentUser?.id || 'usr-guest';
-    saveUserStoredData(key, uid, data);
+    const res = saveUserStoredData(key, uid, data);
+    if (res && !res.success && res.isQuotaExceeded) {
+      window.alert(`Browser Storage Quota Exceeded! Could not persist changes to "${key}". Please delete older documents or clear storage in your Profile settings.`);
+    }
+    return res;
   };
 
   // Actions
   const handleSelectWorkspace = (wsId) => {
     setActiveWorkspaceId(wsId);
     persistUserData(STORAGE_KEYS.ACTIVE_WORKSPACE, wsId);
-    logActivity('Workspace Switch', `Switched active context to ${wsId}`, wsId);
+    logActivity('Workspace Switch', `Switched active context to ${wsId}`, wsId, currentUser?.id);
     audioSystem.playTone(520, 'sine', 0.08);
   };
 
   const handleCreateWorkspace = (newWs) => {
+    const quota = checkQuota('workspaces', workspaces.length, currentUser?.id);
+    if (!quota.allowed) {
+      window.alert(quota.message);
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     const updated = [...workspaces, newWs];
     setWorkspaces(updated);
     setActiveWorkspaceId(newWs.id);
     persistUserData(STORAGE_KEYS.WORKSPACES, updated);
     persistUserData(STORAGE_KEYS.ACTIVE_WORKSPACE, newWs.id);
-    logActivity('Workspace Created', `Created project workspace: ${newWs.name}`, newWs.id);
+    logActivity('Workspace Created', `Created project workspace: ${newWs.name}`, newWs.id, currentUser?.id);
     audioSystem.playSuccessSound();
   };
 
@@ -181,7 +194,7 @@ export default function App() {
     const updated = [newTask, ...tasks];
     setTasks(updated);
     persistUserData(STORAGE_KEYS.TASKS, updated);
-    logActivity('Task Created', `Added task "${newTask.title}"`, newTask.workspaceId);
+    logActivity('Task Created', `Added task "${newTask.title}"`, newTask.workspaceId, currentUser?.id);
     audioSystem.playSuccessSound();
   };
 
@@ -189,14 +202,14 @@ export default function App() {
     const updated = tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
     setTasks(updated);
     persistUserData(STORAGE_KEYS.TASKS, updated);
-    logActivity('Task Status Changed', `Task moved to ${newStatus}`, activeWorkspaceId);
+    logActivity('Task Status Changed', `Task moved to ${newStatus}`, activeWorkspaceId, currentUser?.id);
   };
 
   const handleDeleteTask = (taskId) => {
     const updated = tasks.filter(t => t.id !== taskId);
     setTasks(updated);
     persistUserData(STORAGE_KEYS.TASKS, updated);
-    logActivity('Task Deleted', `Removed task ${taskId}`, activeWorkspaceId);
+    logActivity('Task Deleted', `Removed task ${taskId}`, activeWorkspaceId, currentUser?.id);
   };
 
   const handleSaveNote = (noteData) => {
@@ -220,7 +233,7 @@ export default function App() {
     }
     setNotes(updated);
     persistUserData(STORAGE_KEYS.NOTES, updated);
-    logActivity('Note Saved', `Saved document: ${noteData.title}`, activeWorkspaceId);
+    logActivity('Note Saved', `Saved document: ${noteData.title}`, activeWorkspaceId, currentUser?.id);
   };
 
   const handleDeleteNote = (noteId) => {
@@ -233,7 +246,7 @@ export default function App() {
     const updated = [docData, ...documents];
     setDocuments(updated);
     persistUserData(STORAGE_KEYS.DOCUMENTS, updated);
-    logActivity('Document Added', `Uploaded file: ${docData.name}`, activeWorkspaceId);
+    logActivity('Document Added', `Uploaded file: ${docData.name}`, activeWorkspaceId, currentUser?.id);
   };
 
   const handleDeleteDocument = (docId) => {
@@ -246,7 +259,7 @@ export default function App() {
     const updated = [...events, evtData];
     setEvents(updated);
     persistUserData(STORAGE_KEYS.EVENTS, updated);
-    logActivity('Calendar Event', `Added event: ${evtData.title}`, activeWorkspaceId);
+    logActivity('Calendar Event', `Added event: ${evtData.title}`, activeWorkspaceId, currentUser?.id);
   };
 
   const handleCloneTemplate = (tpl) => {
@@ -266,12 +279,12 @@ export default function App() {
   const handleToggleTheme = () => {
     const next = !isDarkMode;
     setIsDarkMode(next);
-    saveStoredData(STORAGE_KEYS.THEME, next);
+    persistUserData(STORAGE_KEYS.THEME, next);
   };
 
   const handleChangeLocale = (loc) => {
     setCurrentLocale(loc);
-    saveStoredData('prarush_locale', loc);
+    persistUserData('prarush_locale', loc);
   };
 
   // Render active view
@@ -319,6 +332,7 @@ export default function App() {
           <PrarushModelHubView
             selectedModelId={selectedModelId}
             onSelectModel={setSelectedModelId}
+            currentUser={currentUser}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
           />
         );

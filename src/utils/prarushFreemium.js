@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import { getAllFilesForUserFromIndexedDB, saveFileToIndexedDB } from './indexedDbStore.js';
+import { getAllFilesForUserFromIndexedDB, saveFileToIndexedDB, clearUserFilesFromIndexedDB } from './indexedDbStore.js';
 import { logActivity } from './prarushStore.js';
 
 // Prarush Universal Platform: Freemium & Subscription Entitlement Engine
@@ -19,7 +19,7 @@ export const PRARUSH_PLANS = {
     description: 'Essential local-first AI capabilities and productivity tools for developers and creators.',
     features: [
       'Local offline AI rules & templates (Prarush Local Engine)',
-      'Up to 2 active workspaces',
+      'Up to 5 active local workspaces',
       'Kanban task manager & markdown notes editor',
       'Community template browsing',
       'Local file & document storage in browser memory',
@@ -27,7 +27,7 @@ export const PRARUSH_PLANS = {
     ],
     limits: {
       aiQueriesPerDay: 20,
-      workspaces: 2,
+      workspaces: 5,
       storageMB: 500,
       aiImageGen: 5,
       automationWorkflows: 1,
@@ -93,14 +93,26 @@ PRARUSH_PLANS.free = PRARUSH_PLANS.FREE;
 PRARUSH_PLANS.pro = PRARUSH_PLANS.PRO;
 PRARUSH_PLANS.team = PRARUSH_PLANS.TEAM;
 
+export function getSubscriptionStorageKey(userId = null) {
+  let uid = userId ? String(userId).trim() : null;
+  if (!uid && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('prarush_active_session');
+      if (raw) {
+        const sess = JSON.parse(raw);
+        if (sess?.user?.id) uid = sess.user.id;
+      }
+    } catch {}
+  }
+  return uid ? `prarush_usr_${uid}_subscription` : SUB_STORAGE_KEY;
+}
+
 export function getSubscription(userId = null) {
   try {
-    const targetUserId = userId ? String(userId).trim() : null;
-    let raw = null;
-    if (targetUserId) {
-      raw = localStorage.getItem(`prarush_usr_${targetUserId}_subscription`);
-    }
-    if (!raw) {
+    const key = getSubscriptionStorageKey(userId);
+    let raw = localStorage.getItem(key);
+    // Only check fallback if user was not explicitly passed
+    if (!raw && key === SUB_STORAGE_KEY) {
       raw = localStorage.getItem(SUB_STORAGE_KEY);
     }
     if (!raw) {
@@ -133,9 +145,24 @@ function getTodayString() {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-export function getDailyUsage(featureKey) {
+export function getDailyUsageStorageKey(userId = null) {
+  let uid = userId ? String(userId).trim() : null;
+  if (!uid && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('prarush_active_session');
+      if (raw) {
+        const sess = JSON.parse(raw);
+        if (sess?.user?.id) uid = sess.user.id;
+      }
+    } catch {}
+  }
+  return uid ? `prarush_usr_${uid}_daily_usage` : USAGE_STORAGE_KEY;
+}
+
+export function getDailyUsage(featureKey, userId = null) {
   try {
-    const raw = localStorage.getItem(USAGE_STORAGE_KEY);
+    const key = getDailyUsageStorageKey(userId);
+    const raw = localStorage.getItem(key);
     if (!raw) return 0;
     const data = JSON.parse(raw);
     const today = getTodayString();
@@ -146,11 +173,12 @@ export function getDailyUsage(featureKey) {
   }
 }
 
-export function recordUsage(featureKey) {
+export function recordUsage(featureKey, userId = null) {
   try {
+    const key = getDailyUsageStorageKey(userId);
     const today = getTodayString();
     let data = { date: today, counts: {} };
-    const raw = localStorage.getItem(USAGE_STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.date === today) {
@@ -158,19 +186,35 @@ export function recordUsage(featureKey) {
       }
     }
     data.counts[featureKey] = (data.counts[featureKey] || 0) + 1;
-    localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
     return data.counts[featureKey];
   } catch {
     return 1;
   }
 }
 
-export function checkQuota(featureKey) {
-  const isPro = isProSubscriber();
+export function checkQuota(featureKey, currentCount = null, userId = null) {
+  const isPro = isProSubscriber(userId);
   const plan = isPro ? PRARUSH_PLANS.PRO : PRARUSH_PLANS.FREE;
 
+  if (featureKey === 'workspaces') {
+    const limit = plan.limits.workspaces;
+    const count = typeof currentCount === 'number' ? currentCount : 0;
+    const allowed = isPro || count < limit;
+    return {
+      allowed,
+      usage: count,
+      limit,
+      remaining: isPro ? Infinity : Math.max(0, limit - count),
+      upgradeRequired: !allowed,
+      message: !allowed 
+        ? `Free Scout plan limit reached (${limit} workspaces). Upgrade to Prarush Pro for unlimited workspaces.` 
+        : 'Available'
+    };
+  }
+
   if (featureKey === 'aiQueries') {
-    const usage = getDailyUsage('aiQueries');
+    const usage = getDailyUsage('aiQueries', userId);
     const limit = plan.limits.aiQueriesPerDay;
     const remaining = Math.max(0, limit - usage);
     return {
@@ -179,7 +223,7 @@ export function checkQuota(featureKey) {
       limit,
       remaining: isPro ? Infinity : remaining,
       upgradeRequired: !isPro && remaining <= 0,
-      message: remaining <= 0 ? 'Daily free AI quota reached (20/20). Upgrade to Prarush Pro for unlimited queries.' : 'Available'
+      message: remaining <= 0 ? `Daily free AI quota reached (${limit}/${limit}). Upgrade to Prarush Pro for unlimited queries.` : 'Available'
     };
   }
 
@@ -319,7 +363,7 @@ export function exportUserDataGDPR(user) {
 }
 
 // Complete Backup Archive: Bundles full metadata JSON AND all binary files from IndexedDB into a single downloadable .zip
-// Uses a collision-proof Set while-loop for deduplicating final archive paths.
+// Uses a collision-proof Set while-loop for deduplicating final archive paths and records an explicit document manifest.
 export async function exportCompleteBackupZip(user) {
   const userId = user?.id || 'usr-guest';
   const zip = new JSZip();
@@ -327,7 +371,6 @@ export async function exportCompleteBackupZip(user) {
   // 1. Generate Metadata payload strictly for this user (without downloading JSON)
   const metadata = buildUserDataGDPRPayload(user);
   metadata.exportScopeNotice = 'Full system backup archive containing complete workspace metadata and all uploaded binary files retrieved from IndexedDB for this user profile.';
-  zip.file('metadata.json', JSON.stringify(metadata, null, 2));
 
   // 2. Retrieve all binary files for this user from IndexedDB
   const result = await getAllFilesForUserFromIndexedDB(userId);
@@ -338,6 +381,8 @@ export async function exportCompleteBackupZip(user) {
   }
 
   const files = result.files || [];
+  const documentManifest = [];
+
   if (files.length > 0) {
     const docsFolder = zip.folder('documents');
     const finalArchivePaths = new Set();
@@ -365,8 +410,21 @@ export async function exportCompleteBackupZip(user) {
 
       finalArchivePaths.add(candidateName.toLowerCase());
       docsFolder.file(candidateName, f.blob);
+
+      // Record deterministic mapping with exact MIME type and original filename
+      documentManifest.push({
+        id: f.id,
+        archiveName: candidateName,
+        archivePath: `documents/${candidateName}`,
+        originalName: f.name || candidateName,
+        type: f.type || f.blob.type || 'application/octet-stream',
+        size: f.size || f.blob.size || 0
+      });
     }
   }
+
+  metadata.documentManifest = documentManifest;
+  zip.file('metadata.json', JSON.stringify(metadata, null, 2));
 
   // 3. Generate .zip Blob
   let zipBlob = null;
@@ -389,14 +447,47 @@ export async function exportCompleteBackupZip(user) {
   return { success: true, fileCount: files.length, zipBlob, zip };
 }
 
-// Validate a backup zip file before restoring
+// Validate a backup zip file before restoring with safety limits & schema checks
 export async function validateBackupZip(zipBlobOrFile) {
   try {
     if (!zipBlobOrFile) {
       return { valid: false, error: 'No backup file provided.' };
     }
 
+    // Safety Limit 1: Compressed file size check (Max 50 MB)
+    if (zipBlobOrFile.size && zipBlobOrFile.size > 50 * 1024 * 1024) {
+      return {
+        valid: false,
+        error: `Archive exceeds maximum allowed size of 50 MB (File size: ${(zipBlobOrFile.size / (1024 * 1024)).toFixed(1)} MB).`
+      };
+    }
+
     const zip = await JSZip.loadAsync(zipBlobOrFile);
+
+    // Safety Limit 2: Entry count check (Max 500 entries)
+    const allEntries = Object.values(zip.files);
+    if (allEntries.length > 500) {
+      return {
+        valid: false,
+        error: `Archive contains too many entries (${allEntries.length}). Maximum permitted is 500.`
+      };
+    }
+
+    // Safety Limit 3: Total uncompressed byte size check (Zip bomb protection, max 100 MB)
+    let totalUncompressed = 0;
+    for (const entry of allEntries) {
+      if (entry._data && entry._data.uncompressedSize) {
+        totalUncompressed += entry._data.uncompressedSize;
+      }
+    }
+    if (totalUncompressed > 100 * 1024 * 1024) {
+      return {
+        valid: false,
+        error: `Archive uncompressed size (${(totalUncompressed / (1024 * 1024)).toFixed(1)} MB) exceeds 100 MB limit.`
+      };
+    }
+
+    // Schema Validation: metadata.json
     const metadataFile = zip.file('metadata.json');
     if (!metadataFile) {
       return { 
@@ -413,6 +504,10 @@ export async function validateBackupZip(zipBlobOrFile) {
       return { valid: false, error: 'Invalid archive: Corrupted "metadata.json" format.' };
     }
 
+    if (!metadata || typeof metadata !== 'object') {
+      return { valid: false, error: 'Invalid archive: Malformed metadata schema.' };
+    }
+
     if (!metadata.platform || !metadata.platform.includes('Prarush')) {
       return {
         valid: false,
@@ -420,18 +515,28 @@ export async function validateBackupZip(zipBlobOrFile) {
       };
     }
 
-    // Inspect documents folder
-    const binaryFiles = [];
+    if (!metadata.exportTimestamp || isNaN(new Date(metadata.exportTimestamp).getTime())) {
+      return { valid: false, error: 'Invalid archive: Missing or invalid exportTimestamp.' };
+    }
+
+    // Verify datasets are arrays
+    const requiredArrays = ['workspaces', 'tasks', 'notes', 'documents'];
+    for (const field of requiredArrays) {
+      if (metadata[field] !== undefined && !Array.isArray(metadata[field])) {
+        return { valid: false, error: `Invalid archive: "${field}" must be an array.` };
+      }
+    }
+
+    // Inspect documents folder without loading all binary blobs into memory
+    const binaryFilesSummary = [];
     for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
       if (relativePath.startsWith('documents/') && !zipEntry.dir) {
         const fileName = relativePath.replace(/^documents\//, '');
         if (fileName) {
-          const blob = await zipEntry.async('blob');
-          binaryFiles.push({
+          binaryFilesSummary.push({
             name: fileName,
             path: relativePath,
-            size: blob.size,
-            blob
+            size: zipEntry._data?.uncompressedSize || 0
           });
         }
       }
@@ -448,7 +553,8 @@ export async function validateBackupZip(zipBlobOrFile) {
       documentCount: metadata.documents?.length || 0,
       eventCount: metadata.calendarEvents?.length || 0,
       automationCount: metadata.automations?.length || 0,
-      binaryFiles
+      binaryFilesCount: binaryFilesSummary.length,
+      binaryFiles: binaryFilesSummary
     };
   } catch (err) {
     return {
@@ -470,6 +576,13 @@ export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conf
   const meta = validation.metadata;
 
   try {
+    const zip = await JSZip.loadAsync(zipBlobOrFile);
+
+    // In overwrite mode, purge old IndexedDB files for this user first so no orphaned files remain
+    if (conflictStrategy === 'overwrite') {
+      await clearUserFilesFromIndexedDB(userId);
+    }
+
     // 1. Process Scoped Datasets
     const datasets = [
       { key: 'workspaces', data: meta.workspaces || [] },
@@ -506,17 +619,97 @@ export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conf
       localStorage.setItem(`${userPrefix}subscription`, JSON.stringify(meta.subscription));
     }
 
-    // 2. Restore Binary Files to IndexedDB
-    let restoredFilesCount = 0;
+    // Restore activity logs if present
+    if (Array.isArray(meta.activityAuditLog) && meta.activityAuditLog.length > 0) {
+      const actKey = `${userPrefix}activity_log`;
+      if (conflictStrategy === 'overwrite') {
+        localStorage.setItem(actKey, JSON.stringify(meta.activityAuditLog));
+      } else {
+        let existingAct = [];
+        try {
+          const raw = localStorage.getItem(actKey);
+          if (raw) existingAct = JSON.parse(raw);
+        } catch {}
+        const existingIds = new Set(existingAct.map(a => a.id));
+        const merged = [...existingAct];
+        for (const act of meta.activityAuditLog) {
+          if (!existingIds.has(act.id)) {
+            merged.push(act);
+            existingIds.add(act.id);
+          }
+        }
+        localStorage.setItem(actKey, JSON.stringify(merged.slice(0, 100)));
+      }
+    }
 
-    if (validation.binaryFiles && validation.binaryFiles.length > 0) {
-      const docsMeta = meta.documents || [];
-      for (const bFile of validation.binaryFiles) {
-        const docRecord = docsMeta.find(d => d.name === bFile.name || d.name === bFile.name.replace(/_\d+(\.[^.]+)?$/, '$1'));
-        const docId = docRecord ? docRecord.id : `restored-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    // Restore system preferences (theme and locale)
+    if (meta.systemPreferences) {
+      if (meta.systemPreferences.theme) {
+        localStorage.setItem(`${userPrefix}theme_mode`, JSON.stringify(meta.systemPreferences.theme));
+      }
+      if (meta.systemPreferences.locale) {
+        localStorage.setItem(`${userPrefix}locale`, JSON.stringify(meta.systemPreferences.locale));
+      }
+    }
+
+    // 2. Restore Binary Files to IndexedDB with exact MIME type and original filename
+    let restoredFilesCount = 0;
+    const failedFiles = [];
+
+    // Use documentManifest if available; otherwise fall back to matching docsMeta
+    const manifest = meta.documentManifest || [];
+    const docsMeta = meta.documents || [];
+    const claimedDocIds = new Set();
+
+    for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+      if (relativePath.startsWith('documents/') && !zipEntry.dir) {
+        const archiveName = relativePath.replace(/^documents\//, '');
+        if (!archiveName) continue;
+
+        // 1. Check documentManifest
+        const manifestItem = manifest.find(m => m.archiveName === archiveName || m.archivePath === relativePath);
         
-        const saved = await saveFileToIndexedDB(docId, bFile.blob, userId);
-        if (saved) restoredFilesCount++;
+        let targetDocId = null;
+        let originalName = archiveName;
+        let mimeType = 'application/octet-stream';
+
+        if (manifestItem) {
+          targetDocId = manifestItem.id;
+          originalName = manifestItem.originalName || archiveName;
+          mimeType = manifestItem.type || 'application/octet-stream';
+          claimedDocIds.add(targetDocId);
+        } else {
+          // Fallback: match by name against docsMeta, ensuring each docRecord is mapped at most once
+          const candidateRecord = docsMeta.find(d => 
+            !claimedDocIds.has(d.id) && 
+            (d.name === archiveName || d.name === archiveName.replace(/_\d+(\.[^.]+)?$/, '$1'))
+          );
+          if (candidateRecord) {
+            targetDocId = candidateRecord.id;
+            originalName = candidateRecord.name || archiveName;
+            mimeType = candidateRecord.type || 'application/octet-stream';
+            claimedDocIds.add(targetDocId);
+          } else {
+            targetDocId = `restored-${Date.now()}-${Math.floor(Math.random() * 8999 + 1000)}`;
+          }
+        }
+
+        try {
+          const rawBuffer = await zipEntry.async('arraybuffer');
+          // Preserve authentic MIME type and filename
+          const restoredBlob = new Blob([rawBuffer], { type: mimeType });
+          restoredBlob.name = originalName;
+
+          const saved = await saveFileToIndexedDB(targetDocId, restoredBlob, userId);
+          if (saved) {
+            restoredFilesCount++;
+          } else {
+            failedFiles.push(originalName);
+          }
+        } catch (fileErr) {
+          console.warn(`Failed to restore file ${archiveName}:`, fileErr);
+          failedFiles.push(originalName);
+        }
       }
     }
 
@@ -524,19 +717,23 @@ export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conf
     try {
       logActivity(
         'Restore Complete Backup',
-        `Restored ${validation.workspaceCount} workspaces, ${validation.taskCount} tasks, and ${restoredFilesCount} files via ${conflictStrategy} mode.`,
+        `Restored ${validation.workspaceCount} workspaces, ${validation.taskCount} tasks, and ${restoredFilesCount} files (${failedFiles.length} failed) via ${conflictStrategy} mode.`,
         'ws-work',
         userId
       );
     } catch {}
 
+    const isFullSuccess = failedFiles.length === 0;
     return {
-      success: true,
+      success: isFullSuccess,
+      partial: !isFullSuccess && restoredFilesCount > 0,
       restoredWorkspaces: validation.workspaceCount,
       restoredTasks: validation.taskCount,
       restoredNotes: validation.noteCount,
       restoredFiles: restoredFilesCount,
-      strategyUsed: conflictStrategy
+      failedFiles,
+      strategyUsed: conflictStrategy,
+      error: !isFullSuccess ? `Restore completed with warnings: ${failedFiles.length} file(s) could not be written to IndexedDB (${failedFiles.join(', ')}).` : null
     };
   } catch (err) {
     return {
@@ -545,3 +742,4 @@ export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conf
     };
   }
 }
+

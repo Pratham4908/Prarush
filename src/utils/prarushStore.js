@@ -354,12 +354,15 @@ export function getStoredData(key, fallback) {
   }
 }
 
-// Helper to save to LocalStorage
+// Helper to save to LocalStorage with error handling and quota reporting
 export function saveStoredData(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
+    return { success: true };
   } catch (err) {
+    const isQuota = err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22;
     console.warn(`Storage save error for ${key}:`, err);
+    return { success: false, error: err.message, isQuotaExceeded: isQuota };
   }
 }
 
@@ -378,13 +381,23 @@ export function getUserStoredData(baseKey, userId, fallback) {
 
 export function saveUserStoredData(baseKey, userId, data) {
   const scopedKey = getUserStorageKey(baseKey, userId);
-  saveStoredData(scopedKey, data);
+  return saveStoredData(scopedKey, data);
 }
 
-// Log an activity entry scoped to a user profile
+// Log an activity entry scoped to a user profile (resolves active session user if omitted)
 export function logActivity(action, details, workspaceId = 'ws-personal', userId = null) {
   try {
-    const targetUserId = userId ? String(userId).trim() : 'usr-guest';
+    let targetUserId = userId ? String(userId).trim() : null;
+    if (!targetUserId && typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('prarush_active_session');
+        if (raw) {
+          const sess = JSON.parse(raw);
+          if (sess?.user?.id) targetUserId = sess.user.id;
+        }
+      } catch {}
+    }
+    targetUserId = targetUserId || 'usr-guest';
     const scopedKey = getUserStorageKey(STORAGE_KEYS.ACTIVITY, targetUserId);
     const activities = getStoredData(scopedKey, []);
     const newEntry = {
@@ -407,9 +420,87 @@ export function logActivity(action, details, workspaceId = 'ws-personal', userId
 
 // Retrieve activities scoped to a specific user profile
 export function getUserActivities(userId = null) {
-  const targetUserId = userId ? String(userId).trim() : 'usr-guest';
+  let targetUserId = userId ? String(userId).trim() : null;
+  if (!targetUserId && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('prarush_active_session');
+      if (raw) {
+        const sess = JSON.parse(raw);
+        if (sess?.user?.id) targetUserId = sess.user.id;
+      }
+    } catch {}
+  }
+  targetUserId = targetUserId || 'usr-guest';
   const scopedKey = getUserStorageKey(STORAGE_KEYS.ACTIVITY, targetUserId);
   return getStoredData(scopedKey, []);
+}
+
+// Check if any unscoped legacy data exists in LocalStorage
+export function checkLegacyUnscopedDataExists() {
+  if (typeof localStorage === 'undefined') return { exists: false, keys: [] };
+  const legacyKeys = [
+    STORAGE_KEYS.WORKSPACES,
+    STORAGE_KEYS.TASKS,
+    STORAGE_KEYS.NOTES,
+    STORAGE_KEYS.DOCUMENTS,
+    STORAGE_KEYS.AUTOMATIONS,
+    STORAGE_KEYS.KNOWLEDGE,
+    STORAGE_KEYS.EVENTS,
+    STORAGE_KEYS.ACTIVITY,
+    STORAGE_KEYS.THEME,
+    'prarush_locale',
+    'prarush_subscription',
+    'prarush_daily_usage',
+    'prarush_cloud_api_keys'
+  ];
+  const found = [];
+  for (const k of legacyKeys) {
+    if (localStorage.getItem(k) !== null) {
+      found.push(k);
+    }
+  }
+  return { exists: found.length > 0, keys: found };
+}
+
+// Migrate legacy unscoped data into a target user's isolated profile
+export function migrateLegacyUnscopedData(userId) {
+  if (!userId) return { success: false, error: 'Target userId required', migratedCount: 0, migratedKeys: [] };
+  if (typeof localStorage === 'undefined') return { success: false, error: 'Storage unavailable', migratedCount: 0, migratedKeys: [] };
+
+  const check = checkLegacyUnscopedDataExists();
+  if (!check.exists) {
+    return { success: true, migratedCount: 0, migratedKeys: [], message: 'No legacy unscoped data found to migrate.' };
+  }
+
+  const migratedKeys = [];
+  for (const rawKey of check.keys) {
+    const rawVal = localStorage.getItem(rawKey);
+    if (!rawVal) continue;
+
+    let targetKey = getUserStorageKey(rawKey, userId);
+    if (rawKey === 'prarush_subscription') {
+      targetKey = `prarush_usr_${userId}_subscription`;
+    } else if (rawKey === 'prarush_daily_usage') {
+      targetKey = `prarush_usr_${userId}_daily_usage`;
+    } else if (rawKey === 'prarush_cloud_api_keys') {
+      targetKey = `prarush_usr_${userId}_cloud_api_keys`;
+    } else if (rawKey === 'prarush_locale') {
+      targetKey = `prarush_usr_${userId}_locale`;
+    }
+
+    // Only migrate if user profile does not already have distinct data
+    if (localStorage.getItem(targetKey) === null) {
+      localStorage.setItem(targetKey, rawVal);
+      migratedKeys.push(rawKey);
+    }
+  }
+
+  return {
+    success: true,
+    migratedCount: migratedKeys.length,
+    migratedKeys,
+    message: `Migrated ${migratedKeys.length} legacy datasets into profile ${userId}.`
+  };
 }
 
 // Origin-Safe Data Purge: Only delete Prarush namespace keys, never call localStorage.clear()

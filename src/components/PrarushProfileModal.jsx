@@ -1,7 +1,8 @@
+import React, { useState, useEffect } from 'react';
 import { 
   User, Shield, Download, Trash2, CheckCircle2, X, Sparkles, 
   Settings, Bell, Lock, Mail, ExternalLink, HardDrive, Archive, RefreshCw,
-  UploadCloud, AlertCircle, FileCheck
+  UploadCloud, AlertCircle, FileCheck, Layers
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
 import { 
@@ -11,8 +12,8 @@ import {
   validateBackupZip, 
   restoreCompleteBackupZip 
 } from '../utils/prarushFreemium.js';
-import { clearPrarushStorageOnly } from '../utils/prarushStore.js';
-import { clearAllFilesFromIndexedDB } from '../utils/indexedDbStore.js';
+import { clearPrarushStorageOnly, checkLegacyUnscopedDataExists, migrateLegacyUnscopedData } from '../utils/prarushStore.js';
+import { clearAllFilesFromIndexedDB, getQuarantinedLegacyFilesFromIndexedDB, claimQuarantinedLegacyFiles } from '../utils/indexedDbStore.js';
 
 export default function PrarushProfileModal({ 
   isOpen, 
@@ -36,6 +37,49 @@ export default function PrarushProfileModal({
   const [conflictStrategy, setConflictStrategy] = useState('merge'); // 'merge' | 'overwrite'
   const [restoreError, setRestoreError] = useState('');
   const [restoreSuccess, setRestoreSuccess] = useState('');
+
+  // Legacy Data & Quarantined Files Migration State
+  const [legacyStatus, setLegacyStatus] = useState(null);
+  const [isMigratingLegacy, setIsMigratingLegacy] = useState(false);
+  const [legacyResult, setLegacyResult] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const checkUnscoped = checkLegacyUnscopedDataExists();
+    getQuarantinedLegacyFilesFromIndexedDB().then(res => {
+      const quarantinedCount = res?.files?.length || 0;
+      if (checkUnscoped.exists || quarantinedCount > 0) {
+        setLegacyStatus({
+          unscopedKeysCount: checkUnscoped.keys.length,
+          quarantinedFilesCount: quarantinedCount
+        });
+      } else {
+        setLegacyStatus(null);
+      }
+    }).catch(() => {});
+  }, [isOpen]);
+
+  const handleMigrateLegacy = async () => {
+    if (!user?.id) return;
+    setIsMigratingLegacy(true);
+    setLegacyResult('');
+    audioSystem.playTone(600, 'sine', 0.1);
+    try {
+      const storeRes = migrateLegacyUnscopedData(user.id);
+      const idbRes = await claimQuarantinedLegacyFiles(user.id);
+      audioSystem.playSuccessSound();
+      setLegacyResult(`Migration Complete: Claimed ${storeRes.migratedCount} unscoped datasets and ${idbRes.claimedCount} quarantined files into profile ${user.name}.`);
+      setLegacyStatus(null);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1800);
+    } catch (err) {
+      audioSystem.playWarningSound();
+      setLegacyResult(`Migration Failed: ${err.message}`);
+    } finally {
+      setIsMigratingLegacy(false);
+    }
+  };
 
   const isPro = isProSubscriber();
 
@@ -84,6 +128,13 @@ export default function PrarushProfileModal({
         setTimeout(() => {
           window.location.reload();
         }, 1500);
+      } else if (result.partial) {
+        audioSystem.playWarningSound();
+        setRestoreError(result.error || 'Restore completed with some file warnings.');
+        setRestoreSuccess(`Imported ${result.restoredWorkspaces} workspaces and ${result.restoredTasks} tasks, but ${result.failedFiles?.length || 0} file(s) failed.`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 2500);
       } else {
         setRestoreError(result.error || 'Restore failed.');
         audioSystem.playWarningSound();
@@ -563,7 +614,55 @@ export default function PrarushProfileModal({
                 </div>
               )}
 
-              {/* 2. Metadata-only JSON */}
+              {/* 3. Legacy & Quarantined Data Migration Helper */}
+              {legacyStatus && (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(245, 158, 11, 0.09)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>
+                      <Layers size={16} />
+                      <span>Legacy / Quarantined Data Detected</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
+                    Found {legacyStatus.unscopedKeysCount} older unscoped settings/datasets and {legacyStatus.quarantinedFilesCount} unowned binary file(s) from previous app versions.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMigrateLegacy}
+                    disabled={isMigratingLegacy}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'rgba(245, 158, 11, 0.2)',
+                      border: '1px solid #f59e0b',
+                      color: '#f59e0b',
+                      fontWeight: 700,
+                      fontSize: '0.76rem',
+                      cursor: isMigratingLegacy ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}
+                  >
+                    {isMigratingLegacy ? <RefreshCw size={13} className="spin-slow" /> : <CheckCircle2 size={13} />}
+                    <span>{isMigratingLegacy ? 'Migrating Data...' : 'Claim & Migrate to Current Profile'}</span>
+                  </button>
+                  {legacyResult && (
+                    <div style={{ fontSize: '0.72rem', color: '#10b981', marginTop: 2 }}>{legacyResult}</div>
+                  )}
+                </div>
+              )}
+
+              {/* 4. Metadata-only JSON */}
               <button
                 onClick={handleExportGDPR}
                 style={{

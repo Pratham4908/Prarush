@@ -172,7 +172,7 @@ export default function PrarushAuthModal({
             lineHeight: 1.45
           }}>
             <strong style={{ color: '#38bdf8' }}>Local Profile Preview (Device Only): </strong>
-            Profiles and passwords are stored strictly in your browser using OWASP-recommended PBKDF2 key derivation (100,000 iterations, HMAC-SHA256). Sign-in operates as an on-device preview; public accounts and recovery remain planned.
+            Profiles and passwords are stored strictly in your browser using OWASP-recommended PBKDF2 key derivation (600,000 iterations, HMAC-SHA256). Sign-in operates as an on-device preview; public accounts and recovery remain planned.
           </div>
 
           {errorMessage && (

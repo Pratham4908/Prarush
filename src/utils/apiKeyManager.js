@@ -2,22 +2,46 @@
 // Enables Bring-Your-Own-Key (BYOK) for direct inference with OpenAI, Gemini, Anthropic, or OpenRouter
 // Transparently routes prompts directly from the client to the chosen provider without proxy tracking.
 
-const API_KEYS_STORAGE_KEY = 'prarush_cloud_api_keys';
+export function getApiKeysStorageKey(userId = null) {
+  let uid = userId ? String(userId).trim() : null;
+  if (!uid && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('prarush_active_session');
+      if (raw) {
+        const sess = JSON.parse(raw);
+        if (sess?.user?.id) uid = sess.user.id;
+      }
+    } catch {}
+  }
+  return uid ? `prarush_usr_${uid}_cloud_api_keys` : 'prarush_cloud_api_keys';
+}
 
-export function getStoredApiKeys() {
+export function getStoredApiKeys(userId = null) {
+  const scopedKey = getApiKeysStorageKey(userId);
   try {
-    const sessionRaw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(API_KEYS_STORAGE_KEY) : null;
+    // 1. Check user-scoped sessionStorage
+    const sessionRaw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(scopedKey) : null;
     if (sessionRaw) {
       return JSON.parse(sessionRaw);
     }
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(API_KEYS_STORAGE_KEY) : null;
-    return raw ? JSON.parse(raw) : { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
+    // 2. Check user-scoped localStorage
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(scopedKey) : null;
+    if (raw) {
+      return JSON.parse(raw);
+    }
+    // 3. Fallback to legacy unscoped key only if guest/unspecified
+    if (scopedKey === 'prarush_cloud_api_keys') {
+      const legacyRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('prarush_cloud_api_keys') : null;
+      if (legacyRaw) return JSON.parse(legacyRaw);
+    }
+    return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
   } catch {
     return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
   }
 }
 
-export function saveStoredApiKeys(keys) {
+export function saveStoredApiKeys(keys, userId = null) {
+  const scopedKey = getApiKeysStorageKey(userId);
   try {
     const sessionOnly = keys.sessionOnly !== undefined ? Boolean(keys.sessionOnly) : true;
     const payload = {
@@ -29,22 +53,27 @@ export function saveStoredApiKeys(keys) {
     };
 
     if (payload.sessionOnly && typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(payload));
-      if (typeof localStorage !== 'undefined') localStorage.removeItem(API_KEYS_STORAGE_KEY);
+      sessionStorage.setItem(scopedKey, JSON.stringify(payload));
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(scopedKey);
     } else {
-      if (typeof localStorage !== 'undefined') localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(payload));
-      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(API_KEYS_STORAGE_KEY);
+      if (typeof localStorage !== 'undefined') localStorage.setItem(scopedKey, JSON.stringify(payload));
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(scopedKey);
     }
   } catch (err) {
     console.warn('Failed to save API keys:', err);
   }
 }
 
-// Completely remove and purge all stored API keys from both session and local storage
-export function purgeAllApiKeys() {
+// Completely remove and purge stored API keys for the user profile
+export function purgeAllApiKeys(userId = null) {
+  const scopedKey = getApiKeysStorageKey(userId);
   try {
-    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(API_KEYS_STORAGE_KEY);
-    if (typeof localStorage !== 'undefined') localStorage.removeItem(API_KEYS_STORAGE_KEY);
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(scopedKey);
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(scopedKey);
+    if (scopedKey !== 'prarush_cloud_api_keys') {
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('prarush_cloud_api_keys');
+      if (typeof localStorage !== 'undefined') localStorage.removeItem('prarush_cloud_api_keys');
+    }
     return true;
   } catch (err) {
     console.warn('Failed to purge API keys:', err);
@@ -52,8 +81,8 @@ export function purgeAllApiKeys() {
   }
 }
 
-export function hasActiveApiKey() {
-  const keys = getStoredApiKeys();
+export function hasActiveApiKey(userId = null) {
+  const keys = getStoredApiKeys(userId);
   return Boolean(keys.openai || keys.gemini || keys.anthropic || keys.openrouter);
 }
 

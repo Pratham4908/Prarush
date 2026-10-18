@@ -259,7 +259,7 @@
         <div class="card">
           <div class="card-title">🔐 Cryptographic Client Sessions</div>
           <div class="card-desc">
-            - Salted SHA-256 password hashing (Web Crypto API)<br>
+            - OWASP PBKDF2 password derivation (600,000 iterations, Web Crypto API)<br>
             - Zero plaintext password persistence<br>
             - Per-user namespace isolation (`prarush_usr_${userId}_*`)<br>
             - Sliding 30-day inactivity expiration refreshed on usage
@@ -284,8 +284,8 @@
       <div class="grid-4">
         <div class="card">
           <div class="card-title">Anthropic</div>
-          <div class="metric" style="font-size: 1.15rem; color: var(--accent-amber);">Claude Sonnet 5 &amp; 4.5</div>
-          <div class="card-desc">Official Messages API (`claude-sonnet-5` &amp; `claude-sonnet-4-5`) via `x-api-key` header. 200K token context.</div>
+          <div class="metric" style="font-size: 1.15rem; color: var(--accent-amber);">Claude Sonnet 5.5, 5 &amp; 4.5</div>
+          <div class="card-desc">Official Messages API (`claude-sonnet-5-5`, `claude-sonnet-5`, `claude-sonnet-4-5`) via `x-api-key` header. 1M token context (128K output).</div>
         </div>
         <div class="card">
           <div class="card-title">OpenAI</div>

@@ -1,12 +1,12 @@
-// Prarush Universal Platform: Secure Client-Side Authentication & Session Engine
-// Implements salted SHA-256 password hashing (Web Crypto API), session tokens, and pluggable backend adapters.
-// Replaces legacy plaintext password storage.
+// Prarush Universal Platform: Client-Side Authentication & Session Engine
+// Implements PBKDF2 password key derivation (600,000 iterations, HMAC-SHA-256, Web Crypto API) for client-side offline profiles.
+// Note: Browser-local authentication does not replace server-side account security.
 
 const AUTH_STORAGE_KEY = 'prarush_active_session';
 const USERS_STORAGE_KEY = 'prarush_registered_users';
 
-// Cryptographic hash using OWASP-recommended PBKDF2 (100,000 iterations, HMAC-SHA-256)
-export const PBKDF2_ITERATIONS = 100000;
+// Cryptographic hash using OWASP-recommended PBKDF2 benchmark (600,000 iterations, HMAC-SHA-256)
+export const PBKDF2_ITERATIONS = 600000;
 
 export async function hashPassword(password, salt, iterations = PBKDF2_ITERATIONS) {
   const enc = new TextEncoder();
@@ -201,9 +201,13 @@ export async function loginUser({ email, password }) {
     throw new Error('Incorrect password. Please try again or reset your password.');
   }
 
-  // Seamlessly upgrade legacy SHA-256 hashes to OWASP PBKDF2 upon successful login
-  if (!userRecord.passwordHash.startsWith('pbkdf2$')) {
-    userRecord.passwordHash = await hashPassword(password, userRecord.salt);
+  // Seamlessly upgrade legacy SHA-256 or lower-iteration PBKDF2 hashes to OWASP benchmark (600,000 iterations) upon successful login
+  const existingIterations = userRecord.passwordHash.startsWith('pbkdf2$') 
+    ? (parseInt(userRecord.passwordHash.split('$')[1], 10) || 0)
+    : 0;
+
+  if (existingIterations < PBKDF2_ITERATIONS) {
+    userRecord.passwordHash = await hashPassword(password, userRecord.salt, PBKDF2_ITERATIONS);
     const idx = users.findIndex(u => u.id === userRecord.id);
     if (idx >= 0) {
       users[idx] = userRecord;

@@ -20,12 +20,15 @@ self.addEventListener('install', (event) => {
   );
 });
 
+const MAP_TILES_CACHE = 'prarush-map-tiles';
+const PRESERVED_CACHES = new Set([CACHE_NAME, MAP_TILES_CACHE]);
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (!PRESERVED_CACHES.has(key)) {
             return caches.delete(key);
           }
         })

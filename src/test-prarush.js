@@ -164,8 +164,15 @@ import {
   getFileFromIndexedDB,
   deleteFileFromIndexedDB,
   getAllFilesForUserFromIndexedDB,
-  clearAllFilesFromIndexedDB
+  clearAllFilesFromIndexedDB,
+  clearUserFilesFromIndexedDB,
+  claimQuarantinedLegacyFiles
 } from './utils/indexedDbStore.js';
+
+import {
+  checkLegacyUnscopedDataExists,
+  migrateLegacyUnscopedData
+} from './utils/prarushStore.js';
 
 console.log('🚀 Starting Prarush Comprehensive Engine Tests...\n');
 
@@ -355,7 +362,7 @@ async function runAllTests() {
   });
 
   // 5. Secure Auth & Session Engine Tests (OWASP PBKDF2)
-  await runTest('AuthManager register and login with OWASP PBKDF2 (100,000 iterations) verification', async () => {
+  await runTest('AuthManager register and login with OWASP PBKDF2 (600,000 iterations) and auto-upgrade', async () => {
     const testEmail = `test_${Date.now()}@example.com`;
     const registered = await registerUser({
       name: 'Test Engineer',
@@ -366,10 +373,10 @@ async function runAllTests() {
     assert.strictEqual(registered.email, testEmail);
     assert.strictEqual(registered.password, undefined, 'Plaintext password must NEVER be exposed');
 
-    // Verify stored password hash format has PBKDF2 prefix and 100k iterations
+    // Verify stored password hash format has PBKDF2 prefix and 600k iterations
     const users = JSON.parse(localStorage.getItem('prarush_registered_users'));
     const userRec = users.find(u => u.id === registered.id);
-    assert(userRec.passwordHash.startsWith('pbkdf2$100000$'), 'Password hash must use PBKDF2 with 100k iterations');
+    assert(userRec.passwordHash.startsWith('pbkdf2$600000$'), 'Password hash must use PBKDF2 with 600k iterations');
 
     // Test verifyPassword helper
     const isValid = await verifyPassword('SecurePassword123!', userRec);
@@ -377,11 +384,30 @@ async function runAllTests() {
     assert.strictEqual(isValid, true, 'verifyPassword should accept correct password');
     assert.strictEqual(isBad, false, 'verifyPassword should reject wrong password');
 
-    const loggedIn = await loginUser({
-      email: testEmail,
-      password: 'SecurePassword123!'
-    });
-    assert.strictEqual(loggedIn.id, registered.id);
+    // Simulate an older user with 100k iteration hash
+    const olderSalt = 'oldsalt123';
+    const olderHash = await hashPassword('LegacyPass123!', olderSalt, 100000);
+    const olderUser = {
+      id: `usr-old-${Date.now()}`,
+      name: 'Old Account',
+      email: `old_${Date.now()}@example.com`,
+      salt: olderSalt,
+      passwordHash: olderHash,
+      role: 'Engineer',
+      isGuest: false,
+      createdAt: new Date().toISOString()
+    };
+    users.push(olderUser);
+    localStorage.setItem('prarush_registered_users', JSON.stringify(users));
+
+    // Login with older user
+    const oldLoggedIn = await loginUser({ email: olderUser.email, password: 'LegacyPass123!' });
+    assert.strictEqual(oldLoggedIn.id, olderUser.id);
+
+    // Verify hash automatically upgraded to 600k iterations on login
+    const updatedUsers = JSON.parse(localStorage.getItem('prarush_registered_users'));
+    const upgradedRec = updatedUsers.find(u => u.id === olderUser.id);
+    assert(upgradedRec.passwordHash.startsWith('pbkdf2$600000$'), 'Older 100k hash must upgrade to 600k on successful login');
   });
 
   await runTest('AuthManager terminates expired sessions when reading getCurrentUser()', () => {
@@ -422,16 +448,20 @@ async function runAllTests() {
   });
 
   // 6. BYOK API Key Manager Tests
-  await runTest('API Key Manager saves, retrieves, and purges cloud credentials safely', () => {
+  await runTest('API Key Manager saves, retrieves, and purges cloud credentials safely with user scoping', () => {
     const keys = { openai: 'sk-test-mock', gemini: 'AIza-test-mock', anthropic: 'sk-ant-test', openrouter: '' };
-    saveStoredApiKeys(keys, false);
-    const retrieved = getStoredApiKeys();
+    saveStoredApiKeys(keys, 'usr-test-keys');
+    const retrieved = getStoredApiKeys('usr-test-keys');
     assert.strictEqual(retrieved.openai, 'sk-test-mock');
     assert.strictEqual(retrieved.gemini, 'AIza-test-mock');
     assert.strictEqual(retrieved.anthropic, 'sk-ant-test');
 
-    purgeAllApiKeys();
-    const purged = getStoredApiKeys();
+    // Different user cannot read usr-test-keys' credentials
+    const otherUserKeys = getStoredApiKeys('usr-other-keys');
+    assert.strictEqual(otherUserKeys.openai, '', 'API keys must not leak across user profiles');
+
+    purgeAllApiKeys('usr-test-keys');
+    const purged = getStoredApiKeys('usr-test-keys');
     assert.strictEqual(purged.openai, '');
     assert.strictEqual(purged.gemini, '');
     assert.strictEqual(purged.anthropic, '');
@@ -652,6 +682,156 @@ async function runAllTests() {
     assert.strictEqual(capConfig.appName, 'Prarush');
     assert(fs.existsSync('./android'), 'Android native project folder must exist');
     assert(fs.existsSync('./ios'), 'iOS native project folder must exist');
+  });
+
+  // 10. Audit Report Oct 18, 2026 Test Suite Expansion
+  await runTest('checkQuota enforces workspace limits and user-scoped daily AI query quotas', () => {
+    // 1. Workspace quota check
+    const underLimit = checkQuota('workspaces', 4, 'usr-free-1');
+    assert.strictEqual(underLimit.allowed, true);
+    assert.strictEqual(underLimit.remaining, 1);
+
+    const atLimit = checkQuota('workspaces', 5, 'usr-free-1');
+    assert.strictEqual(atLimit.allowed, false);
+    assert.strictEqual(atLimit.upgradeRequired, true);
+
+    // 2. User-isolated daily AI query quota
+    for (let i = 0; i < 20; i++) {
+      recordUsage('aiQueries', 'usr-quota-a');
+    }
+    const quotaA = checkQuota('aiQueries', null, 'usr-quota-a');
+    assert.strictEqual(quotaA.allowed, false, 'User A should reach daily limit');
+
+    // User B on same browser still has full quota
+    const quotaB = checkQuota('aiQueries', null, 'usr-quota-b');
+    assert.strictEqual(quotaB.allowed, true, 'User B daily quota must be isolated from User A');
+    assert.strictEqual(quotaB.remaining, 20);
+  });
+
+  await runTest('Backup restore enforces safety limits (file size, entry count, schema)', async () => {
+    // 1. Oversized file (> 50MB) check
+    const oversizedFakeFile = { size: 55 * 1024 * 1024, name: 'large.zip' };
+    const overResult = await validateBackupZip(oversizedFakeFile);
+    assert.strictEqual(overResult.valid, false);
+    assert(overResult.error.includes('exceeds maximum allowed size'));
+
+    // 2. Missing or corrupt metadata
+    const zipNoMeta = new JSZip();
+    zipNoMeta.file('random.txt', 'hello');
+    const blobNoMeta = await zipNoMeta.generateAsync({ type: 'nodebuffer' });
+    const noMetaRes = await validateBackupZip(blobNoMeta);
+    assert.strictEqual(noMetaRes.valid, false);
+    assert(noMetaRes.error.includes('metadata.json'));
+
+    // 3. Archive entry threshold (> 500 entries)
+    const zipBombEntries = new JSZip();
+    zipBombEntries.file('metadata.json', JSON.stringify({
+      platform: 'Prarush Platform v2.0',
+      version: '2.0.0',
+      exportTimestamp: new Date().toISOString()
+    }));
+    for (let i = 0; i < 505; i++) {
+      zipBombEntries.file(`documents/file_${i}.txt`, 'a');
+    }
+    const bombBlob = await zipBombEntries.generateAsync({ type: 'nodebuffer' });
+    const bombRes = await validateBackupZip(bombBlob);
+    assert.strictEqual(bombRes.valid, false);
+    assert(bombRes.error.includes('too many entries') || bombRes.error.includes('Maximum permitted'));
+  });
+
+  await runTest('Backup restore preserves authentic MIME types, handles duplicates via manifest, and overwrite mode purges old IDB files', async () => {
+    const userTest = { id: `usr-restore-test-${Date.now()}`, name: 'Restore User', email: 'rest@test.local' };
+
+    // Plant an old file in IDB for this user
+    const oldBlob = new Blob(['old content'], { type: 'text/plain' });
+    await saveFileToIndexedDB('doc-old-01', oldBlob, userTest.id);
+
+    // Create a backup archive with duplicate original filenames mapped deterministically via manifest
+    const zip = new JSZip();
+    const manifest = [
+      { id: 'doc-m1', archiveName: 'spec.pdf', archivePath: 'documents/spec.pdf', originalName: 'spec.pdf', type: 'application/pdf', size: 10 },
+      { id: 'doc-m2', archiveName: 'spec_2.pdf', archivePath: 'documents/spec_2.pdf', originalName: 'spec.pdf', type: 'application/pdf', size: 10 }
+    ];
+    const metadata = {
+      platform: 'Prarush Platform v2.0',
+      version: '2.0.0',
+      exportTimestamp: new Date().toISOString(),
+      workspaces: [{ id: 'ws-rest', name: 'Restored WS', category: 'developer' }],
+      tasks: [],
+      notes: [],
+      documents: [
+        { id: 'doc-m1', name: 'spec.pdf', type: 'pdf' },
+        { id: 'doc-m2', name: 'spec.pdf', type: 'pdf' }
+      ],
+      documentManifest: manifest
+    };
+    zip.file('metadata.json', JSON.stringify(metadata));
+    zip.file('documents/spec.pdf', 'file 1 content');
+    zip.file('documents/spec_2.pdf', 'file 2 content');
+    const zipData = await zip.generateAsync({ type: 'nodebuffer' });
+
+    // Restore in overwrite mode
+    const res = await restoreCompleteBackupZip(zipData, userTest, { conflictStrategy: 'overwrite' });
+    assert.strictEqual(res.success, true);
+    assert.strictEqual(res.restoredFiles, 2);
+
+    // Verify old file was purged in overwrite mode
+    const oldCheck = await getFileFromIndexedDB('doc-old-01', userTest.id);
+    assert.strictEqual(oldCheck, null, 'Old file must be purged in overwrite mode');
+
+    // Verify both files restored with correct IDs and authentic types
+    const f1 = await getFileFromIndexedDB('doc-m1', userTest.id);
+    const f2 = await getFileFromIndexedDB('doc-m2', userTest.id);
+    assert(f1, 'First file must exist in IDB');
+    assert(f2, 'Second file must exist in IDB without collision');
+    assert.strictEqual(f1.type, 'application/pdf');
+    assert.strictEqual(f2.type, 'application/pdf');
+  });
+
+  await runTest('claimQuarantinedLegacyFiles and migrateLegacyUnscopedData recover orphaned data safely', async () => {
+    const claimUser = { id: `usr-claim-${Date.now()}`, name: 'Claim User' };
+
+    // Plant an unowned legacy file in IDB
+    const unownedBlob = new Blob(['unowned raw bytes'], { type: 'application/pdf' });
+    unownedBlob.name = 'legacy_report.pdf';
+    // Save directly to memoryDbStore without userId to simulate legacy quarantine
+    memoryDbStore.set('legacy-doc-123', {
+      id: 'legacy-doc-123',
+      rawId: 'legacy-doc-123',
+      name: 'legacy_report.pdf',
+      type: 'application/pdf',
+      size: 18,
+      blob: unownedBlob
+    });
+
+    // Plant unscoped LocalStorage data
+    localStorage.setItem('prarush_theme_mode', JSON.stringify(false));
+    localStorage.setItem('prarush_locale', JSON.stringify('es'));
+
+    // 1. Claim quarantined file
+    const claimRes = await claimQuarantinedLegacyFiles(claimUser.id);
+    assert.strictEqual(claimRes.success, true);
+    assert(claimRes.claimedCount >= 1, 'Must claim at least 1 quarantined file');
+
+    const claimedFile = await getFileFromIndexedDB('legacy-doc-123', claimUser.id);
+    assert(claimedFile, 'Claimed file must be accessible to user');
+
+    // 2. Migrate unscoped LocalStorage data
+    const migRes = migrateLegacyUnscopedData(claimUser.id);
+    assert.strictEqual(migRes.success, true);
+    assert(migRes.migratedCount >= 2);
+
+    // Verify migrated keys in user profile
+    const userTheme = localStorage.getItem(`prarush_usr_${claimUser.id}_theme_mode`);
+    const userLocale = localStorage.getItem(`prarush_usr_${claimUser.id}_locale`);
+    assert.strictEqual(userTheme, 'false');
+    assert.strictEqual(userLocale, '"es"');
+  });
+
+  await runTest('Service Worker sw.js preserves prarush-map-tiles cache on activation', () => {
+    const swContent = fs.readFileSync('./public/sw.js', 'utf8');
+    assert(swContent.includes("const MAP_TILES_CACHE = 'prarush-map-tiles'"), 'sw.js must define MAP_TILES_CACHE');
+    assert(swContent.includes('PRESERVED_CACHES'), 'sw.js must use PRESERVED_CACHES to prevent cache deletion');
   });
 
   // Print Final Summary

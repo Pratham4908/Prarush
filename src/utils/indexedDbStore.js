@@ -207,6 +207,49 @@ export async function getQuarantinedLegacyFilesFromIndexedDB() {
   return getAllFilesForUserFromIndexedDB(null);
 }
 
+// Claim quarantined legacy files into an active user profile
+export async function claimQuarantinedLegacyFiles(targetUserId) {
+  if (!targetUserId) return { success: false, error: 'Target userId required', claimedCount: 0 };
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.openCursor();
+      let claimedCount = 0;
+
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          const record = cursor.value;
+          if (!record.userId) {
+            // Remove old unscoped key and insert scoped record
+            const rawId = record.rawId || record.id;
+            const newScopedId = `doc-${targetUserId}-${rawId}`;
+            const updated = {
+              ...record,
+              id: newScopedId,
+              rawId,
+              userId: targetUserId,
+              claimedAt: new Date().toISOString()
+            };
+            cursor.delete();
+            store.put(updated);
+            claimedCount++;
+          }
+          cursor.continue();
+        } else {
+          resolve({ success: true, claimedCount });
+        }
+      };
+      req.onerror = (e) => resolve({ success: false, error: e.target?.error?.message, claimedCount });
+    });
+  } catch (err) {
+    console.warn('claimQuarantinedLegacyFiles error:', err);
+    return { success: false, error: err.message, claimedCount: 0 };
+  }
+}
+
 // Clear all files for a specific local user profile
 export async function clearUserFilesFromIndexedDB(userId) {
   if (!userId) return false;

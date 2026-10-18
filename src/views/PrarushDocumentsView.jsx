@@ -88,8 +88,14 @@ export default function PrarushDocumentsView({
 
     reader.onload = () => {
       setUploadProgress(100);
-      const rawContent = isTextual ? reader.result : '';
+      const rawContent = isTextual ? String(reader.result || '') : '';
       const wordCount = isTextual ? rawContent.split(/\s+/).filter(Boolean).length : 0;
+
+      // LocalStorage protection: Keep only a compact preview (500 chars) in metadata to prevent quota overflow.
+      // The authentic full text and binary bytes are preserved safely in IndexedDB.
+      const textPreview = isTextual 
+        ? rawContent.slice(0, 500) + (rawContent.length > 500 ? '\n\n[... Truncated for LocalStorage metadata safety. Full text is preserved in IndexedDB ...]' : '')
+        : '';
 
       const newDoc = {
         id: docId,
@@ -103,9 +109,9 @@ export default function PrarushDocumentsView({
               ? `Text Document parsed: ${wordCount} words, ${rawContent.length} characters. Persisted in IndexedDB.` 
               : `Binary file (${file.type || 'file'}) preserved in IndexedDB with authentic raw bytes.`)
           : `File held in temporary session memory only (IndexedDB save was not completed).`,
-        extractedContent: isTextual ? rawContent : '',
+        extractedContent: textPreview,
         ocrText: isTextual 
-          ? rawContent.slice(0, 800) + (rawContent.length > 800 ? '...' : '') 
+          ? textPreview
           : `[Binary Content: ${file.name}, ${Math.round(file.size / 1024)} KB, ${isPersisted ? 'persisted in IndexedDB' : 'session memory only'}]`,
         status: isPersisted ? 'persisted' : 'memory_only',
         isPersistedInIndexedDB: isPersisted,
@@ -137,21 +143,32 @@ export default function PrarushDocumentsView({
     e.target.value = '';
   };
 
-  const handleParseOrExtract = () => {
+  const handleParseOrExtract = async () => {
     if (!selectedDoc) return;
     setIsProcessingOCR(true);
     setOcrResult(null);
     audioSystem.playTone(600, 'sine', 0.1);
 
-    setTimeout(() => {
-      if (selectedDoc.extractedContent) {
-        setOcrResult(`PARSED TEXT CONTENT (${selectedDoc.name}):\n\n${selectedDoc.extractedContent}`);
+    try {
+      if (selectedDoc.type === 'text') {
+        let content = selectedDoc.extractedContent || '';
+        // Load authentic complete text from IndexedDB if persisted
+        if (selectedDoc.hasRealBinary) {
+          const blob = await getFileFromIndexedDB(selectedDoc.id, userId);
+          if (blob && typeof blob.text === 'function') {
+            content = await blob.text();
+          }
+        }
+        setOcrResult(`PARSED TEXT CONTENT (${selectedDoc.name}):\n\n${content}`);
       } else {
         setOcrResult(`OPTICAL OCR STATUS (${selectedDoc.name}):\n\nThis is a binary file (${selectedDoc.sizeKB} KB) stored persistently in your browser's IndexedDB.\n\nNote: Optical character recognition for binary PDFs/images requires an optical OCR microservice (e.g. Tesseract.js / Cloud Vision). Client-side text parsing is fully active for text, Markdown, JSON, and CSV files.`);
       }
+    } catch (err) {
+      setOcrResult(`PARSED TEXT CONTENT (${selectedDoc.name}):\n\n${selectedDoc.extractedContent || 'Could not parse content.'}`);
+    } finally {
       setIsProcessingOCR(false);
       audioSystem.playSuccessSound();
-    }, 400);
+    }
   };
 
   const handleCompressFile = async () => {

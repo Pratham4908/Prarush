@@ -7,37 +7,31 @@ import { AI_MODELS } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
 import { getStoredApiKeys, saveStoredApiKeys, purgeAllApiKeys } from '../utils/apiKeyManager.js';
 
-export default function PrarushModelHubView({ selectedModelId, onSelectModel, onOpenSubscription }) {
+export default function PrarushModelHubView({ selectedModelId, onSelectModel, onOpenSubscription, currentUser = null }) {
   const [testingModelId, setTestingModelId] = useState(null);
   const [latencyResults, setLatencyResults] = useState({});
   const [showKeyConfig, setShowKeyConfig] = useState(false);
-  const [apiKeys, setApiKeys] = useState(() => getStoredApiKeys());
+  const [apiKeys, setApiKeys] = useState(() => getStoredApiKeys(currentUser?.id));
   const [saveStatus, setSaveStatus] = useState(false);
   const [purgeStatus, setPurgeStatus] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState('October 17, 2026');
-  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
+  const lastAuditedDate = 'October 18, 2026';
 
-  const handleRefreshRates = () => {
-    setIsRefreshingRates(true);
-    audioSystem.playTone(620, 'sine', 0.12);
-    setTimeout(() => {
-      setLastRefreshed(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
-      setIsRefreshingRates(false);
-      audioSystem.playSuccessSound();
-    }, 450);
-  };
+  // Sync keys if user switches
+  React.useEffect(() => {
+    setApiKeys(getStoredApiKeys(currentUser?.id));
+  }, [currentUser?.id]);
 
   const handleSaveKeys = (e) => {
     e.preventDefault();
-    saveStoredApiKeys(apiKeys);
+    saveStoredApiKeys(apiKeys, currentUser?.id);
     audioSystem.playSuccessSound();
     setSaveStatus(true);
     setTimeout(() => setSaveStatus(false), 2500);
   };
 
   const handlePurgeKeys = () => {
-    if (window.confirm('Remove all stored AI provider API keys from both sessionStorage and localStorage?')) {
-      purgeAllApiKeys();
+    if (window.confirm('Remove all stored AI provider API keys for this profile?')) {
+      purgeAllApiKeys(currentUser?.id);
       setApiKeys({ openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true });
       audioSystem.playWarningSound();
       setPurgeStatus(true);
@@ -192,9 +186,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            onClick={handleRefreshRates}
-            disabled={isRefreshingRates}
+          <div
             style={{
               padding: '9px 14px',
               borderRadius: 10,
@@ -203,16 +195,15 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
               color: '#e2e8f0',
               fontWeight: 600,
               fontSize: '0.8rem',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 8
             }}
-            title="Verify model rates cache against published provider tables"
+            title="Model rates manually audited against published provider documentation"
           >
-            <RefreshCw size={13} style={{ animation: isRefreshingRates ? 'spin 1s linear infinite' : 'none' }} />
-            <span>{isRefreshingRates ? 'Refreshing...' : `Rates Verified (${lastRefreshed})`}</span>
-          </button>
+            <Clock size={13} color="#06b6d4" />
+            <span>Pricing Schedule: {lastAuditedDate} (Manual Audit)</span>
+          </div>
 
           <button
             onClick={() => setShowKeyConfig(prev => !prev)}
@@ -590,7 +581,7 @@ export default function PrarushModelHubView({ selectedModelId, onSelectModel, on
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           <span style={{ color: '#f59e0b', fontWeight: 700, minWidth: 95 }}>Official Pricing:</span>
           <span>
-            Rates reflect verified live provider schedules as of {lastRefreshed}. Anthropic Claude Sonnet 5 and Sonnet 5.5 are $2/M in, $10/M out; Sonnet 4.5 is $3/M in, $15/M out; Google Gemini 3.8 Flash introductory rate is $0.75/M in, $3.75/M out through Dec 31, 2026 (free tier available at 15 RPM); Meta Llama 3.3 70B is $0.10/M in, $0.32/M out via OpenRouter router. All BYOK calls route directly and are billed by the respective AI providers to your personal account.
+            Rates are manually maintained estimates verified against published provider documentation ({lastAuditedDate}). Anthropic Claude Sonnet 5.5 and Sonnet 5 are $2/M in, $10/M out (Sonnet 5 is marked legacy; migration to Sonnet 5.5 recommended); Claude Sonnet 4.5 is $3/M in, $15/M out; Google Gemini 3.8 Flash standard paid rate is $0.75/M in, $3.75/M out through Dec 31, 2026; OpenAI GPT-4o is $2.50/M in, $10.00/M out; Meta Llama 3.3 70B is $0.10/M in, $0.32/M out via OpenRouter router. All BYOK calls route directly and are billed by the respective AI providers to your personal account. Follow official pricing table links on each model card for live updates.
           </span>
         </div>
       </div>
