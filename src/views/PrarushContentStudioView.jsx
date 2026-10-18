@@ -131,7 +131,10 @@ export default function PrarushContentStudioView({ onOpenSubscription, currentUs
           background: 'rgba(0, 0, 0, 0.3)',
           borderRadius: 10,
           padding: 3,
-          border: '1px solid rgba(255, 255, 255, 0.08)'
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          overflowX: 'auto',
+          maxWidth: '100%',
+          scrollbarWidth: 'none'
         }}>
           {[
             { id: 'images', label: 'AI Images', icon: Image },
@@ -156,7 +159,8 @@ export default function PrarushContentStudioView({ onOpenSubscription, currentUs
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6
+                  gap: 6,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <Icon size={14} />
@@ -169,7 +173,7 @@ export default function PrarushContentStudioView({ onOpenSubscription, currentUs
 
       {/* 1. AI Image Generator View */}
       {activeTab === 'images' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
           <div style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-glass)',

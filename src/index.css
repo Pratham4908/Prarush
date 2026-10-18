@@ -1063,21 +1063,139 @@ body.prarush-light-theme .prarush-main-canvas {
   background: #f8fafc !important;
 }
 
-/* Responsive Touch & Mobile Behavior */
+/* Responsive Touch & Mobile Behavior Overhaul */
+.prarush-view-content {
+  padding: 20px 24px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Drawer overlay backdrop */
+.prarush-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1250;
+  animation: prarushFadeIn 0.2s ease-out;
+}
+
+@keyframes prarushFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 900px) {
+  /* Main Canvas full height and padding for mobile bottom nav */
+  .prarush-main-canvas {
+    height: calc(100dvh - 60px) !important;
+  }
+
+  .prarush-view-content {
+    padding: 14px 12px 90px 12px !important;
+  }
+
+  /* Slide-in Mobile Drawer Sidebar */
   .prarush-sidebar {
     position: fixed !important;
-    left: 0;
-    top: 60px;
-    bottom: 0;
-    z-index: 999;
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    height: 100dvh !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    z-index: 1300 !important;
+    background: #090d16 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .prarush-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    box-shadow: 12px 0 45px rgba(0, 0, 0, 0.75) !important;
+  }
+
+  .mobile-drawer-header {
+    display: flex !important;
+  }
+
+  .desktop-collapse-footer {
+    display: none !important;
+  }
+
+  /* Mobile Bottom Navigation Bar */
+  .prarush-mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  /* Mobile Header Hamburger */
+  .mobile-menu-trigger {
+    display: flex !important;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .prarush-top-header {
-    padding: 0 10px !important;
+    padding: 0 12px !important;
+    height: 56px !important;
+  }
+
+  .header-command-center-btn {
+    display: none !important;
+  }
+
+  .mobile-search-icon-btn {
+    display: flex !important;
+  }
+
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  /* Responsive Grids & Touch Adjustments */
+  .responsive-two-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .workspace-badge-btn {
+    max-width: 110px !important;
+  }
+
+  /* Mobile Tabs and Column Toggles */
+  .notes-mobile-tab-bar,
+  .docs-mobile-tab-bar,
+  .kanban-mobile-tabs {
+    display: flex !important;
+  }
+
+  .notes-layout-grid,
+  .docs-layout-grid,
+  .kanban-board-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .show-on-mobile {
+    display: flex !important;
   }
 }
+
+@media (max-width: 480px) {
+  .prarush-view-content {
+    padding: 10px 8px 85px 8px !important;
+  }
+
+  .btn-primary, .btn-secondary {
+    padding: 7px 12px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+
 

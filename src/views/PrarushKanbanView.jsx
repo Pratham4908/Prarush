@@ -13,6 +13,7 @@ export default function PrarushKanbanView({
   onDeleteTask 
 }) {
   const [filterPriority, setFilterPriority] = useState('all');
+  const [mobileCol, setMobileCol] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
@@ -121,8 +122,56 @@ export default function PrarushKanbanView({
         </div>
       </div>
 
+      {/* Mobile Column Tab Switcher */}
+      <div className="kanban-mobile-tabs" style={{
+        display: 'none',
+        gap: 6,
+        overflowX: 'auto',
+        paddingBottom: 4
+      }}>
+        <button
+          onClick={() => setMobileCol('all')}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 8,
+            border: 'none',
+            background: mobileCol === 'all' ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.06)',
+            color: mobileCol === 'all' ? '#090d16' : '#cbd5e1',
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
+          }}
+        >
+          All ({filteredTasks.length})
+        </button>
+        {columns.map(col => {
+          const count = filteredTasks.filter(t => t.status === col.id).length;
+          const isSelected = mobileCol === col.id;
+          return (
+            <button
+              key={col.id}
+              onClick={() => setMobileCol(col.id)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                border: isSelected ? `1px solid ${col.color}` : '1px solid transparent',
+                background: isSelected ? `${col.color}25` : 'rgba(255,255,255,0.06)',
+                color: isSelected ? '#fff' : '#cbd5e1',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+            >
+              {col.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       {/* Kanban 4-Column Board */}
-      <div style={{
+      <div className="kanban-board-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         gap: 14,
@@ -134,6 +183,7 @@ export default function PrarushKanbanView({
           return (
             <div
               key={col.id}
+              className={`kanban-column ${mobileCol !== 'all' && mobileCol !== col.id ? 'hide-on-mobile' : ''}`}
               style={{
                 background: 'rgba(255, 255, 255, 0.02)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',

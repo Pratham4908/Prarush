@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Sparkles, Search, ChevronDown, Bell, Moon, Sun, Globe, 
-  Layers, User, Zap, Cpu, CheckSquare, Plus, ArrowRight, Key 
+  Layers, User, Zap, Cpu, CheckSquare, Plus, ArrowRight, Key, Menu 
 } from 'lucide-react';
 import { PRARUSH_LOCALES, tPrarush } from '../utils/prarushI18n.js';
 import { isProSubscriber } from '../utils/prarushFreemium.js';
@@ -22,7 +22,8 @@ export default function PrarushHeader({
   onOpenProfile,
   onOpenSubscription,
   onQuickCreateTask,
-  onNavigateTab
+  onNavigateTab,
+  onToggleMobileMenu
 }) {
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
   const activeModel = AI_MODELS.find(m => m.id === selectedModelId) || AI_MODELS[0];
@@ -31,20 +32,47 @@ export default function PrarushHeader({
   return (
     <header className="prarush-top-header" style={{
       height: 60,
-      background: 'rgba(11, 15, 25, 0.92)',
+      background: 'rgba(11, 15, 25, 0.95)',
       backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-      padding: '0 20px',
+      padding: '0 16px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       position: 'sticky',
       top: 0,
-      zIndex: 1000
+      zIndex: 1000,
+      gap: 8
     }}>
-      {/* Brand & Workspace Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+      {/* Left: Mobile Hamburger + Brand + Workspace Switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {/* Mobile Hamburger Toggle Button */}
+        <button
+          className="mobile-menu-trigger"
+          onClick={onToggleMobileMenu}
+          style={{
+            display: 'none', // Shown on <= 900px via CSS
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 8,
+            width: 34,
+            height: 34,
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            cursor: 'pointer'
+          }}
+          aria-label="Toggle Menu"
+        >
+          <Menu size={18} color="#06b6d4" />
+        </button>
+
+        {/* Brand Logo */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('dashboard')}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+        >
           <div style={{
             width: 32,
             height: 32,
@@ -56,11 +84,12 @@ export default function PrarushHeader({
             boxShadow: '0 0 12px rgba(6, 182, 212, 0.4)',
             color: '#fff',
             fontWeight: 900,
-            fontSize: '1rem'
+            fontSize: '1rem',
+            flexShrink: 0
           }}>
             P
           </div>
-          <div className="hidden-mobile">
+          <div className="hidden-mobile" style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
               PRARUSH
             </span>
@@ -81,22 +110,23 @@ export default function PrarushHeader({
         {/* Workspace Selector Dropdown */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <div 
-            className="sim-btn"
+            className="sim-btn workspace-badge-btn"
             style={{
-              padding: '5px 10px',
+              padding: '5px 8px',
               borderRadius: 8,
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              fontSize: '0.78rem',
+              gap: 5,
+              fontSize: '0.76rem',
               color: '#e2e8f0',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              maxWidth: 130
             }}
           >
             <span>{activeWorkspace?.icon || '🌟'}</span>
-            <span style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+            <span style={{ maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
               {activeWorkspace?.name || 'Workspace'}
             </span>
             <ChevronDown size={12} color="#94a3b8" />
@@ -125,22 +155,24 @@ export default function PrarushHeader({
         </div>
       </div>
 
-      {/* Center: Command Palette Trigger Button */}
+      {/* Center: Desktop Command Palette Trigger Button */}
       <button
         onClick={onOpenCommandCenter}
+        className="header-command-center-btn"
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 8,
           background: 'rgba(255, 255, 255, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: 10,
-          padding: '6px 16px',
+          padding: '6px 14px',
           color: '#94a3b8',
           fontSize: '0.78rem',
           cursor: 'pointer',
-          width: '32%',
-          maxWidth: 380,
+          flex: 1,
+          maxWidth: 340,
+          margin: '0 8px',
           transition: 'all 0.2s ease'
         }}
         title="Open Command Center (Ctrl+K / Cmd+K)"
@@ -149,7 +181,7 @@ export default function PrarushHeader({
         <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {tPrarush('commandBarPlaceholder', currentLocale)}
         </span>
-        <kbd style={{
+        <kbd className="hidden-mobile" style={{
           fontSize: '0.62rem',
           background: 'rgba(255, 255, 255, 0.1)',
           padding: '2px 6px',
@@ -161,10 +193,31 @@ export default function PrarushHeader({
         </kbd>
       </button>
 
-      {/* Right Actions: Model Badge, Language, Theme, Pro Upgrade, Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {/* Active Model Indicator */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      {/* Right Actions: Mobile Search, Model Badge, Language, Theme, BYOK Key, Profile */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        {/* Mobile Search Icon Button */}
+        <button
+          className="mobile-search-icon-btn"
+          style={{
+            display: 'none', // Shown on <= 768px via CSS
+            width: 32,
+            height: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 8,
+            color: '#06b6d4',
+            cursor: 'pointer'
+          }}
+          onClick={onOpenCommandCenter}
+          title="Search / Command Center"
+        >
+          <Search size={15} />
+        </button>
+
+        {/* Active Model Indicator (Desktop Only) */}
+        <div className="hidden-mobile" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <div
             className="sim-btn"
             style={{
@@ -181,7 +234,7 @@ export default function PrarushHeader({
             title={`Active Model: ${activeModel.name}`}
           >
             <span>{activeModel.icon}</span>
-            <span className="hidden-mobile" style={{ maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {activeModel.name.split(' ')[0]}
             </span>
             <ChevronDown size={11} color="#94a3b8" />
@@ -209,8 +262,8 @@ export default function PrarushHeader({
           </select>
         </div>
 
-        {/* Multi-Language Selector */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* Multi-Language Selector (Desktop Only) */}
+        <div className="hidden-mobile" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <button
             className="header-icon-btn"
             style={{ width: 32, height: 32, fontSize: '0.85rem' }}
@@ -241,10 +294,16 @@ export default function PrarushHeader({
           </select>
         </div>
 
-        {/* Quick BYOK API Keys Gateway */}
+        {/* Quick BYOK API Keys Gateway (Both Desktop & Mobile) */}
         <button
           className="header-icon-btn"
-          style={{ width: 32, height: 32, background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.35)' }}
+          style={{ 
+            width: 32, 
+            height: 32, 
+            background: 'rgba(6, 182, 212, 0.14)', 
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 0 10px rgba(6, 182, 212, 0.25)' 
+          }}
           onClick={() => onNavigateTab && onNavigateTab('model_hub')}
           title="Configure BYOK API Keys (Anthropic, OpenAI, Gemini, OpenRouter)"
           aria-label="BYOK API Keys Gateway"
@@ -263,8 +322,9 @@ export default function PrarushHeader({
           {isDarkMode ? <Sun size={15} color="#f59e0b" /> : <Moon size={15} color="#38bdf8" />}
         </button>
 
-        {/* Freemium Upgrade Pill */}
+        {/* Freemium Upgrade Pill (Desktop Only) */}
         <button
+          className="hidden-mobile"
           onClick={onOpenSubscription}
           style={{
             height: 30,

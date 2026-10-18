@@ -11,6 +11,7 @@ import CommandCenterModal from './components/CommandCenterModal.jsx';
 import SubscriptionModal from './components/SubscriptionModal.jsx';
 import PrarushProfileModal from './components/PrarushProfileModal.jsx';
 import PrarushAuthModal from './components/PrarushAuthModal.jsx';
+import PrarushMobileBottomNav from './components/PrarushMobileBottomNav.jsx';
 
 // Prarush 13 Universal Views
 import PrarushDashboardView from './views/PrarushDashboardView.jsx';
@@ -94,11 +95,13 @@ export default function App() {
   );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // 5. Modals
+  // 5. Modals & Mobile States
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [pendingAIPrompt, setPendingAIPrompt] = useState('');
 
   // Per-User Data Access Synchronization: reload user-isolated data when profile switches
   useEffect(() => {
@@ -298,10 +301,16 @@ export default function App() {
             notes={notes}
             documents={documents}
             automations={automations}
-            onNavigate={(tab) => setActiveTab(tab)}
+            onNavigate={(tab) => {
+              setActiveTab(tab);
+              setIsMobileDrawerOpen(false);
+            }}
             onAddTask={handleAddTask}
             onSaveNote={handleSaveNote}
-            onOpenAIWithPrompt={() => setActiveTab('ai_assistant')}
+            onOpenAIWithPrompt={(prompt) => {
+              setPendingAIPrompt(prompt);
+              setActiveTab('ai_assistant');
+            }}
             currentUser={currentUser}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
           />
@@ -323,8 +332,12 @@ export default function App() {
             selectedModelId={selectedModelId}
             onSelectModel={setSelectedModelId}
             currentUser={currentUser}
+            initialPrompt={pendingAIPrompt}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
-            onNavigate={(tab) => setActiveTab(tab)}
+            onNavigate={(tab) => {
+              setActiveTab(tab);
+              setIsMobileDrawerOpen(false);
+            }}
           />
         );
 
@@ -362,6 +375,7 @@ export default function App() {
           <PrarushNotesView
             notes={notes}
             currentWorkspace={currentWorkspace}
+            currentUser={currentUser}
             onSaveNote={handleSaveNote}
             onDeleteNote={handleDeleteNote}
           />
@@ -461,6 +475,11 @@ export default function App() {
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileDrawerOpen(false);
+        }}
+        onToggleMobileMenu={() => setIsMobileDrawerOpen(prev => !prev)}
         onQuickCreateTask={() => {
           handleAddTask({
             title: 'New Quick Task',
@@ -478,14 +497,19 @@ export default function App() {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Collapsible Left Navigation Sidebar */}
+        {/* Collapsible Left Navigation Sidebar (and Mobile Drawer) */}
         <PrarushSidebar
           activeTab={activeTab}
-          onSelectTab={setActiveTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setIsMobileDrawerOpen(false);
+          }}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
           currentLocale={currentLocale}
           unreadTasksCount={tasks.filter(t => t.status !== 'done').length}
+          isMobileOpen={isMobileDrawerOpen}
+          onCloseMobile={() => setIsMobileDrawerOpen(false)}
         />
 
         {/* Dynamic Main Workspace Canvas */}
@@ -555,6 +579,17 @@ export default function App() {
         onUserAuthenticated={(authenticatedUser) => {
           setCurrentUser(authenticatedUser);
         }}
+      />
+
+      {/* 7. Mobile Bottom Navigation Bar */}
+      <PrarushMobileBottomNav
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileDrawerOpen(false);
+        }}
+        onToggleDrawer={() => setIsMobileDrawerOpen(prev => !prev)}
+        unreadTasksCount={tasks.filter(t => t.status !== 'done').length}
       />
     </div>
   );

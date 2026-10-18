@@ -11,7 +11,9 @@ export default function PrarushAIAssistantView({
   selectedModelId = 'prarush-local-engine',
   onSelectModel,
   onOpenSubscription,
-  onNavigate
+  onNavigate,
+  currentUser = null,
+  initialPrompt = ''
 }) {
   const [messages, setMessages] = useState([
     {
@@ -40,12 +42,18 @@ export default function PrarushAIAssistantView({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSend(initialPrompt.trim());
+    }
+  }, [initialPrompt]);
+
   const handleSend = (textToSend) => {
     const q = (textToSend || inputText).trim();
     if (!q) return;
 
     // Check freemium query quota
-    const quota = checkQuota('aiQueries');
+    const quota = checkQuota('aiQueries', null, currentUser?.id);
     if (!quota.allowed) {
       setMessages(prev => [
         ...prev,
@@ -63,7 +71,7 @@ export default function PrarushAIAssistantView({
       return;
     }
 
-    recordUsage('aiQueries');
+    recordUsage('aiQueries', currentUser?.id);
 
     // Add user message
     const userMsg = {
@@ -80,7 +88,7 @@ export default function PrarushAIAssistantView({
     // AI query execution with live cloud or deterministic local fallback
     setTimeout(async () => {
       try {
-        const response = await processPrarushAIQuery(q, selectedModelId);
+        const response = await processPrarushAIQuery(q, selectedModelId, { userId: currentUser?.id });
         const aiMsg = {
           id: Date.now() + 1,
           sender: 'ai',

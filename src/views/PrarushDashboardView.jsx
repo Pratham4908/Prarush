@@ -205,9 +205,10 @@ export default function PrarushDashboardView({
         padding: '12px 16px',
         display: 'flex',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 12
       }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           {[
             { id: 'task', label: 'Task' },
             { id: 'ai', label: 'AI Query' },
@@ -220,7 +221,7 @@ export default function PrarushDashboardView({
               style={{
                 fontSize: '0.7rem',
                 fontWeight: 700,
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: 6,
                 border: 'none',
                 background: quickCaptureType === t.id ? 'var(--accent-cyan)' : 'rgba(255, 255, 255, 0.06)',
@@ -246,6 +247,7 @@ export default function PrarushDashboardView({
           onChange={(e) => setQuickInput(e.target.value)}
           style={{
             flex: 1,
+            minWidth: 160,
             background: 'transparent',
             border: 'none',
             outline: 'none',

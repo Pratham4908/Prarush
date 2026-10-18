@@ -29,6 +29,7 @@ export default function PrarushDocumentsView({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [storageEstimate, setStorageEstimate] = useState({ usedMB: '0.00', quotaMB: 'N/A' });
+  const [mobileTab, setMobileTab] = useState('files'); // 'files' | 'details'
 
   const fileInputRef = useRef(null);
   const userId = currentUser?.id || 'usr-guest';
@@ -123,6 +124,7 @@ export default function PrarushDocumentsView({
       setTimeout(() => {
         onUploadDocument(newDoc);
         setSelectedDoc(newDoc);
+        setMobileTab('details');
         setIsUploading(false);
         setUploadProgress(0);
         audioSystem.playSuccessSound();
@@ -316,26 +318,75 @@ export default function PrarushDocumentsView({
   const isBinaryDoc = selectedDoc?.type === 'pdf' || selectedDoc?.type === 'image';
 
   return (
-    <div className="prarush-view-content" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20, height: '100%' }}>
-      {/* Hidden Real File Input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleRealFileUpload}
-        accept=".txt,.md,.json,.csv,.pdf,image/*"
-        style={{ display: 'none' }}
-      />
-
-      {/* Left Column: File Explorer */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: 16,
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 14
+    <div className="prarush-view-content" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Mobile Tab Toggle Bar */}
+      <div className="docs-mobile-tab-bar" style={{
+        display: 'none',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 10,
+        padding: 4,
+        gap: 6
       }}>
+        <button
+          onClick={() => setMobileTab('files')}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: 'none',
+            background: mobileTab === 'files' ? 'var(--accent-cyan)' : 'transparent',
+            color: mobileTab === 'files' ? '#090d16' : '#94a3b8',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: 'pointer'
+          }}
+        >
+          📁 Files ({documents.length})
+        </button>
+
+        <button
+          onClick={() => setMobileTab('details')}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: 'none',
+            background: mobileTab === 'details' ? 'var(--accent-cyan)' : 'transparent',
+            color: mobileTab === 'details' ? '#090d16' : '#94a3b8',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: 'pointer'
+          }}
+        >
+          📄 Document Insights {selectedDoc ? `(${selectedDoc.name.slice(0, 10)}...)` : ''}
+        </button>
+      </div>
+
+      <div className="docs-layout-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16, height: 'calc(100dvh - 150px)' }}>
+        {/* Hidden Real File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleRealFileUpload}
+          accept=".txt,.md,.json,.csv,.pdf,image/*"
+          style={{ display: 'none' }}
+        />
+
+        {/* Left Column: File Explorer */}
+        <div 
+          className={`docs-files-col ${mobileTab !== 'files' ? 'hide-on-mobile' : ''}`}
+          style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 16,
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            height: '100%',
+            overflow: 'hidden'
+          }}
+        >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Folder size={20} color="#10b981" />
@@ -423,7 +474,7 @@ export default function PrarushDocumentsView({
               return (
                 <div
                   key={doc.id}
-                  onClick={() => setSelectedDoc(doc)}
+                  onClick={() => { setSelectedDoc(doc); setMobileTab('details'); }}
                   style={{
                     padding: '10px 12px',
                     borderRadius: 10,
@@ -480,19 +531,41 @@ export default function PrarushDocumentsView({
 
       {/* Right Column: File Workspace Canvas */}
       {selectedDoc ? (
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 16,
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 20,
-          overflowY: 'auto'
-        }}>
+        <div 
+          className={`docs-detail-col ${mobileTab !== 'details' ? 'hide-on-mobile' : ''}`}
+          style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 16,
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 18,
+            overflowY: 'auto',
+            height: '100%'
+          }}
+        >
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
-            <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 200 }}>
+              <button
+                className="show-on-mobile"
+                onClick={() => setMobileTab('files')}
+                style={{
+                  display: 'none',
+                  alignSelf: 'flex-start',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  color: '#38bdf8',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                ← Back to Files
+              </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '1.4rem' }}>📄</span>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
@@ -721,6 +794,8 @@ export default function PrarushDocumentsView({
           <p style={{ margin: 0 }}>Select or upload a document to view details, compress, and download</p>
         </div>
       )}
+      </div>
     </div>
   );
 }
+
