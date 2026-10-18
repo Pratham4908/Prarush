@@ -473,6 +473,7 @@ export function migrateLegacyUnscopedData(userId) {
   }
 
   const migratedKeys = [];
+  const errors = [];
   for (const rawKey of check.keys) {
     const rawVal = localStorage.getItem(rawKey);
     if (!rawVal) continue;
@@ -488,18 +489,37 @@ export function migrateLegacyUnscopedData(userId) {
       targetKey = `prarush_usr_${userId}_locale`;
     }
 
-    // Only migrate if user profile does not already have distinct data
-    if (localStorage.getItem(targetKey) === null) {
-      localStorage.setItem(targetKey, rawVal);
+    try {
+      // Only migrate if user profile does not already have distinct data
+      if (localStorage.getItem(targetKey) === null) {
+        localStorage.setItem(targetKey, rawVal);
+      }
+      // CRITICAL: Remove the legacy unscoped key so it cannot be claimed again by another profile
+      localStorage.removeItem(rawKey);
       migratedKeys.push(rawKey);
+    } catch (err) {
+      errors.push(`Failed to migrate ${rawKey}: ${err.message}`);
     }
   }
 
+  // Record an audit marker showing this machine's legacy data was claimed and migrated
+  try {
+    localStorage.setItem('prarush_legacy_migration_audit', JSON.stringify({
+      claimedByUserId: userId,
+      migratedAt: new Date().toISOString(),
+      keys: migratedKeys
+    }));
+  } catch {}
+
+  const isSuccess = errors.length === 0;
   return {
-    success: true,
+    success: isSuccess,
     migratedCount: migratedKeys.length,
     migratedKeys,
-    message: `Migrated ${migratedKeys.length} legacy datasets into profile ${userId}.`
+    errors,
+    message: isSuccess
+      ? `Successfully claimed and migrated ${migratedKeys.length} legacy datasets into profile ${userId}.`
+      : `Partially migrated legacy datasets: ${errors.join('; ')}`
   };
 }
 

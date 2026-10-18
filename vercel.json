@@ -25,6 +25,10 @@
         {
           "key": "Permissions-Policy",
           "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.cartocdn.com https://images.unsplash.com https://*.wikimedia.org https://*.wikipedia.org https://unpkg.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://*.tile.openstreetmap.org https://nominatim.openstreetmap.org https://api.open-meteo.com https://air-quality-api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://overpass-api.de https://*.cartocdn.com; media-src 'self' data: blob:; worker-src 'self' blob:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';"
         }
       ]
     }

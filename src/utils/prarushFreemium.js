@@ -312,8 +312,22 @@ export function buildUserDataGDPRPayload(user) {
   const automations = localStorage.getItem(`${userPrefix}automations`);
   const kb = localStorage.getItem(`${userPrefix}knowledge`);
   const activity = localStorage.getItem(`${userPrefix}activity_log`);
-  const theme = localStorage.getItem('prarush_theme_mode');
-  const locale = localStorage.getItem('prarush_locale');
+  const rawTheme = localStorage.getItem(`${userPrefix}theme_mode`) || localStorage.getItem('prarush_theme_mode');
+  const rawLocale = localStorage.getItem(`${userPrefix}locale`) || localStorage.getItem('prarush_locale');
+
+  let themeVal = 'dark';
+  try {
+    themeVal = rawTheme ? JSON.parse(rawTheme) : 'dark';
+  } catch {
+    themeVal = rawTheme || 'dark';
+  }
+
+  let localeVal = 'en';
+  try {
+    localeVal = rawLocale ? JSON.parse(rawLocale) : 'en';
+  } catch {
+    localeVal = rawLocale || 'en';
+  }
 
   return {
     platform: 'Prarush Local-First Workspace for Developers & Creators',
@@ -329,8 +343,8 @@ export function buildUserDataGDPRPayload(user) {
     },
     subscription: sub,
     systemPreferences: {
-      theme: theme ? JSON.parse(theme) : 'dark',
-      locale: locale ? JSON.parse(locale) : 'en'
+      theme: themeVal,
+      locale: localeVal
     },
     workspaces: workspaces ? JSON.parse(workspaces) : [],
     tasks: tasks ? JSON.parse(tasks) : [],
@@ -578,12 +592,83 @@ export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conf
   try {
     const zip = await JSZip.loadAsync(zipBlobOrFile);
 
-    // In overwrite mode, purge old IndexedDB files for this user first so no orphaned files remain
+    // 1. Stage and decompress all binary files into memory FIRST before touching storage
+    // If ZIP decompressing or parsing throws an error, existing user files remain safe and intact
+    const manifest = meta.documentManifest || [];
+    const docsMeta = meta.documents || [];
+    const claimedDocIds = new Set();
+    const filesToStage = [];
+
+    for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+      if (relativePath.startsWith('documents/') && !zipEntry.dir) {
+        const archiveName = relativePath.replace(/^documents\//, '');
+        if (!archiveName) continue;
+
+        // 1. Check documentManifest
+        const manifestItem = manifest.find(m => m.archiveName === archiveName || m.archivePath === relativePath);
+        
+        let targetDocId = null;
+        let originalName = archiveName;
+        let mimeType = 'application/octet-stream';
+
+        if (manifestItem) {
+          targetDocId = manifestItem.id;
+          originalName = manifestItem.originalName || archiveName;
+          mimeType = manifestItem.type || 'application/octet-stream';
+          claimedDocIds.add(targetDocId);
+        } else {
+          // Fallback: match by name against docsMeta, ensuring each docRecord is mapped at most once
+          const candidateRecord = docsMeta.find(d => 
+            !claimedDocIds.has(d.id) && 
+            (d.name === archiveName || d.name === archiveName.replace(/_\d+(\.[^.]+)?$/, '$1'))
+          );
+          if (candidateRecord) {
+            targetDocId = candidateRecord.id;
+            originalName = candidateRecord.name || archiveName;
+            mimeType = candidateRecord.type || 'application/octet-stream';
+            claimedDocIds.add(targetDocId);
+          } else {
+            targetDocId = `restored-${Date.now()}-${Math.floor(Math.random() * 8999 + 1000)}`;
+          }
+        }
+
+        const rawBuffer = await zipEntry.async('arraybuffer');
+        // Preserve authentic MIME type and filename
+        const restoredBlob = new Blob([rawBuffer], { type: mimeType });
+        restoredBlob.name = originalName;
+
+        filesToStage.push({
+          targetDocId,
+          originalName,
+          blob: restoredBlob
+        });
+      }
+    }
+
+    // 2. Storage Mutation Phase: In overwrite mode, purge old IndexedDB files only AFTER all files are safely staged
     if (conflictStrategy === 'overwrite') {
       await clearUserFilesFromIndexedDB(userId);
     }
 
-    // 1. Process Scoped Datasets
+    // 3. Write Staged Binary Files to IndexedDB
+    let restoredFilesCount = 0;
+    const failedFiles = [];
+
+    for (const staged of filesToStage) {
+      try {
+        const saved = await saveFileToIndexedDB(staged.targetDocId, staged.blob, userId);
+        if (saved) {
+          restoredFilesCount++;
+        } else {
+          failedFiles.push(staged.originalName);
+        }
+      } catch (fileErr) {
+        console.warn(`Failed to restore file ${staged.originalName}:`, fileErr);
+        failedFiles.push(staged.originalName);
+      }
+    }
+
+    // 4. Process Scoped Datasets
     const datasets = [
       { key: 'workspaces', data: meta.workspaces || [] },
       { key: 'tasks', data: meta.tasks || [] },
@@ -649,67 +734,6 @@ export async function restoreCompleteBackupZip(zipBlobOrFile, targetUser, { conf
       }
       if (meta.systemPreferences.locale) {
         localStorage.setItem(`${userPrefix}locale`, JSON.stringify(meta.systemPreferences.locale));
-      }
-    }
-
-    // 2. Restore Binary Files to IndexedDB with exact MIME type and original filename
-    let restoredFilesCount = 0;
-    const failedFiles = [];
-
-    // Use documentManifest if available; otherwise fall back to matching docsMeta
-    const manifest = meta.documentManifest || [];
-    const docsMeta = meta.documents || [];
-    const claimedDocIds = new Set();
-
-    for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
-      if (relativePath.startsWith('documents/') && !zipEntry.dir) {
-        const archiveName = relativePath.replace(/^documents\//, '');
-        if (!archiveName) continue;
-
-        // 1. Check documentManifest
-        const manifestItem = manifest.find(m => m.archiveName === archiveName || m.archivePath === relativePath);
-        
-        let targetDocId = null;
-        let originalName = archiveName;
-        let mimeType = 'application/octet-stream';
-
-        if (manifestItem) {
-          targetDocId = manifestItem.id;
-          originalName = manifestItem.originalName || archiveName;
-          mimeType = manifestItem.type || 'application/octet-stream';
-          claimedDocIds.add(targetDocId);
-        } else {
-          // Fallback: match by name against docsMeta, ensuring each docRecord is mapped at most once
-          const candidateRecord = docsMeta.find(d => 
-            !claimedDocIds.has(d.id) && 
-            (d.name === archiveName || d.name === archiveName.replace(/_\d+(\.[^.]+)?$/, '$1'))
-          );
-          if (candidateRecord) {
-            targetDocId = candidateRecord.id;
-            originalName = candidateRecord.name || archiveName;
-            mimeType = candidateRecord.type || 'application/octet-stream';
-            claimedDocIds.add(targetDocId);
-          } else {
-            targetDocId = `restored-${Date.now()}-${Math.floor(Math.random() * 8999 + 1000)}`;
-          }
-        }
-
-        try {
-          const rawBuffer = await zipEntry.async('arraybuffer');
-          // Preserve authentic MIME type and filename
-          const restoredBlob = new Blob([rawBuffer], { type: mimeType });
-          restoredBlob.name = originalName;
-
-          const saved = await saveFileToIndexedDB(targetDocId, restoredBlob, userId);
-          if (saved) {
-            restoredFilesCount++;
-          } else {
-            failedFiles.push(originalName);
-          }
-        } catch (fileErr) {
-          console.warn(`Failed to restore file ${archiveName}:`, fileErr);
-          failedFiles.push(originalName);
-        }
       }
     }
 

@@ -826,12 +826,80 @@ async function runAllTests() {
     const userLocale = localStorage.getItem(`prarush_usr_${claimUser.id}_locale`);
     assert.strictEqual(userTheme, 'false');
     assert.strictEqual(userLocale, '"es"');
+
+    // CRITICAL AUDIT FIX: Verify legacy keys were purged so another profile cannot re-claim them
+    assert.strictEqual(localStorage.getItem('prarush_theme_mode'), null, 'Legacy unscoped theme key must be removed');
+    assert.strictEqual(localStorage.getItem('prarush_locale'), null, 'Legacy unscoped locale key must be removed');
+
+    const secondMig = migrateLegacyUnscopedData('usr-second-person');
+    assert.strictEqual(secondMig.migratedCount, 0, 'Second profile must not receive already-claimed legacy data');
   });
 
-  await runTest('Service Worker sw.js preserves prarush-map-tiles cache on activation', () => {
+  await runTest('API keys are encrypted at rest with salted cipher envelope (no plaintext leakage in storage)', () => {
+    const secretKeys = {
+      openai: 'sk-proj-supersecretkey1234567890',
+      gemini: 'AIzaSySecretGeminiKey123',
+      anthropic: 'sk-ant-api03-secret',
+      openrouter: 'sk-or-v1-secret'
+    };
+    const testUid = 'usr-vault-test';
+    saveStoredApiKeys(secretKeys, testUid);
+
+    // Read the raw stored string from sessionStorage
+    const storageKey = `prarush_usr_${testUid}_cloud_api_keys`;
+    const rawStored = sessionStorage.getItem(storageKey);
+    assert(rawStored, 'Encrypted keys should be in sessionStorage');
+
+    // Raw string must be an encrypted envelope and NEVER contain plaintext secret keys
+    assert(!rawStored.includes('sk-proj-supersecretkey1234567890'), 'Plaintext OpenAI key must NEVER appear in storage');
+    assert(!rawStored.includes('AIzaSySecretGeminiKey123'), 'Plaintext Gemini key must NEVER appear in storage');
+    
+    const parsedEnvelope = JSON.parse(rawStored);
+    assert.strictEqual(parsedEnvelope.__encrypted, true, 'Storage payload must be encrypted envelope');
+    assert.strictEqual(parsedEnvelope.v, 2, 'Storage envelope version should be 2');
+    assert(parsedEnvelope.iv, 'Storage envelope must include IV');
+    assert(parsedEnvelope.ciphertext, 'Storage envelope must include ciphertext');
+
+    // getStoredApiKeys transparently decrypts it
+    const decrypted = getStoredApiKeys(testUid);
+    assert.strictEqual(decrypted.openai, secretKeys.openai);
+    assert.strictEqual(decrypted.gemini, secretKeys.gemini);
+    assert.strictEqual(decrypted.anthropic, secretKeys.anthropic);
+    assert.strictEqual(decrypted.openrouter, secretKeys.openrouter);
+  });
+
+  await runTest('GDPR export strictly reads profile-scoped theme and locale', () => {
+    const testUser = { id: `usr-gdpr-${Date.now()}`, name: 'GDPR Tester' };
+    localStorage.setItem(`prarush_usr_${testUser.id}_theme_mode`, JSON.stringify(false));
+    localStorage.setItem(`prarush_usr_${testUser.id}_locale`, JSON.stringify('fr'));
+    // Set conflicting global keys
+    localStorage.setItem('prarush_theme_mode', JSON.stringify(true));
+    localStorage.setItem('prarush_locale', JSON.stringify('de'));
+
+    const payload = buildUserDataGDPRPayload(testUser);
+    assert.strictEqual(payload.systemPreferences.theme, false, 'GDPR export must use user-scoped theme');
+    assert.strictEqual(payload.systemPreferences.locale, 'fr', 'GDPR export must use user-scoped locale');
+  });
+
+  await runTest('Service Worker sw.js uses versioned cache and network-first navigation strategy', () => {
     const swContent = fs.readFileSync('./public/sw.js', 'utf8');
     assert(swContent.includes("const MAP_TILES_CACHE = 'prarush-map-tiles'"), 'sw.js must define MAP_TILES_CACHE');
     assert(swContent.includes('PRESERVED_CACHES'), 'sw.js must use PRESERVED_CACHES to prevent cache deletion');
+    assert(swContent.includes('const SW_VERSION ='), 'sw.js must define a versioned cache');
+    assert(swContent.includes('isHtmlNavigation'), 'sw.js must identify HTML navigation requests');
+    assert(swContent.includes('SKIP_WAITING'), 'sw.js must support SKIP_WAITING message');
+  });
+
+  await runTest('Vercel configuration includes comprehensive Content Security Policy (CSP)', () => {
+    const vercelContent = fs.readFileSync('./vercel.json', 'utf8');
+    const config = JSON.parse(vercelContent);
+    const headers = config.headers[0].headers;
+    const csp = headers.find(h => h.key === 'Content-Security-Policy');
+    assert(csp, 'vercel.json must define Content-Security-Policy header');
+    assert(csp.value.includes("default-src 'self'"), 'CSP must set default-src');
+    assert(csp.value.includes('https://api.anthropic.com'), 'CSP must permit Anthropic BYOK endpoint');
+    assert(csp.value.includes('https://api.openai.com'), 'CSP must permit OpenAI BYOK endpoint');
+    assert(csp.value.includes('https://generativelanguage.googleapis.com'), 'CSP must permit Gemini BYOK endpoint');
   });
 
   // Print Final Summary

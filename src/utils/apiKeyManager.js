@@ -16,23 +16,113 @@ export function getApiKeysStorageKey(userId = null) {
   return uid ? `prarush_usr_${uid}_cloud_api_keys` : 'prarush_cloud_api_keys';
 }
 
+// Client-Side Encryption at Rest for BYOK API Keys
+// Encrypts credentials with salted multi-round keystream derived per-profile to protect keys at rest
+function getVaultDeviceSalt() {
+  if (typeof localStorage === 'undefined') return 'prarush_static_vault_salt_2026';
+  try {
+    let salt = localStorage.getItem('prarush_vault_device_salt');
+    if (!salt) {
+      const bytes = globalThis.crypto?.getRandomValues ? globalThis.crypto.getRandomValues(new Uint8Array(16)) : [1, 2, 3, 4, 5, 6, 7, 8];
+      salt = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('prarush_vault_device_salt', salt);
+    }
+    return salt;
+  } catch {
+    return 'prarush_fallback_vault_salt';
+  }
+}
+
+export function encryptApiKeyVault(plaintext, userId = null) {
+  try {
+    const utf8Text = encodeURIComponent(plaintext);
+    const randomBytes = globalThis.crypto?.getRandomValues
+      ? globalThis.crypto.getRandomValues(new Uint8Array(16))
+      : [12, 34, 56, 78, 90, 12, 34, 56, 78, 90, 12, 34, 56, 78, 90, 12];
+    const iv = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const deviceSalt = getVaultDeviceSalt();
+    const seed = `${userId || 'guest'}_prarush_vault_${deviceSalt}_${iv}`;
+    
+    let key = 0x811c9dc5;
+    for (let i = 0; i < seed.length; i++) {
+      key = Math.imul(key ^ seed.charCodeAt(i), 0x01000193);
+    }
+    
+    let ciphertext = '';
+    for (let i = 0; i < utf8Text.length; i++) {
+      key = Math.imul(key ^ (i + 19), 0x01000193);
+      const byte = (key >>> 24) & 0xff;
+      const enc = utf8Text.charCodeAt(i) ^ byte;
+      ciphertext += enc.toString(16).padStart(4, '0');
+    }
+    
+    return JSON.stringify({ __encrypted: true, v: 2, iv, ciphertext });
+  } catch (err) {
+    console.warn('API key encryption warning:', err);
+    return plaintext;
+  }
+}
+
+export function decryptApiKeyVault(raw, userId = null) {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    // If not encrypted, return legacy plaintext object
+    if (!parsed || !parsed.__encrypted) return parsed;
+    
+    const { iv, ciphertext } = parsed;
+    if (!iv || !ciphertext) return null;
+    
+    const deviceSalt = getVaultDeviceSalt();
+    const seed = `${userId || 'guest'}_prarush_vault_${deviceSalt}_${iv}`;
+    
+    let key = 0x811c9dc5;
+    for (let i = 0; i < seed.length; i++) {
+      key = Math.imul(key ^ seed.charCodeAt(i), 0x01000193);
+    }
+    
+    let plain = '';
+    for (let i = 0; i < ciphertext.length; i += 4) {
+      const enc = parseInt(ciphertext.slice(i, i + 4), 16);
+      key = Math.imul(key ^ ((i / 4) + 19), 0x01000193);
+      const byte = (key >>> 24) & 0xff;
+      plain += String.fromCharCode(enc ^ byte);
+    }
+    
+    return JSON.parse(decodeURIComponent(plain));
+  } catch (err) {
+    console.warn('API key decryption warning:', err);
+    return null;
+  }
+}
+
 export function getStoredApiKeys(userId = null) {
   const scopedKey = getApiKeysStorageKey(userId);
   try {
     // 1. Check user-scoped sessionStorage
     const sessionRaw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(scopedKey) : null;
     if (sessionRaw) {
-      return JSON.parse(sessionRaw);
+      const decrypted = decryptApiKeyVault(sessionRaw, userId);
+      if (decrypted) return decrypted;
     }
     // 2. Check user-scoped localStorage
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(scopedKey) : null;
     if (raw) {
-      return JSON.parse(raw);
+      const decrypted = decryptApiKeyVault(raw, userId);
+      if (decrypted) return decrypted;
     }
     // 3. Fallback to legacy unscoped key only if guest/unspecified
     if (scopedKey === 'prarush_cloud_api_keys') {
       const legacyRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('prarush_cloud_api_keys') : null;
-      if (legacyRaw) return JSON.parse(legacyRaw);
+      if (legacyRaw) {
+        const decrypted = decryptApiKeyVault(legacyRaw, userId);
+        if (decrypted) return decrypted;
+      }
     }
     return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
   } catch {
@@ -52,11 +142,14 @@ export function saveStoredApiKeys(keys, userId = null) {
       sessionOnly
     };
 
+    // Encrypt payload before persisting to storage at rest
+    const encryptedPayload = encryptApiKeyVault(JSON.stringify(payload), userId);
+
     if (payload.sessionOnly && typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem(scopedKey, JSON.stringify(payload));
+      sessionStorage.setItem(scopedKey, encryptedPayload);
       if (typeof localStorage !== 'undefined') localStorage.removeItem(scopedKey);
     } else {
-      if (typeof localStorage !== 'undefined') localStorage.setItem(scopedKey, JSON.stringify(payload));
+      if (typeof localStorage !== 'undefined') localStorage.setItem(scopedKey, encryptedPayload);
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(scopedKey);
     }
   } catch (err) {

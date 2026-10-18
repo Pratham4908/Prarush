@@ -1,7 +1,7 @@
 # ⚡ PRARUSH — Local-First Workspace for Developers & Creators
 
 [![Production Build](https://img.shields.io/badge/Build-Passing%20(Vite%208.3)-06b6d4.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
-[![Automated Tests](https://img.shields.io/badge/Tests-35%2F35%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
+[![Automated Tests](https://img.shields.io/badge/Tests-38%2F38%20Passing-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable%20Offline%20Cache-8b5cf6.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Architecture](https://img.shields.io/badge/Architecture-Local--First%20%2B%20BYOK-10b981.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
 [![Status](https://img.shields.io/badge/Status-Local--First%20Developer%20Prototype-f59e0b.svg?style=flat-square)](https://github.com/Pratham4908/Prarush)
@@ -36,6 +36,9 @@ Prarush is transparent about what currently runs locally in the browser versus w
 ### ✅ Currently Shipped & Working (Local-First Prototype)
 - **Local-First Storage & Strict Profile Isolation:** Workspaces, Kanban tasks, markdown notes, calendar events, documents, and automations persist in client-side storage (`prarushStore.js`) strictly scoped per user ID, with zero fallback to shared keys or data leakage.
 - **Client-Side Auth & Sliding Session Expiry:** OWASP-recommended PBKDF2 password key derivation (600,000 iterations, HMAC-SHA256, Web Crypto API) with legacy migration and zero plaintext password storage (`authManager.js`). Sessions implement a sliding 30-day inactivity expiration window refreshed upon active platform usage.
+- **Client-Side Encryption at Rest for BYOK API Keys:** API keys stored in `sessionStorage` or `localStorage` are encrypted using a salted per-profile multi-round cipher envelope with randomized IVs (`apiKeyManager.js`). Plaintext API keys (`sk-...`, `AIza...`) are never written unencrypted to storage.
+- **Security Headers & Content Security Policy (CSP):** `vercel.json` provides comprehensive security headers including a strict Content Security Policy restricting script execution, styles, fonts, and network endpoints to designated BYOK providers.
+- **Network-First PWA Service Worker:** `sw.js` (v2.1.0) implements a network-first strategy for HTML navigation requests to prevent stale `index.html` from serving obsolete JS chunk hashes on redeployments, while caching OpenStreetMap and CartoDB tiles for offline viewing.
 - **Direct Multi-Model AI Routing (BYOK):**
   - **Anthropic Claude Sonnet 5.5 (`claude-sonnet-5-5`), Sonnet 5 (`claude-sonnet-5`) & Sonnet 4.5 (`claude-sonnet-4-5`):** Direct browser-to-API inference via official Anthropic Messages API (`x-api-key`). 1M context window (128K max output) for Sonnet 5.5 and Sonnet 5 (marked legacy).
   - **OpenAI GPT-4o:** Direct inference via Chat Completions API (`Authorization: Bearer`).
@@ -47,7 +50,7 @@ Prarush is transparent about what currently runs locally in the browser versus w
 - **Persistent Binary Storage (IndexedDB):** Uploaded files (`.pdf`, images, `.txt`, `.md`, `.json`, `.csv`) persist in browser IndexedDB (`prarush_files_db`) with owner scoping across reloads and sessions. Real byte sizes are tracked against browser storage quotas.
 - **Authentic GZIP Stream Compression:** Files are compressed using the browser's native `CompressionStream('gzip')`, calculating actual byte reduction and providing downloadable `.gz` binary archives for actual uploaded files.
 - **Keyword & Passage Retrieval:** Keyword-matched lexical search across stored notes, documents, and references. Accurately extracts matching passages and returns an explicit no-match response when no terms match, without artificial confidence scores.
-- **Data Portability, Complete ZIP Backup & Restore:** Machine-readable JSON metadata export, complete backup archive (.ZIP bundling metadata, document manifest, and IndexedDB binary files) with collision-proof filename deduplication, archive safety limits (50 MB compressed, 500 max entries, 100 MB uncompressed limit), and an interactive restore engine with validation preview, legacy data claim, and conflict handling.
+- **Data Portability, Complete ZIP Backup & Restore:** Machine-readable JSON metadata export, complete backup archive (.ZIP bundling metadata, document manifest, and IndexedDB binary files) with collision-proof filename deduplication, archive safety limits (50 MB compressed, 500 max entries, 100 MB uncompressed limit), and an interactive restore engine with staging validation, legacy data claim, and conflict handling.
 - **Smart Command Center:** Global `Ctrl+K` / `Cmd+K` natural language fuzzy search palette.
 - **Internationalization:** Localization across 6 global languages (English, Spanish, French, Japanese, German, Hindi).
 - **Mobile Packaging Dependencies:** Capacitor dependencies (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/ios`) integrated into `package.json`.

@@ -67,12 +67,22 @@ export default function PrarushProfileModal({
     try {
       const storeRes = migrateLegacyUnscopedData(user.id);
       const idbRes = await claimQuarantinedLegacyFiles(user.id);
-      audioSystem.playSuccessSound();
-      setLegacyResult(`Migration Complete: Claimed ${storeRes.migratedCount} unscoped datasets and ${idbRes.claimedCount} quarantined files into profile ${user.name}.`);
-      setLegacyStatus(null);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1800);
+
+      // Verify whether both storage migrations succeeded
+      if (!storeRes.success || !idbRes.success) {
+        const issues = [];
+        if (!storeRes.success) issues.push(storeRes.error || storeRes.errors?.join(', ') || 'LocalStorage dataset migration incomplete');
+        if (!idbRes.success) issues.push(idbRes.error || 'IndexedDB file claiming incomplete');
+        audioSystem.playWarningSound();
+        setLegacyResult(`Migration Warning: ${issues.join(' | ')}. Claimed ${storeRes.migratedCount || 0} datasets, ${idbRes.claimedCount || 0} files.`);
+      } else {
+        audioSystem.playSuccessSound();
+        setLegacyResult(`Migration Complete: Claimed ${storeRes.migratedCount} unscoped datasets and ${idbRes.claimedCount} quarantined files into profile ${user.name}.`);
+        setLegacyStatus(null);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1800);
+      }
     } catch (err) {
       audioSystem.playWarningSound();
       setLegacyResult(`Migration Failed: ${err.message}`);
