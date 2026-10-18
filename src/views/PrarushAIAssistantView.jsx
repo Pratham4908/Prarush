@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Bot, Send, Sparkles, Volume2, ArrowRight, Download, Trash2, 
-  Paperclip, Cpu, RefreshCw, CheckCircle2, Copy, Check 
+  Paperclip, Cpu, RefreshCw, CheckCircle2, Copy, Check, Key 
 } from 'lucide-react';
 import { AI_MODELS, processPrarushAIQuery } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
@@ -374,6 +374,71 @@ export default function PrarushAIAssistantView({
               >
                 Upgrade to Prarush Pro ($12/mo)
               </button>
+            )}
+
+            {/* Missing Key Setup Callout Button */}
+            {msg.modelUsed && msg.modelUsed.includes('Key Not Configured') && (
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => onNavigate && onNavigate('model_hub')}
+                  className="btn-primary"
+                  style={{
+                    fontSize: '0.74rem',
+                    padding: '6px 14px',
+                    background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+                    color: '#090d16',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <Key size={13} />
+                  <span>Configure {msg.modelUsed.replace('Local Fallback (', '').replace(' Key Not Configured)', '')} Key in Model Hub</span>
+                </button>
+              </div>
+            )}
+
+            {/* Suggested Workflow Actions (Kanban Task, Markdown Note, Model Hub) */}
+            {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                {msg.suggestedActions.map((action, aIdx) => (
+                  <button
+                    key={aIdx}
+                    type="button"
+                    onClick={() => {
+                      if (action.actionType === 'open_model_hub' && onNavigate) {
+                        onNavigate('model_hub');
+                      } else if (action.actionType === 'create_task' && onNavigate) {
+                        onNavigate('kanban');
+                      } else if (action.actionType === 'create_note' && onNavigate) {
+                        onNavigate('notes');
+                      }
+                    }}
+                    style={{
+                      background: action.actionType === 'open_model_hub' 
+                        ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      border: action.actionType === 'open_model_hub' 
+                        ? '1px solid #06b6d4' 
+                        : '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: 8,
+                      padding: '5px 10px',
+                      color: action.actionType === 'open_model_hub' ? '#38bdf8' : '#e2e8f0',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>{action.label}</span>
+                    <ArrowRight size={12} />
+                  </button>
+                ))}
+              </div>
             )}
 
             {/* Follow-up Suggestions */}

@@ -11,6 +11,7 @@ import {
   getBrowserStorageUsage 
 } from '../utils/indexedDbStore.js';
 import { compressBlob } from '../utils/compressionEngine.js';
+import { summarizeDocumentText } from '../utils/prarushAI.js';
 
 export default function PrarushDocumentsView({
   documents = [],
@@ -141,6 +142,35 @@ export default function PrarushDocumentsView({
     }
 
     e.target.value = '';
+  };
+
+  const handleAISummarizeDoc = async () => {
+    if (!selectedDoc) return;
+    setIsProcessingOCR(true);
+    setOcrResult(null);
+    audioSystem.playTone(650, 'sine', 0.1);
+
+    try {
+      let content = selectedDoc.extractedContent || '';
+      if (selectedDoc.hasRealBinary) {
+        const blob = await getFileFromIndexedDB(selectedDoc.id, userId);
+        if (blob && typeof blob.text === 'function') {
+          content = await blob.text();
+        }
+      }
+      if (!content || content.length < 10) {
+        content = selectedDoc.summary || `File: ${selectedDoc.name} (${selectedDoc.sizeKB} KB)`;
+      }
+
+      const res = await summarizeDocumentText(content, selectedDoc.name, 'claude-sonnet-5-5', { userId });
+      setOcrResult(`🤖 AI DOCUMENT INTELLIGENCE (${res.modelUsed}):\n\n${res.text}`);
+      audioSystem.playSuccessSound();
+    } catch (err) {
+      setOcrResult(`AI Analysis error: ${err.message}`);
+      audioSystem.playWarningSound();
+    } finally {
+      setIsProcessingOCR(false);
+    }
   };
 
   const handleParseOrExtract = async () => {
@@ -498,6 +528,23 @@ export default function PrarushDocumentsView({
                       ? 'Optical OCR (Backend Required)' 
                       : 'Parse Document Text'}
                 </span>
+              </button>
+
+              {/* Live AI Document Intelligence */}
+              <button
+                onClick={handleAISummarizeDoc}
+                disabled={isProcessingOCR}
+                className="btn-primary"
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '8px 12px',
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.35) 0%, rgba(139, 92, 246, 0.35) 100%)',
+                  border: '1px solid rgba(6, 182, 212, 0.5)'
+                }}
+                title="Extract executive summary, technical decisions, and action items using Claude / GPT-4o / Gemini"
+              >
+                <Sparkles size={14} color="#06b6d4" />
+                <span>AI Insights &amp; Summary</span>
               </button>
 
               {/* Real Stream Compression */}

@@ -5,10 +5,13 @@ import {
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
 import { isProSubscriber } from '../utils/prarushFreemium.js';
+import { processPrarushAIQuery } from '../utils/prarushAI.js';
+import { hasActiveApiKey } from '../utils/apiKeyManager.js';
 
 export default function PrarushAutomationsView({ 
   automations = [], 
-  onOpenSubscription 
+  onOpenSubscription,
+  currentUser = null 
 }) {
   const [activeList, setActiveList] = useState(automations);
   const [runningId, setRunningId] = useState(null);
@@ -19,22 +22,46 @@ export default function PrarushAutomationsView({
     audioSystem.playTone(600, 'sine', 0.08);
   };
 
-  const handleTestRun = (auto) => {
+  const handleTestRun = async (auto) => {
     setRunningId(auto.id);
     audioSystem.playTone(700, 'sine', 0.1);
+    const start = performance.now();
 
-    setTimeout(() => {
-      setRunningId(null);
+    try {
+      let executionSummary = `Trigger [${auto.trigger}] activated. AI Action parsed payload, executed instructions, and logged confirmation.`;
+      let modelUsed = 'Prarush Local Engine (Simulation Runner)';
+
+      if (hasActiveApiKey(currentUser?.id)) {
+        const prompt = `Simulate automation step: "${auto.name}". Trigger: "${auto.trigger}". Instructions: Execute workflow payload and output execution confirmation.`;
+        const res = await processPrarushAIQuery(prompt, 'claude-sonnet-5-5', { userId: currentUser?.id });
+        modelUsed = res.modelUsed;
+        executionSummary = res.text.slice(0, 320);
+      }
+
+      const elapsed = Math.round(performance.now() - start);
       setRunLog({
         id: auto.id,
         name: auto.name,
         timestamp: new Date().toLocaleTimeString(),
         status: 'SUCCESS',
-        executionDuration: '42ms',
-        summary: `Trigger [${auto.trigger}] activated. AI Action parsed payload, executed instructions, and logged confirmation.`
+        executionDuration: `${elapsed}ms`,
+        summary: executionSummary,
+        modelUsed
       });
       audioSystem.playSuccessSound();
-    }, 800);
+    } catch (err) {
+      setRunLog({
+        id: auto.id,
+        name: auto.name,
+        timestamp: new Date().toLocaleTimeString(),
+        status: 'ERROR',
+        executionDuration: '0ms',
+        summary: `Execution failed: ${err.message}`
+      });
+      audioSystem.playWarningSound();
+    } finally {
+      setRunningId(null);
+    }
   };
 
   return (

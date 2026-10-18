@@ -101,33 +101,55 @@ export function decryptApiKeyVault(raw, userId = null) {
   }
 }
 
+function getEnvKey(envVarName) {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[envVarName]) {
+      return String(import.meta.env[envVarName]).trim();
+    }
+  } catch {}
+  return '';
+}
+
 export function getStoredApiKeys(userId = null) {
   const scopedKey = getApiKeysStorageKey(userId);
+  let resolved = { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
   try {
     // 1. Check user-scoped sessionStorage
     const sessionRaw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(scopedKey) : null;
     if (sessionRaw) {
       const decrypted = decryptApiKeyVault(sessionRaw, userId);
-      if (decrypted) return decrypted;
-    }
-    // 2. Check user-scoped localStorage
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(scopedKey) : null;
-    if (raw) {
-      const decrypted = decryptApiKeyVault(raw, userId);
-      if (decrypted) return decrypted;
-    }
-    // 3. Fallback to legacy unscoped key only if guest/unspecified
-    if (scopedKey === 'prarush_cloud_api_keys') {
-      const legacyRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('prarush_cloud_api_keys') : null;
-      if (legacyRaw) {
-        const decrypted = decryptApiKeyVault(legacyRaw, userId);
-        if (decrypted) return decrypted;
+      if (decrypted) resolved = decrypted;
+    } else {
+      // 2. Check user-scoped localStorage
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(scopedKey) : null;
+      if (raw) {
+        const decrypted = decryptApiKeyVault(raw, userId);
+        if (decrypted) resolved = decrypted;
+      } else if (scopedKey === 'prarush_cloud_api_keys') {
+        // 3. Fallback to legacy unscoped key only if guest/unspecified
+        const legacyRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('prarush_cloud_api_keys') : null;
+        if (legacyRaw) {
+          const decrypted = decryptApiKeyVault(legacyRaw, userId);
+          if (decrypted) resolved = decrypted;
+        }
       }
     }
-    return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
-  } catch {
-    return { openai: '', gemini: '', anthropic: '', openrouter: '', sessionOnly: true };
-  }
+  } catch {}
+
+  // Merge with environment variables (.env / Vercel secrets) if not explicitly configured in browser
+  return {
+    openai: resolved.openai || getEnvKey('VITE_OPENAI_API_KEY'),
+    gemini: resolved.gemini || getEnvKey('VITE_GEMINI_API_KEY'),
+    anthropic: resolved.anthropic || getEnvKey('VITE_ANTHROPIC_API_KEY'),
+    openrouter: resolved.openrouter || getEnvKey('VITE_OPENROUTER_API_KEY'),
+    sessionOnly: resolved.sessionOnly !== undefined ? resolved.sessionOnly : true,
+    hasEnvKeys: Boolean(
+      getEnvKey('VITE_OPENAI_API_KEY') || 
+      getEnvKey('VITE_GEMINI_API_KEY') || 
+      getEnvKey('VITE_ANTHROPIC_API_KEY') || 
+      getEnvKey('VITE_OPENROUTER_API_KEY')
+    )
+  };
 }
 
 export function saveStoredApiKeys(keys, userId = null) {
@@ -296,4 +318,58 @@ export async function callRealOpenRouter(prompt, apiKey, model = 'meta-llama/lla
 
   const data = await response.json();
   return data.choices?.[0]?.message?.content || 'No response generated from OpenRouter.';
+}
+
+// Call live OpenAI DALL-E 3 Image Generation API
+export async function callRealDalle3(prompt, apiKey, style = 'vivid') {
+  if (!apiKey) throw new Error('OpenAI API key is missing.');
+
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt: prompt,
+      n: 1,
+      size: '1024x1024',
+      style: style === 'natural' ? 'natural' : 'vivid',
+      quality: 'standard'
+    })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `DALL-E 3 returned status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.data?.[0]?.url || null;
+}
+
+// Call live OpenAI Whisper Speech-to-Text Transcription API
+export async function callRealWhisper(audioBlob, apiKey) {
+  if (!apiKey) throw new Error('OpenAI API key is missing.');
+
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'recording.webm');
+  formData.append('model', 'whisper-1');
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Whisper API returned status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text || '';
 }

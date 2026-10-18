@@ -322,6 +322,7 @@ export default function App() {
           <PrarushAIAssistantView
             selectedModelId={selectedModelId}
             onSelectModel={setSelectedModelId}
+            currentUser={currentUser}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
             onNavigate={(tab) => setActiveTab(tab)}
           />
@@ -340,6 +341,7 @@ export default function App() {
       case 'content_studio':
         return (
           <PrarushContentStudioView
+            currentUser={currentUser}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
           />
         );
@@ -392,6 +394,7 @@ export default function App() {
             knowledgeItems={knowledge}
             notes={notes}
             documents={documents}
+            currentUser={currentUser}
           />
         );
 
@@ -399,6 +402,7 @@ export default function App() {
         return (
           <PrarushAutomationsView
             automations={automations}
+            currentUser={currentUser}
             onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
           />
         );

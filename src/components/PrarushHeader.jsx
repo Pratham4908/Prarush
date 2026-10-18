@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Sparkles, Search, ChevronDown, Bell, Moon, Sun, Globe, 
-  Layers, User, Zap, Cpu, CheckSquare, Plus, ArrowRight 
+  Layers, User, Zap, Cpu, CheckSquare, Plus, ArrowRight, Key 
 } from 'lucide-react';
 import { PRARUSH_LOCALES, tPrarush } from '../utils/prarushI18n.js';
 import { isProSubscriber } from '../utils/prarushFreemium.js';
@@ -21,7 +21,8 @@ export default function PrarushHeader({
   currentUser,
   onOpenProfile,
   onOpenSubscription,
-  onQuickCreateTask
+  onQuickCreateTask,
+  onNavigateTab
 }) {
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId) || workspaces[0];
   const activeModel = AI_MODELS.find(m => m.id === selectedModelId) || AI_MODELS[0];
@@ -239,6 +240,17 @@ export default function PrarushHeader({
             ))}
           </select>
         </div>
+
+        {/* Quick BYOK API Keys Gateway */}
+        <button
+          className="header-icon-btn"
+          style={{ width: 32, height: 32, background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.35)' }}
+          onClick={() => onNavigateTab && onNavigateTab('model_hub')}
+          title="Configure BYOK API Keys (Anthropic, OpenAI, Gemini, OpenRouter)"
+          aria-label="BYOK API Keys Gateway"
+        >
+          <Key size={14} color="#06b6d4" />
+        </button>
 
         {/* Light / Dark Mode Toggle */}
         <button

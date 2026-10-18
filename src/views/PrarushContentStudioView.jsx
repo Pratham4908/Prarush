@@ -3,11 +3,11 @@ import {
   Sparkles, Image, Layers, Code, Mic, Download, Play, Square, 
   RefreshCw, Check, Copy, ArrowRight, Wand2 
 } from 'lucide-react';
-import { generatePrarushImage, processPrarushAIQuery } from '../utils/prarushAI.js';
+import { generatePrarushImage, generatePrarushImageLive, processPrarushAIQuery } from '../utils/prarushAI.js';
 import { audioSystem } from '../utils/audioSystem.js';
 import { isProSubscriber } from '../utils/prarushFreemium.js';
 
-export default function PrarushContentStudioView({ onOpenSubscription }) {
+export default function PrarushContentStudioView({ onOpenSubscription, currentUser = null }) {
   const [activeTab, setActiveTab] = useState('images'); // 'images' | 'presentations' | 'code' | 'audio'
   
   // Image Generator State
@@ -30,37 +30,54 @@ export default function PrarushContentStudioView({ onOpenSubscription }) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioTranscript, setAudioTranscript] = useState(null);
 
-  const handleGenerateImage = () => {
+  const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
     audioSystem.playTone(700, 'sine', 0.1);
-    setTimeout(() => {
-      const img = generatePrarushImage(imagePrompt, imageStyle);
+    try {
+      const img = await generatePrarushImageLive(imagePrompt, imageStyle, { userId: currentUser?.id });
       setGeneratedImage(img);
-      setIsGeneratingImg(false);
       audioSystem.playSuccessSound();
-    }, 800);
+    } catch (err) {
+      console.warn('Image generation error:', err);
+    } finally {
+      setIsGeneratingImg(false);
+    }
   };
 
-  const handleGenerateDeck = () => {
+  const handleGenerateDeck = async () => {
     setIsGeneratingDeck(true);
     audioSystem.playTone(600, 'sine', 0.1);
-    setTimeout(() => {
-      const res = processPrarushAIQuery(`Generate a pitch deck for ${deckPrompt}`);
+    try {
+      const res = await processPrarushAIQuery(
+        `Generate a pitch deck for ${deckPrompt}`, 
+        'claude-sonnet-5-5',
+        { userId: currentUser?.id }
+      );
       setGeneratedDeck(res);
-      setIsGeneratingDeck(false);
       audioSystem.playSuccessSound();
-    }, 800);
+    } catch (err) {
+      console.warn('Deck generation error:', err);
+    } finally {
+      setIsGeneratingDeck(false);
+    }
   };
 
-  const handleGenerateCode = () => {
+  const handleGenerateCode = async () => {
     setIsGeneratingCode(true);
     audioSystem.playTone(650, 'sine', 0.1);
-    setTimeout(() => {
-      const res = processPrarushAIQuery(`Generate code for ${codePrompt}`);
+    try {
+      const res = await processPrarushAIQuery(
+        `Generate code for ${codePrompt}`, 
+        'claude-sonnet-5-5',
+        { userId: currentUser?.id }
+      );
       setGeneratedCode(res);
-      setIsGeneratingCode(false);
       audioSystem.playSuccessSound();
-    }, 700);
+    } catch (err) {
+      console.warn('Code generation error:', err);
+    } finally {
+      setIsGeneratingCode(false);
+    }
   };
 
   const handleToggleRecord = () => {

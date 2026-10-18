@@ -10,7 +10,7 @@ import { getStoredApiKeys, saveStoredApiKeys, purgeAllApiKeys } from '../utils/a
 export default function PrarushModelHubView({ selectedModelId, onSelectModel, onOpenSubscription, currentUser = null }) {
   const [testingModelId, setTestingModelId] = useState(null);
   const [latencyResults, setLatencyResults] = useState({});
-  const [showKeyConfig, setShowKeyConfig] = useState(false);
+  const [showKeyConfig, setShowKeyConfig] = useState(true);
   const [apiKeys, setApiKeys] = useState(() => getStoredApiKeys(currentUser?.id));
   const [saveStatus, setSaveStatus] = useState(false);
   const [purgeStatus, setPurgeStatus] = useState(false);

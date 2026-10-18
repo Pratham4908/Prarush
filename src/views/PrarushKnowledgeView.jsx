@@ -4,11 +4,14 @@ import {
   ExternalLink, CheckCircle2, ArrowRight, FileText, Folder, FileCode 
 } from 'lucide-react';
 import { audioSystem } from '../utils/audioSystem.js';
+import { answerKnowledgeQuery } from '../utils/prarushAI.js';
+import { hasActiveApiKey } from '../utils/apiKeyManager.js';
 
 export default function PrarushKnowledgeView({ 
   knowledgeItems = [],
   notes = [],
-  documents = []
+  documents = [],
+  currentUser = null
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [qaQuestion, setQaQuestion] = useState('');
@@ -46,77 +49,97 @@ export default function PrarushKnowledgeView({
     }))
   ];
 
-  const handleAskKnowledge = (e) => {
+  const handleAskKnowledge = async (e) => {
     e.preventDefault();
     if (!qaQuestion.trim()) return;
 
     setIsAsking(true);
     audioSystem.playTone(600, 'sine', 0.1);
 
-    setTimeout(() => {
-      const qLower = qaQuestion.toLowerCase();
-      const queryWords = qLower.split(/\s+/).filter(w => w.length > 2);
+    const qLower = qaQuestion.toLowerCase();
+    const queryWords = qLower.split(/\s+/).filter(w => w.length > 2);
 
-      if (queryWords.length === 0) {
-        setGroundedAnswer({
-          noMatch: true,
-          answer: `Please enter at least one keyword (3+ characters) to search your notes and documents.`,
-          source: 'None',
-          title: 'Input Too Short'
-        });
-        setIsAsking(false);
-        return;
-      }
-
-      // Score each item by exact keyword overlap
-      const scored = unifiedIndex.map(item => {
-        const matches = [];
-        const titleLower = item.title.toLowerCase();
-        const snippetLower = item.snippet.toLowerCase();
-        const sourceLower = item.source.toLowerCase();
-
-        for (const w of queryWords) {
-          if (titleLower.includes(w) || snippetLower.includes(w) || sourceLower.includes(w)) {
-            matches.push(w);
-          }
-        }
-        return { item, score: matches.length, matches };
-      });
-
-      scored.sort((a, b) => b.score - a.score);
-      const top = scored[0];
-
-      // Genuine no-match handling: NEVER fall back to unifiedIndex[0]
-      if (!top || top.score === 0) {
-        setGroundedAnswer({
-          noMatch: true,
-          answer: `No matching passages found in your stored notes or documents for: "${qaQuestion}".\nTry searching with keywords that appear in your notes or uploaded files.`,
-          source: 'No Source Match',
-          title: 'No Matching Passages'
-        });
-        setIsAsking(false);
-        audioSystem.playWarningSound();
-        return;
-      }
-
-      // Extract the most relevant sentence from snippet
-      const sentences = top.item.snippet.split(/(?<=[.?!])\s+/);
-      const relevantSentence = sentences.find(s => 
-        top.matches.some(m => s.toLowerCase().includes(m))
-      ) || top.item.snippet.slice(0, 240);
-
+    if (queryWords.length === 0) {
       setGroundedAnswer({
-        noMatch: false,
-        answer: `Passage from ${top.item.source} ("${top.item.title}"):\n\n"${relevantSentence.trim()}"\n\nFull Reference Context:\n"${top.item.snippet}"`,
-        source: top.item.source,
-        title: top.item.title,
-        type: top.item.type,
-        matchedTerms: top.matches.join(', ')
+        noMatch: true,
+        answer: `Please enter at least one keyword (3+ characters) to search your notes and documents.`,
+        source: 'None',
+        title: 'Input Too Short'
       });
-
       setIsAsking(false);
-      audioSystem.playSuccessSound();
-    }, 400);
+      return;
+    }
+
+    // Score each item by exact keyword overlap
+    const scored = unifiedIndex.map(item => {
+      const matches = [];
+      const titleLower = item.title.toLowerCase();
+      const snippetLower = item.snippet.toLowerCase();
+      const sourceLower = item.source.toLowerCase();
+
+      for (const w of queryWords) {
+        if (titleLower.includes(w) || snippetLower.includes(w) || sourceLower.includes(w)) {
+          matches.push(w);
+        }
+      }
+      return { item, score: matches.length, matches };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored[0];
+
+    // Genuine no-match handling: NEVER fall back to unifiedIndex[0]
+    if (!top || top.score === 0) {
+      setGroundedAnswer({
+        noMatch: true,
+        answer: `No matching passages found in your stored notes or documents for: "${qaQuestion}".\nTry searching with keywords that appear in your notes or uploaded files.`,
+        source: 'No Source Match',
+        title: 'No Matching Passages'
+      });
+      setIsAsking(false);
+      audioSystem.playWarningSound();
+      return;
+    }
+
+    // Live AI RAG synthesis if API key is active
+    if (hasActiveApiKey(currentUser?.id)) {
+      try {
+        const topSnippets = scored.slice(0, 3).filter(s => s.score > 0).map(s => s.item);
+        const aiAnswer = await answerKnowledgeQuery(qaQuestion, topSnippets, 'claude-sonnet-5-5', { userId: currentUser?.id });
+        setGroundedAnswer({
+          noMatch: false,
+          answer: aiAnswer.text,
+          source: `${top.item.source} (${aiAnswer.modelUsed})`,
+          title: top.item.title,
+          type: top.item.type,
+          matchedTerms: top.matches.join(', '),
+          isLiveAi: aiAnswer.isLiveApi
+        });
+        setIsAsking(false);
+        audioSystem.playSuccessSound();
+        return;
+      } catch (ragErr) {
+        console.warn('Knowledge RAG fallback to raw passage:', ragErr);
+      }
+    }
+
+    // Extract the most relevant sentence from snippet
+    const sentences = top.item.snippet.split(/(?<=[.?!])\s+/);
+    const relevantSentence = sentences.find(s => 
+      top.matches.some(m => s.toLowerCase().includes(m))
+    ) || top.item.snippet.slice(0, 240);
+
+    setGroundedAnswer({
+      noMatch: false,
+      answer: `Passage from ${top.item.source} ("${top.item.title}"):\n\n"${relevantSentence.trim()}"\n\nFull Reference Context:\n"${top.item.snippet}"`,
+      source: top.item.source,
+      title: top.item.title,
+      type: top.item.type,
+      matchedTerms: top.matches.join(', ')
+    });
+
+    setIsAsking(false);
+    audioSystem.playSuccessSound();
   };
 
   const filteredItems = unifiedIndex.filter(i => 

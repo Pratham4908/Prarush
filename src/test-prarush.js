@@ -119,7 +119,11 @@ import {
 import { 
   AI_MODELS, 
   processPrarushAIQuery, 
-  generatePrarushImage 
+  generatePrarushImage,
+  generatePrarushImageLive,
+  summarizeDocumentText,
+  breakdownTask,
+  answerKnowledgeQuery
 } from './utils/prarushAI.js';
 
 import { 
@@ -156,7 +160,9 @@ import {
 import { 
   getStoredApiKeys, 
   saveStoredApiKeys,
-  purgeAllApiKeys 
+  purgeAllApiKeys,
+  callRealDalle3,
+  callRealWhisper
 } from './utils/apiKeyManager.js';
 
 import {
@@ -900,6 +906,37 @@ async function runAllTests() {
     assert(csp.value.includes('https://api.anthropic.com'), 'CSP must permit Anthropic BYOK endpoint');
     assert(csp.value.includes('https://api.openai.com'), 'CSP must permit OpenAI BYOK endpoint');
     assert(csp.value.includes('https://generativelanguage.googleapis.com'), 'CSP must permit Gemini BYOK endpoint');
+  });
+
+  await runTest('Universal AI feature helpers function properly with fallback and context', async () => {
+    // Test document summarizer fallback
+    const docSummary = await summarizeDocumentText('System architecture overview: Prarush uses local-first IndexedDB and encrypted BYOK keys.', 'Architecture.md');
+    assert(docSummary, 'Document summary should return a response object');
+    assert(docSummary.title || docSummary.text || docSummary.keyFindings, 'Should contain summarization fields');
+
+    // Test task decomposition
+    const taskBreakdown = await breakdownTask('Implement WebSocket synchronization');
+    assert(taskBreakdown, 'Task breakdown should return response');
+    assert(taskBreakdown.modelUsed, 'Should record modelUsed');
+
+    // Test knowledge RAG query
+    const ragAnswer = await answerKnowledgeQuery('How is data stored?', [{ source: 'DB Docs', snippet: 'Data is stored in IndexedDB and localStorage scoped by user id' }]);
+    assert(ragAnswer, 'RAG answer should return response');
+
+    // Test live image generator without keys
+    const imgResult = await generatePrarushImageLive('A sleek futuristic developer IDE', 'minimalist');
+    assert(imgResult.imageUrl, 'Image result should have imageUrl');
+    assert.strictEqual(imgResult.isDemoPreview, true, 'Without keys, should return curated demo image');
+  });
+
+  await runTest('API Key Manager incorporates live call helpers and handles BYOK vault', () => {
+    assert.strictEqual(typeof callRealDalle3, 'function', 'callRealDalle3 must be exported');
+    assert.strictEqual(typeof callRealWhisper, 'function', 'callRealWhisper must be exported');
+    
+    // Check key retrieval with user
+    const keys = getStoredApiKeys('test-env-user');
+    assert(typeof keys === 'object', 'getStoredApiKeys should return an object');
+    assert('openai' in keys && 'gemini' in keys && 'anthropic' in keys && 'openrouter' in keys, 'Should contain all 4 provider keys');
   });
 
   // Print Final Summary

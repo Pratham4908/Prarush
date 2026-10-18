@@ -137,7 +137,8 @@ import {
   callRealOpenAI, 
   callRealGemini, 
   callRealAnthropic, 
-  callRealOpenRouter 
+  callRealOpenRouter,
+  callRealDalle3
 } from './apiKeyManager.js';
 
 // Process queries across the Prarush Universal Platform with honest routing and clear labeling
@@ -146,7 +147,8 @@ export async function processPrarushAIQuery(prompt, modelId = 'prarush-local-eng
   
   // Resolve model, honoring current, alias, and legacy alias IDs
   const selectedModel = AI_MODELS.find(m => m.id === modelId || m.aliasId === modelId || m.legacyAliasId === modelId) || AI_MODELS[0];
-  const keys = getStoredApiKeys();
+  const userId = context.userId || context.user?.id || null;
+  const keys = getStoredApiKeys(userId);
   let liveCallError = null;
 
   // 1. Direct Live Routing: Anthropic (Claude Sonnet 5.5, Sonnet 5 & Sonnet 4.5)
@@ -432,4 +434,53 @@ export function generatePrarushImage(promptText, style = 'cinematic') {
     isDemoPreview: true,
     disclaimer: 'Curated visual style demo. Connect Replicate, Stability AI, or DALL-E in Model Hub for live generative diffusion.'
   };
+}
+
+// Live Image Generation with DALL-E 3 (BYOK) or curated fallback
+export async function generatePrarushImageLive(promptText, style = 'cinematic', context = {}) {
+  const userId = context.userId || context.user?.id || null;
+  const keys = getStoredApiKeys(userId);
+
+  if (keys.openai) {
+    try {
+      const liveUrl = await callRealDalle3(promptText, keys.openai, style);
+      if (liveUrl) {
+        return {
+          id: `img-${Date.now()}`,
+          prompt: promptText,
+          style,
+          imageUrl: liveUrl,
+          generatedAt: new Date().toISOString(),
+          resolution: '1024x1024 (HD)',
+          model: 'OpenAI DALL-E 3 (Live API)',
+          isDemoPreview: false,
+          isLiveApi: true,
+          disclaimer: 'Generated live via OpenAI DALL-E 3 directly using your BYOK key.'
+        };
+      }
+    } catch (err) {
+      console.warn('Live DALL-E 3 error, falling back to curated styles:', err);
+    }
+  }
+
+  return generatePrarushImage(promptText, style);
+}
+
+// AI Document Summarizer & Insight Extraction
+export async function summarizeDocumentText(content, docName = 'Document', modelId = 'claude-sonnet-5-5', context = {}) {
+  const prompt = `Analyze and summarize this document titled "${docName}".\n\nProvide:\n1. Executive Summary (2-3 concise paragraphs)\n2. Key Technical Points & Decisions (bullet points)\n3. Immediate Action Items (concrete tasks)\n\nDocument Text:\n${content.slice(0, 12000)}`;
+  return processPrarushAIQuery(prompt, modelId, context);
+}
+
+// AI Task Decomposition for Kanban
+export async function breakdownTask(taskTitle, modelId = 'claude-sonnet-5-5', context = {}) {
+  const prompt = `Break down the software engineering task: "${taskTitle}" into 4 to 6 concrete, actionable technical subtasks with acceptance criteria and estimated hours.`;
+  return processPrarushAIQuery(prompt, modelId, context);
+}
+
+// Grounded Knowledge Q&A (RAG)
+export async function answerKnowledgeQuery(question, contextSnippets = [], modelId = 'claude-sonnet-5-5', context = {}) {
+  const contextBlock = contextSnippets.map((c, i) => `[Source ${i + 1}: ${c.title || c.source}]: ${c.snippet || c.text}`).join('\n\n');
+  const prompt = `You are Prarush Knowledge Assistant. Answer the developer's question using ONLY the retrieved context passages below. If the context does not contain enough information, state that clearly.\n\nRetrieved Context:\n${contextBlock}\n\nDeveloper Question: "${question}"`;
+  return processPrarushAIQuery(prompt, modelId, context);
 }
